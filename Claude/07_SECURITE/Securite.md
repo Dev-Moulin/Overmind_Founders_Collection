@@ -1011,3 +1011,18 @@ curl -H "Origin: https://evil.com" https://your-api.com/api/test
 **Dernière mise à jour** : 18 novembre 2025
 **Validé par** : Recherches OWASP 2025, best practices React/Fastify 2025
 **Prochaine étape** : Issue #3 - Modération du Contenu
+
+---
+
+## 📋 Issues GitHub créées à partir de ce fichier
+
+- **Issue #58** : Frontend - Configurer DOMPurify pour sanitization XSS
+- **Issue #59** : Frontend - Configurer Content Security Policy (CSP)
+- **Issue #60** : Frontend - Implémenter validation Zod pour tous les formulaires
+- **Issue #61** : Frontend - Sécuriser authentification wallet (nonce + signature)
+- **Issue #62** : Backend - Implémenter protection CSRF
+- **Issue #63** : Backend - Implémenter logging sécurité avec Pino
+- **Issue #64** : Backend - Configurer gestion des secrets et variables d'environnement
+
+**Total : 7 issues**
+**Statut : ⏳ Issues créées (code à développer)**
