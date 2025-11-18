@@ -124,16 +124,21 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
 
 **Priorité** : 🟡 Moyenne
 
-#### [12_MODERATION](./12_MODERATION/) - 🔴 À créer
+#### [12_MODERATION](./12_MODERATION/) - ✅ Complet
 **Objectif** : Système de modération du contenu
 
 **Points à couvrir** :
-- [ ] Liste de mots interdits (multilingue)
-- [ ] Outils de détection (open-source)
-- [ ] Interface de modération manuelle
-- [ ] Processus de review
+- [x] Comparaison des solutions (npm packages, APIs)
+- [x] Recommandation : glin-profanity (gratuit, multilingue)
+- [x] Détection d'obfuscation (l33t, espaces, Unicode)
+- [x] Workflow de modération (automatique + manuelle)
+- [x] Interface de modération manuelle (dashboard)
+- [x] Intégration OpenAI Moderation API (Phase 2)
+- [x] Conformité légale (GDPR, DSA)
+- [x] Plan d'implémentation complet
 
-**Priorité** : 🔴 Haute
+**Statut** : ✅ Complet
+**Dernière mise à jour** : 18/11/2025
 
 #### [13_DONNEES_FONDATEURS](./13_DONNEES_FONDATEURS/) - 🟢 Optionnel
 **Objectif** : Enrichir les profils des fondateurs
@@ -197,7 +202,7 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
 | Gestion Erreurs | 🔴 | 0% | À documenter |
 | Tests | 🟡 | 0% | À définir |
 | Déploiement | 🟡 | 0% | À documenter |
-| Modération | 🔴 | 0% | À rechercher |
+| Modération | ✅ | 100% | glin-profanity + OpenAI (Phase 2) |
 | Données Fondateurs | 🟢 | 0% | Optionnel |
 
 ## 🎯 Prochaines étapes
@@ -267,6 +272,13 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
 - ✅ OWASP Top 10:2025 analysé et intégré
 - ✅ Protections XSS, CSRF, Rate Limiting, CSP documentées
 - ✅ Documentation `/Claude/07_SECURITE/README.md` (1013 lignes)
+- ✅ Recherche Modération complète (Issue #3)
+- ✅ Comparaison packages npm : glin-profanity, @2toad/profanity, leo-profanity, content-checker
+- ✅ Analyse APIs : Perspective API, OpenAI Moderation, AWS Comprehend
+- ✅ Décision : glin-profanity (Phase 1) + OpenAI Moderation (Phase 2)
+- ✅ Workflow de modération automatique + manuelle
+- ✅ Interface de modération avec dashboard React + Redis
+- ✅ Documentation `/Claude/12_MODERATION/Moderation_Contenu.md` (1200+ lignes)
 
 ### 17 novembre 2025
 - ✅ Création de la structure de documentation
