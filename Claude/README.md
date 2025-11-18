@@ -115,17 +115,21 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
 
 **Priorité** : 🟡 Moyenne
 
-#### [11_DEPLOIEMENT](./11_DEPLOIEMENT/) - 🟡 À créer
+#### [11_DEPLOIEMENT](./11_DEPLOIEMENT/) - ✅ Complet
 **Objectif** : DevOps et déploiement
 
 **Points à couvrir** :
-- [ ] CI/CD pipeline
-- [ ] Environnements (dev, staging, prod)
-- [ ] Hébergement (Vercel, Netlify, etc.)
-- [ ] Domaine et DNS
-- [ ] Variables d'environnement
+- [x] Hébergement Frontend (Vercel Free - 6000 min/mois)
+- [x] Hébergement Backend (Render Free - 750h/mois)
+- [x] CI/CD avec GitHub Actions (gratuit repos publics)
+- [x] Environnements (dev, staging, prod)
+- [x] Variables d'environnement (Vite best practices)
+- [x] Domaine gratuit (.us.kg) + DNS Cloudflare
+- [x] Monitoring gratuit (UptimeRobot + Render Logs)
+- [x] Stack 100% gratuite ($0/mois)
 
-**Priorité** : 🟡 Moyenne
+**Statut** : ✅ Complet
+**Dernière mise à jour** : 18/11/2025
 
 #### [12_MODERATION](./12_MODERATION/) - ✅ Complet
 **Objectif** : Système de modération du contenu
@@ -204,7 +208,7 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
 | UX/UI | 🟡 | 0% | À définir |
 | Gestion Erreurs | ✅ | 100% | Pino + Error Boundaries (gratuit) |
 | Tests | 🟡 | 0% | À définir |
-| Déploiement | 🟡 | 0% | À documenter |
+| Déploiement | ✅ | 100% | Vercel + Render + GitHub Actions (gratuit) |
 | Modération | ✅ | 100% | glin-profanity + OpenAI (Phase 2) |
 | Données Fondateurs | 🟢 | 0% | Optionnel |
 
@@ -290,6 +294,15 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
 - ✅ Retry strategy avec exponential backoff
 - ✅ Monitoring gratuit : Render Logs + UptimeRobot
 - ✅ Documentation `/Claude/09_GESTION_ERREURS/Gestion_Erreurs_Logging.md` (900+ lignes)
+- ✅ Recherche Déploiement & DevOps complète (Issue #7)
+- ✅ Comparaison Vercel vs Netlify (Vercel wins: 6000 vs 300 min build)
+- ✅ Configuration Render Free pour backend
+- ✅ CI/CD GitHub Actions (illimité repos publics)
+- ✅ Environnements multi-stages (dev, staging, prod)
+- ✅ Variables d'environnement Vite best practices
+- ✅ Domaine gratuit .us.kg + Cloudflare DNS
+- ✅ Monitoring gratuit : UptimeRobot + Render Logs
+- ✅ Documentation `/Claude/11_DEPLOIEMENT/Deploiement_DevOps.md` (1000+ lignes)
 
 ### 17 novembre 2025
 - ✅ Création de la structure de documentation
