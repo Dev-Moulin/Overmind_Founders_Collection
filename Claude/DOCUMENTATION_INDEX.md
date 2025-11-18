@@ -56,16 +56,48 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
 23. **#69** - Configurer tests blockchain avec Anvil
 24. **#70** - Configurer coverage et GitHub Actions CI/CD
 
-### 🚀 Prochaine étape : Initialisation du projet
-```bash
-# Frontend
-pnpm create vite@latest frontend -- --template react-ts
-cd frontend
-pnpm install
+### 🚀 Prochaine étape : Initialisation du projet en MONOREPO
 
-# Backend
-pnpm create fastify@latest backend
-cd backend
+**Architecture choisie** : Monorepo pnpm workspaces
+
+**Avantages** :
+- ✅ Partage des types TypeScript entre frontend/backend
+- ✅ Une seule commande pour tout installer/lancer
+- ✅ Versions synchronisées des dépendances
+- ✅ CI/CD simplifié
+
+**Structure** :
+```
+/
+├── apps/
+│   ├── web/          # Frontend (Vite + React + TS)
+│   └── api/          # Backend (Fastify + TS)
+├── packages/
+│   └── shared/       # Types/utils partagés
+├── package.json      # Root workspace
+├── pnpm-workspace.yaml
+└── Claude/           # Documentation
+```
+
+**Commandes d'initialisation** :
+```bash
+# 1. Setup monorepo root
+pnpm init
+
+# 2. Créer workspace config
+echo "packages:\n  - 'apps/*'\n  - 'packages/*'" > pnpm-workspace.yaml
+
+# 3. Créer apps/web (frontend)
+pnpm create vite@latest apps/web -- --template react-ts
+
+# 4. Créer apps/api (backend)
+pnpm create fastify@latest apps/api
+
+# 5. Créer packages/shared (types partagés)
+mkdir -p packages/shared
+cd packages/shared && pnpm init
+
+# 6. Installer toutes les dépendances
 pnpm install
 ```
 

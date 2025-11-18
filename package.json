@@ -1,0 +1,16 @@
+{
+  "name": "overmind-founders-collection",
+  "version": "1.0.0",
+  "private": true,
+  "description": "INTUITION Founders Totem NFT Collection - Voting Platform",
+  "scripts": {
+    "dev": "pnpm --parallel --filter './apps/*' dev",
+    "build": "pnpm --recursive --filter './apps/*' build",
+    "test": "pnpm --recursive test",
+    "type-check": "pnpm --recursive type-check"
+  },
+  "keywords": ["intuition", "nft", "voting", "web3"],
+  "author": "Overmind",
+  "license": "MIT",
+  "packageManager": "pnpm@10.5.0"
+}
