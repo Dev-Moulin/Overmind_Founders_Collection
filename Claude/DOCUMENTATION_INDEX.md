@@ -7,8 +7,67 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
 ## 📅 Suivi du projet
 
 **Date de début** : 17 novembre 2025
-**Dernière mise à jour** : 17 novembre 2025
-**Statut actuel** : Phase de documentation et recherche
+**Dernière mise à jour** : 18 novembre 2025
+**Statut actuel** : ✅ Documentation terminée - 🚀 Prêt pour le développement
+
+### 📊 Bilan des issues GitHub
+
+- **Total issues créées** : 70 issues (#1-70)
+- **Issues ouvertes** : 54 issues (prêtes à coder)
+- **Issues fermées** : 16 issues (recherches/documentation terminées)
+
+### 🎯 Plan de démarrage recommandé
+
+#### Phase 1 : Setup de base (Issues #18-24)
+1. **#18** - Créer fichier de données avec les 42 fondateurs
+2. **#19** - Setup wagmi + RainbowKit pour connexion wallet
+3. **#20** - Créer composant ConnectButton avec RainbowKit
+4. **#21** - Gérer la vérification du réseau Base Mainnet
+5. **#22** - Backend : Créer endpoint de vérification whitelist
+6. **#23** - Créer composant NotEligible (message d'erreur)
+7. **#24** - Afficher les informations du wallet connecté
+
+#### Phase 2 : Backend (Issues #51-57)
+8. **#51** - Setup Fastify project structure
+9. **#52** - Configurer variables d'environnement et secrets
+10. **#53** - Implémenter endpoint vérification whitelist
+11. **#54** - Implémenter endpoint modération de contenu
+12. **#55** - Implémenter endpoint upload image Pinata (optionnel)
+13. **#56** - Configurer CORS et sécurité
+14. **#57** - Déployer sur Render Free Tier
+
+#### Phase 3 : Sécurité Frontend (Issues #58-61)
+15. **#58** - Configurer DOMPurify pour sanitization XSS
+16. **#59** - Configurer Content Security Policy (CSP)
+17. **#60** - Implémenter validation Zod pour tous les formulaires
+18. **#61** - Sécuriser authentification wallet (nonce + signature)
+
+#### Phase 4 : Fonctionnalités principales (Issues #25-50)
+- **Propositions** : #25-34 (10 issues)
+- **Vote** : #35-42 (8 issues)
+- **Résultats** : #43-47 (5 issues)
+- **Pages manquantes** : #48-50 (3 issues)
+
+#### Phase 5 : Tests (Issues #65-70)
+19. **#65** - Setup Vitest et React Testing Library
+20. **#66** - Écrire tests unitaires pour utils et composants
+21. **#67** - Setup Playwright pour tests E2E
+22. **#68** - Écrire tests E2E pour parcours utilisateur
+23. **#69** - Configurer tests blockchain avec Anvil
+24. **#70** - Configurer coverage et GitHub Actions CI/CD
+
+### 🚀 Prochaine étape : Initialisation du projet
+```bash
+# Frontend
+pnpm create vite@latest frontend -- --template react-ts
+cd frontend
+pnpm install
+
+# Backend
+pnpm create fastify@latest backend
+cd backend
+pnpm install
+```
 
 ## 📂 Structure de la documentation
 
@@ -63,7 +122,8 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
 - [x] Décision : Fastify + Render Free Tier ($0/mois)
 - [x] Plan de migration si croissance
 
-**Statut** : ✅ Complet
+**Issues créées** : #51, #52, #53, #54, #55, #56, #57
+**Statut** : ✅ Complet (documentation) | ⏳ Issues créées (7 issues à coder)
 **Dernière mise à jour** : 18/11/2025
 
 #### [07_SECURITE](./07_SECURITE/) - ✅ Complet
@@ -80,7 +140,8 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
 - [x] CSP (Content Security Policy)
 - [x] Logging & monitoring (Pino, Sentry)
 
-**Statut** : ✅ Complet
+**Issues créées** : #58, #59, #60, #61, #62, #63, #64
+**Statut** : ✅ Complet (documentation) | ⏳ Issues créées (7 issues à coder)
 **Dernière mise à jour** : 18/11/2025
 
 ### ⏳ En cours / À faire
@@ -132,7 +193,8 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
 - [x] CI/CD GitHub Actions (gratuit repos publics)
 - [x] Stack 100% gratuite ($0/mois)
 
-**Statut** : ✅ Complet
+**Issues créées** : #65, #66, #67, #68, #69, #70
+**Statut** : ✅ Complet (documentation) | ⏳ Issues créées (6 issues à coder)
 **Dernière mise à jour** : 18/11/2025
 
 #### [11_DEPLOIEMENT](./11_DEPLOIEMENT/) - ✅ Complet

@@ -978,3 +978,17 @@ jobs:
 **Dernière mise à jour** : 18 novembre 2025
 **Auteur** : Documentation Master - INTUITION Founders Totem
 **Statut** : ✅ Complet
+
+---
+
+## 📋 Issues GitHub créées à partir de ce fichier
+
+- **Issue #65** : Tests - Setup Vitest et React Testing Library
+- **Issue #66** : Tests - Écrire tests unitaires pour utils et composants
+- **Issue #67** : Tests - Setup Playwright pour tests E2E
+- **Issue #68** : Tests - Écrire tests E2E pour parcours utilisateur
+- **Issue #69** : Tests - Configurer tests blockchain avec Anvil
+- **Issue #70** : Tests - Configurer coverage et GitHub Actions CI/CD
+
+**Total : 6 issues**
+**Statut : ⏳ Issues créées (code à développer)**

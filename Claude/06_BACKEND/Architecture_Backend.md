@@ -649,3 +649,18 @@ pnpm install -D @types/node vitest tsx
 **Dernière mise à jour** : 18 novembre 2025
 **Validé par** : Recherches approfondies 2025 (Heroku, Railway, Render, Fly.io, Vercel, Netlify, DigitalOcean)
 **Prochaine étape** : Issue #2 - Documentation Sécurité
+
+---
+
+## 📋 Issues GitHub créées à partir de ce fichier
+
+- **Issue #51** : Backend - Setup Fastify project structure
+- **Issue #52** : Backend - Configurer variables d'environnement et secrets
+- **Issue #53** : Backend - Implémenter endpoint vérification whitelist
+- **Issue #54** : Backend - Implémenter endpoint modération de contenu
+- **Issue #55** : Backend - Implémenter endpoint upload image Pinata (optionnel)
+- **Issue #56** : Backend - Configurer CORS et sécurité
+- **Issue #57** : Backend - Déployer sur Render Free Tier
+
+**Total : 7 issues**
+**Statut : ⏳ Issues créées (code à développer)**
