@@ -25,6 +25,8 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
   - **Issues créées** : #19, #20, #21, #22, #23, #24
   - **Statut** : ✅ Complet (documentation) | ⏳ Issues créées (6 issues à coder)
 - **02_Propositions.md** : Création d'Atoms et Triples
+  - **Issues créées** : #25, #26, #27, #28, #29, #30, #31, #32, #33, #34
+  - **Statut** : ✅ Complet (documentation) | ⏳ Issues créées (10 issues à coder)
 - **05_Vote.md** : Système de vote avec $TRUST
 - **04_Resultats.md** : Affichage des résultats
 - **Dernière mise à jour** : 18/11/2025

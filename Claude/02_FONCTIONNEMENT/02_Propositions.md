@@ -230,3 +230,21 @@ const query = `
 - Triple créé : `[Joseph Lubin] [represented_by] [Lion]`
 - Visible dans le knowledge graph INTUITION
 - Prêt à recevoir des votes
+
+---
+
+## 📋 Issues GitHub créées à partir de ce fichier
+
+- **Issue #25** : Frontend - Créer page Proposer avec grille des 42 fondateurs
+- **Issue #26** : Frontend - Créer composant FounderCard
+- **Issue #27** : Frontend - Créer composant ProposalModal (formulaire de proposition)
+- **Issue #28** : Frontend - Créer composant ImageUpload avec upload IPFS (Pinata)
+- **Issue #29** : Frontend - Intégrer INTUITION SDK - Création d'Atom (createAtomFromThing)
+- **Issue #30** : Frontend - Intégrer INTUITION SDK - Création de Triple (createTripleStatement)
+- **Issue #31** : Frontend - Créer composant TransactionProgress (suivi des transactions)
+- **Issue #32** : Frontend - Gérer les erreurs de proposition (rejection, gas, duplicates)
+- **Issue #33** : Frontend - Créer composant SuccessConfirmation (proposition réussie)
+- **Issue #34** : Backend - Créer requêtes GraphQL pour récupérer les propositions
+
+**Total : 10 issues**
+**Statut : ⏳ Issues créées (code à développer)**
