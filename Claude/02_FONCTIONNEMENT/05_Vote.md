@@ -318,3 +318,19 @@ Tous les votes sont publics et vérifiables :
 8. ✅ Son vote est enregistré
 9. Lion passe à 125 $TRUST (9 votants au lieu de 8)
 10. Alice peut voir son vote dans "Mes votes"
+
+---
+
+## 📋 Issues GitHub créées à partir de ce fichier
+
+- **Issue #35** : Frontend - Créer page Vote avec liste des propositions d un fondateur
+- **Issue #36** : Frontend - Créer composant TotemCard (affichage totem avec vote)
+- **Issue #37** : Frontend - Créer composant VoteModal (choisir montant TRUST à déposer)
+- **Issue #38** : Frontend - Créer hook useVote pour gérer les transactions de vote
+- **Issue #39** : Backend - Créer requêtes GraphQL pour récupérer les votes
+- **Issue #40** : Frontend - Créer page MyVotes (historique des votes utilisateur)
+- **Issue #41** : Frontend - Créer hook useWithdraw pour retirer TRUST après vote
+- **Issue #42** : Frontend - Gérer les erreurs de vote (rejection, balance, network)
+
+**Total : 8 issues**
+**Statut : ⏳ Issues créées (code à développer)**

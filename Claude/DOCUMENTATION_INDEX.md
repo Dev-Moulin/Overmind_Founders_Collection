@@ -28,6 +28,8 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
   - **Issues créées** : #25, #26, #27, #28, #29, #30, #31, #32, #33, #34
   - **Statut** : ✅ Complet (documentation) | ⏳ Issues créées (10 issues à coder)
 - **05_Vote.md** : Système de vote avec $TRUST
+  - **Issues créées** : #35, #36, #37, #38, #39, #40, #41, #42
+  - **Statut** : ✅ Complet (documentation) | ⏳ Issues créées (8 issues à coder)
 - **04_Resultats.md** : Affichage des résultats
 - **Dernière mise à jour** : 18/11/2025
 
