@@ -45,19 +45,20 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
 - **Statut** : ✅ Complet
 - **Dernière mise à jour** : 17/11/2025
 
-### ⏳ En cours / À faire
-
-#### [06_BACKEND](./06_BACKEND/) - 🔴 À créer
+#### [06_BACKEND](./06_BACKEND/) - ✅ Complet
 **Objectif** : Documenter l'architecture backend nécessaire
 
 **Points à couvrir** :
-- [ ] Recherche : Express vs Fastify vs tRPC
-- [ ] Coûts d'hébergement
-- [ ] Architecture et endpoints
-- [ ] Base de données (si nécessaire)
-- [ ] Intégration avec frontend
+- [x] Recherche : Express vs Fastify vs tRPC
+- [x] Coûts d'hébergement (Heroku, Railway, Render, Fly.io, Vercel, Netlify, DigitalOcean)
+- [x] Architecture et endpoints
+- [x] Décision : Fastify + Render Free Tier ($0/mois)
+- [x] Plan de migration si croissance
 
-**Priorité** : 🔴 Haute (nécessaire pour whitelist et modération)
+**Statut** : ✅ Complet
+**Dernière mise à jour** : 18/11/2025
+
+### ⏳ En cours / À faire
 
 #### [07_SECURITE](./07_SECURITE/) - 🔴 À créer
 **Objectif** : Sécurité complète de l'application
@@ -186,7 +187,7 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
 | Technologies | ✅ | 100% | Frontend complet |
 | Vérification Wallets | ⏳ | 80% | Attente INTUITION |
 | Structure Données | ✅ | 100% | Schéma complet |
-| Backend | 🔴 | 0% | À rechercher |
+| Backend | ✅ | 100% | Fastify + Render Free |
 | Sécurité | 🔴 | 0% | À documenter |
 | UX/UI | 🟡 | 0% | À définir |
 | Gestion Erreurs | 🔴 | 0% | À documenter |
@@ -200,10 +201,11 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
 1. ✅ ~~Créer structure de documentation~~
 2. ✅ ~~Documenter INTUITION Protocol~~
 3. ✅ ~~Vérifier et corriger la documentation~~
-4. 🔄 **EN COURS : Recherches approfondies sur points critiques**
-5. ⏳ Contacter équipe INTUITION pour whitelist
-6. ⏳ Créer le repository GitHub avec issues
-7. ⏳ Commencer le développement
+4. ✅ ~~Créer le repository GitHub avec issues~~
+5. ✅ ~~Recherche Backend Architecture (Issue #1)~~
+6. 🔄 **EN COURS : Recherches approfondies sur points critiques (Issues #2-#8)**
+7. ⏳ Contacter équipe INTUITION pour whitelist
+8. ⏳ Commencer le développement
 
 ## 🔗 Liens utiles
 
@@ -232,12 +234,12 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
 - **INTUITION SDK** : @0xintuition/sdk + @0xintuition/graphql
 - **Vote** : 1 wallet = possibilité de plusieurs votes (pas de limite)
 - **Classement** : Par totalAssets dans positiveVault
+- **Backend** : Fastify + TypeScript
+- **Hébergement Backend** : Render Free Tier ($0/mois)
+- **Migration** : Render Starter ($7/mois) si croissance
 
 ### Questions en suspens
 - [ ] Obtenir liste whitelist airdrop (INTUITION)
-- [ ] Confirmer si backend est nécessaire
-- [ ] Choix de l'architecture backend
-- [ ] Budget hébergement
 
 ### Risques identifiés
 - ⚠️ Dépendance à l'équipe INTUITION pour la whitelist
@@ -247,6 +249,15 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
 
 ## 🔄 Changelog
 
+### 18 novembre 2025
+- ✅ Création du repository GitHub avec 8 issues
+- ✅ Configuration protection branche main
+- ✅ Recherche Backend Architecture complète (Issue #1)
+- ✅ Comparaison Express vs Fastify vs tRPC
+- ✅ Analyse hébergement : Heroku, Railway, Render, Fly.io, Vercel, Netlify, DigitalOcean
+- ✅ Décision : Fastify + Render Free Tier ($0/mois)
+- ✅ Documentation `/Claude/06_BACKEND/README.md` (651 lignes)
+
 ### 17 novembre 2025
 - ✅ Création de la structure de documentation
 - ✅ Documentation complète du protocol INTUITION
@@ -254,7 +265,7 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
 - ✅ Stack frontend complète
 - ✅ Schéma GraphQL et bonding curves
 - ✅ Vérification et correction des queries
-- 🔄 Identification des recherches à faire
+- ✅ Identification des recherches à faire
 
 ## 📧 Contact
 
