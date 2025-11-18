@@ -31,6 +31,8 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
   - **Issues créées** : #35, #36, #37, #38, #39, #40, #41, #42
   - **Statut** : ✅ Complet (documentation) | ⏳ Issues créées (8 issues à coder)
 - **04_Resultats.md** : Affichage des résultats
+  - **Issues créées** : #43, #44, #45, #46, #47
+  - **Statut** : ✅ Complet (documentation) | ⏳ Issues créées (5 issues à coder)
 - **Dernière mise à jour** : 18/11/2025
 
 #### [03_TECHNOLOGIES](./03_TECHNOLOGIES/)

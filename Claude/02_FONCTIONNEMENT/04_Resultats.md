@@ -392,3 +392,16 @@ const query = `
 - 🔄 Lazy loading des images
 - 📦 Pagination si > 100 propositions
 - 🎯 Optimistic UI updates
+
+---
+
+## 📋 Issues GitHub créées à partir de ce fichier
+
+- **Issue #43** : Frontend - Créer page Results globale (tous les fondateurs)
+- **Issue #44** : Frontend - Créer page FounderDetails (résultats détaillés par fondateur)
+- **Issue #45** : Frontend - Créer page TotemDetails (détails complets d un totem)
+- **Issue #46** : Backend - Créer requêtes GraphQL pour statistiques et résultats
+- **Issue #47** : Backend - Créer endpoint export résultats (JSON/CSV/NFT metadata)
+
+**Total : 5 issues**
+**Statut : ⏳ Issues créées (code à développer)**
