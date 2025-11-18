@@ -77,16 +77,25 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
 
 ### ⏳ En cours / À faire
 
-#### [08_UX_UI](./08_UX_UI/) - 🟡 À créer
+#### [08_UX_UI](./08_UX_UI/) - ✅ Complet
 **Objectif** : Guidelines UX/UI et accessibilité
 
 **Points à couvrir** :
-- [ ] Responsive design (Mobile, Tablet, Desktop)
-- [ ] Accessibilité (a11y) - WCAG 2.1
-- [ ] Design system / palette de couleurs
-- [ ] Wireframes (optionnel)
+- [x] Responsive design (Mobile-first, égalité Mobile/Desktop)
+- [x] Accessibilité (a11y) - WCAG 2.1 AAA
+- [x] Design system complet (Tailwind + shadcn/ui + glasscn-ui)
+- [x] Palette de couleurs INTUITION
+- [x] Typographie (Inter font)
+- [x] Glassmorphism + Web3 aesthetic
+- [x] Dark mode uniquement
+- [x] Composants UI (FounderCard, TotemCard, GlassCard)
+- [x] Loading states (skeleton screens, spinners, progress)
+- [x] Animations (Framer Motion + CSS)
+- [x] Structure des pages (Landing, Proposer, Voter, Résultats)
+- [x] Stack 100% gratuite ($0/mois)
 
-**Priorité** : 🟡 Moyenne
+**Statut** : ✅ Complet
+**Dernière mise à jour** : 18/11/2025
 
 #### [09_GESTION_ERREURS](./09_GESTION_ERREURS/) - ✅ Complet
 **Objectif** : Stratégie complète de gestion des erreurs
@@ -208,7 +217,7 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
 | Structure Données | ✅ | 100% | Schéma complet |
 | Backend | ✅ | 100% | Fastify + Render Free |
 | Sécurité | ✅ | 100% | OWASP 2025 + Protections complètes |
-| UX/UI | 🟡 | 0% | À définir |
+| UX/UI | ✅ | 100% | Tailwind + shadcn/ui + glassmorphism (gratuit) |
 | Gestion Erreurs | ✅ | 100% | Pino + Error Boundaries (gratuit) |
 | Tests | ✅ | 100% | Vitest + RTL + Playwright (gratuit) |
 | Déploiement | ✅ | 100% | Vercel + Render + GitHub Actions (gratuit) |
@@ -313,6 +322,17 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
 - ✅ Configuration React Testing Library avec custom render
 - ✅ Coverage 80% + CI/CD GitHub Actions
 - ✅ Documentation `/Claude/10_TESTS/Strategie_Tests.md` (1200+ lignes)
+- ✅ Recherche UI/UX Design complète (Issue #5)
+- ✅ Palette de couleurs INTUITION extraite du site officiel
+- ✅ Design system complet : Tailwind + shadcn/ui + glasscn-ui
+- ✅ Glassmorphism + Web3 aesthetic, dark mode uniquement
+- ✅ Composants UI : GlassCard, FounderCard, TotemCard (code complet)
+- ✅ Responsive Mobile-first (égalité Mobile/Desktop)
+- ✅ Accessibilité WCAG 2.1 AAA avec contrastes vérifiés
+- ✅ Loading states : Skeleton screens, spinners, progress bars
+- ✅ Animations : Framer Motion + CSS
+- ✅ Structure pages : Landing, Proposer, Voter, Résultats
+- ✅ Documentation `/Claude/08_UX_UI/Design_System.md` (1300+ lignes)
 
 ### 17 novembre 2025
 - ✅ Création de la structure de documentation
