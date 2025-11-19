@@ -3,9 +3,9 @@ import '@rainbow-me/rainbowkit/styles.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider } from 'wagmi';
 import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 import { config } from './config/wagmi';
+import { WalletConnectButton } from './components/ConnectButton';
 
 const queryClient = new QueryClient();
 
@@ -23,7 +23,7 @@ function App() {
           <div className="app">
             <header>
               <h1>INTUITION Founders Totem</h1>
-              <ConnectButton />
+              <WalletConnectButton />
             </header>
             <main>
               <p>Connect your wallet to propose and vote for founder totems.</p>
