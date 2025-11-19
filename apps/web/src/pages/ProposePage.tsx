@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import { FounderCard, type FounderData } from '../components/FounderCard';
+import { ProposalModal, type ProposalFormData } from '../components/ProposalModal';
 import foundersData from '../../../../packages/shared/src/data/founders.json';
 
 export function ProposePage() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFounder, setSelectedFounder] = useState<FounderData | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Cast foundersData to FounderData array
   const founders = foundersData as FounderData[];
@@ -16,8 +20,39 @@ export function ProposePage() {
   );
 
   const handlePropose = (founderId: string) => {
-    // TODO: Implement proposal modal (issue #27)
-    console.log('Proposer totem pour:', founderId);
+    const founder = founders.find((f) => f.id === founderId);
+    if (founder) {
+      setSelectedFounder(founder);
+      setIsModalOpen(true);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedFounder(null);
+  };
+
+  const handleSubmitProposal = async (data: ProposalFormData) => {
+    setIsSubmitting(true);
+    try {
+      // TODO: Implement INTUITION SDK integration (issues #29, #30)
+      console.log('Submitting proposal:', data);
+
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Close modal on success
+      handleCloseModal();
+
+      // TODO: Show success notification
+      alert(`Proposition soumise pour ${selectedFounder?.name}!`);
+    } catch (error) {
+      console.error('Error submitting proposal:', error);
+      // TODO: Show error notification
+      alert('Erreur lors de la soumission');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -68,6 +103,17 @@ export function ProposePage() {
             Aucun fondateur ne correspond à votre recherche.
           </p>
         </div>
+      )}
+
+      {/* Proposal Modal */}
+      {selectedFounder && (
+        <ProposalModal
+          founder={selectedFounder}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          onSubmit={handleSubmitProposal}
+          isLoading={isSubmitting}
+        />
       )}
     </div>
   );
