@@ -5,7 +5,7 @@
 
 ---
 
-## Issues CLOSED (21)
+## Issues CLOSED (22)
 
 ### Recherche & Documentation (#1-7)
 - **#1** : [RESEARCH] Backend Architecture Choice
@@ -16,7 +16,7 @@
 - **#6** : [TESTING] Testing Strategy Definition
 - **#7** : [DEVOPS] Deployment & CI/CD Pipeline
 
-### Développement (#18-24, #48)
+### Développement (#18-24, #48-49)
 - **#18** : Setup: Créer fichier de données avec les 42 fondateurs
 - **#19** : Frontend: Setup wagmi + RainbowKit pour connexion wallet
 - **#20** : Frontend: Créer composant ConnectButton avec RainbowKit
@@ -25,6 +25,7 @@
 - **#23** : Frontend: Créer composant NotEligible (message d'erreur)
 - **#24** : Frontend: Afficher les informations du wallet connecté
 - **#48** : Frontend: Créer page Landing/Home avec hero et navigation
+- **#49** : Frontend: Créer Layout principal avec navigation et routing
 
 ### Setup Additionnel (#77-81)
 - **#77** : Frontend: Setup Tailwind CSS v4
@@ -35,7 +36,7 @@
 
 ---
 
-## Issues OPEN (53)
+## Issues OPEN (52)
 
 ### Optionnel (#8)
 - **#8** : [OPTIONAL] Founders Data Enrichment
@@ -69,8 +70,7 @@
 - **#46** : Backend: Créer requêtes GraphQL pour statistiques et résultats
 - **#47** : Backend: Créer endpoint export résultats (JSON/CSV/NFT metadata)
 
-### Frontend - Pages & Layout (#49-50)
-- **#49** : Frontend: Créer Layout principal avec navigation et routing
+### Frontend - Pages & Layout (#50)
 - **#50** : Frontend: Créer page 404 Not Found
 
 ### Backend - Setup & API (#51-57)
@@ -196,5 +196,6 @@
 - **PR #87** - Composant NotEligible (issue #23)
 - **PR #88** - Composant WalletInfo (issue #24)
 - **PR #89** - Page Landing/Home (issue #48)
+- **PR #90** - Layout avec navigation (issue #49)
 
 **Note** : Le Layout créé (#78) est un composant wrapper basique. L'issue #49 (Layout + routing) concerne le layout complet avec navigation et React Router.

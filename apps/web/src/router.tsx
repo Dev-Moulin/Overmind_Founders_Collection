@@ -2,6 +2,7 @@ import { createBrowserRouter, Outlet } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { NetworkGuard } from './components/NetworkGuard';
 import { HomePage } from './pages/HomePage';
+import { NotFoundPage } from './pages/NotFoundPage';
 
 // Root layout with Layout and NetworkGuard
 function RootLayout() {
@@ -66,15 +67,6 @@ function MyVotesPage() {
     <div className="text-center">
       <h2 className="text-3xl font-bold text-white mb-4">My Votes</h2>
       <p className="text-white/70">View your voting history.</p>
-    </div>
-  );
-}
-
-function NotFoundPage() {
-  return (
-    <div className="text-center">
-      <h2 className="text-3xl font-bold text-white mb-4">404 - Page Not Found</h2>
-      <p className="text-white/70">The page you're looking for doesn't exist.</p>
     </div>
   );
 }
