@@ -5,7 +5,7 @@
 
 ---
 
-## Issues CLOSED (13)
+## Issues CLOSED (15)
 
 ### Recherche & Documentation (#1-7)
 - **#1** : [RESEARCH] Backend Architecture Choice
@@ -16,10 +16,12 @@
 - **#6** : [TESTING] Testing Strategy Definition
 - **#7** : [DEVOPS] Deployment & CI/CD Pipeline
 
-### Développement (#18-20)
+### Développement (#18-22)
 - **#18** : Setup: Créer fichier de données avec les 42 fondateurs
 - **#19** : Frontend: Setup wagmi + RainbowKit pour connexion wallet
 - **#20** : Frontend: Créer composant ConnectButton avec RainbowKit
+- **#21** : Frontend: Gérer la vérification du réseau Base Mainnet
+- **#22** : Backend: Créer endpoint de vérification whitelist
 
 ### Setup Additionnel (#77-78)
 - **#77** : Frontend: Setup Tailwind CSS v4
@@ -27,18 +29,14 @@
 
 ---
 
-## Issues OPEN (61)
+## Issues OPEN (59)
 
 ### Optionnel (#8)
 - **#8** : [OPTIONAL] Founders Data Enrichment
 
-### Frontend - Connexion & Wallet (#21-24)
-- **#21** : Frontend: Gérer la vérification du réseau Base Mainnet
+### Frontend - Connexion & Wallet (#23-24)
 - **#23** : Frontend: Créer composant NotEligible (message d'erreur)
 - **#24** : Frontend: Afficher les informations du wallet connecté
-
-### Backend - Whitelist (#22)
-- **#22** : Backend: Créer endpoint de vérification whitelist
 
 ### Frontend - Propositions (#25-34)
 - **#25** : Frontend: Créer page Proposer avec grille des 42 fondateurs
@@ -111,14 +109,14 @@
 
 ## Ordre de Développement Recommandé
 
-### Phase 1 : Connexion Wallet
+### Phase 1 : Connexion Wallet (DONE)
 1. ✅ #18 - Fichier données 42 fondateurs
 2. ✅ #19 - Setup wagmi + RainbowKit
 3. ✅ #20 - ConnectButton custom
 4. ✅ #77 - Setup Tailwind CSS v4
 5. ✅ #78 - Composants Header/Footer de base
-6. #21 - Vérification réseau Base Mainnet
-7. #22 - Backend endpoint whitelist
+6. ✅ #21 - Vérification réseau Base Mainnet
+7. ✅ #22 - Backend endpoint whitelist
 
 ### Phase 2 : Frontend Base
 8. #79 - Configuration variables d'environnement
@@ -188,9 +186,12 @@
 
 ## Historique des PRs
 
+- **PR #72** - Fichier données 42 fondateurs (issue #18)
 - **PR #73** - wagmi + RainbowKit setup (issue #19)
-- **PR pour #20** - ConnectButton custom avec glassmorphism
-- **PR pour #77** - Setup Tailwind CSS v4
-- **PR pour #78** - Header/Footer/Layout components basiques
+- **PR #74** - ConnectButton custom avec glassmorphism (issue #20)
+- **PR #75** - Setup Tailwind CSS v4 (issue #77)
+- **PR #76** - Header/Footer/Layout components basiques (issue #78)
+- **PR #82** - NetworkGuard pour vérification Base Mainnet (issue #21)
+- **PR #83** - Endpoint whitelist backend (issue #22)
 
 **Note** : Le Layout créé (#78) est un composant wrapper basique. L'issue #49 (Layout + routing) concerne le layout complet avec navigation et React Router.
