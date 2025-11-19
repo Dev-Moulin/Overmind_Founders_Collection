@@ -5,7 +5,7 @@
 
 ---
 
-## Issues CLOSED (17)
+## Issues CLOSED (18)
 
 ### Recherche & Documentation (#1-7)
 - **#1** : [RESEARCH] Backend Architecture Choice
@@ -23,15 +23,16 @@
 - **#21** : Frontend: Gérer la vérification du réseau Base Mainnet
 - **#22** : Backend: Créer endpoint de vérification whitelist
 
-### Setup Additionnel (#77-80)
+### Setup Additionnel (#77-81)
 - **#77** : Frontend: Setup Tailwind CSS v4
 - **#78** : Frontend: Créer composants Header et Footer de base
 - **#79** : Frontend: Configuration variables d'environnement (.env)
 - **#80** : Frontend: Setup React Router pour navigation
+- **#81** : Frontend: Installation et configuration INTUITION SDK
 
 ---
 
-## Issues OPEN (57)
+## Issues OPEN (56)
 
 ### Optionnel (#8)
 - **#8** : [OPTIONAL] Founders Data Enrichment
@@ -102,8 +103,6 @@
 - **#69** : Tests - Configurer tests blockchain avec Anvil
 - **#70** : Tests - Configurer coverage et GitHub Actions CI/CD
 
-### Setup Additionnel (#81)
-- **#81** : Frontend: Installation et configuration INTUITION SDK
 
 ---
 
@@ -195,5 +194,6 @@
 - **PR #83** - Endpoint whitelist backend (issue #22)
 - **PR #84** - Configuration variables d'environnement (issue #79)
 - **PR #85** - Setup React Router pour navigation (issue #80)
+- **PR #86** - Installation et configuration INTUITION SDK (issue #81)
 
 **Note** : Le Layout créé (#78) est un composant wrapper basique. L'issue #49 (Layout + routing) concerne le layout complet avec navigation et React Router.
