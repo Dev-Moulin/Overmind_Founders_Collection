@@ -5,7 +5,7 @@
 
 ---
 
-## Issues CLOSED (15)
+## Issues CLOSED (17)
 
 ### Recherche & Documentation (#1-7)
 - **#1** : [RESEARCH] Backend Architecture Choice
@@ -23,13 +23,15 @@
 - **#21** : Frontend: Gérer la vérification du réseau Base Mainnet
 - **#22** : Backend: Créer endpoint de vérification whitelist
 
-### Setup Additionnel (#77-78)
+### Setup Additionnel (#77-80)
 - **#77** : Frontend: Setup Tailwind CSS v4
 - **#78** : Frontend: Créer composants Header et Footer de base
+- **#79** : Frontend: Configuration variables d'environnement (.env)
+- **#80** : Frontend: Setup React Router pour navigation
 
 ---
 
-## Issues OPEN (59)
+## Issues OPEN (57)
 
 ### Optionnel (#8)
 - **#8** : [OPTIONAL] Founders Data Enrichment
@@ -100,9 +102,7 @@
 - **#69** : Tests - Configurer tests blockchain avec Anvil
 - **#70** : Tests - Configurer coverage et GitHub Actions CI/CD
 
-### Setup Additionnel (#79-81)
-- **#79** : Frontend: Configuration variables d'environnement (.env)
-- **#80** : Frontend: Setup React Router pour navigation
+### Setup Additionnel (#81)
 - **#81** : Frontend: Installation et configuration INTUITION SDK
 
 ---
@@ -193,5 +193,7 @@
 - **PR #76** - Header/Footer/Layout components basiques (issue #78)
 - **PR #82** - NetworkGuard pour vérification Base Mainnet (issue #21)
 - **PR #83** - Endpoint whitelist backend (issue #22)
+- **PR #84** - Configuration variables d'environnement (issue #79)
+- **PR #85** - Setup React Router pour navigation (issue #80)
 
 **Note** : Le Layout créé (#78) est un composant wrapper basique. L'issue #49 (Layout + routing) concerne le layout complet avec navigation et React Router.

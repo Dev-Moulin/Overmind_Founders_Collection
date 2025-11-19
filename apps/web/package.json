@@ -20,6 +20,7 @@
     "vite": "^7.2.2"
   },
   "dependencies": {
+    "@0xintuition/sdk": "2.0.0-alpha.4",
     "@rainbow-me/rainbowkit": "^2.2.9",
     "@tanstack/react-query": "^5.90.10",
     "react": "^19.2.0",
