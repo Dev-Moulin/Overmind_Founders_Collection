@@ -5,7 +5,7 @@
 
 ---
 
-## Issues CLOSED (18)
+## Issues CLOSED (19)
 
 ### Recherche & Documentation (#1-7)
 - **#1** : [RESEARCH] Backend Architecture Choice
@@ -16,12 +16,13 @@
 - **#6** : [TESTING] Testing Strategy Definition
 - **#7** : [DEVOPS] Deployment & CI/CD Pipeline
 
-### Développement (#18-22)
+### Développement (#18-24)
 - **#18** : Setup: Créer fichier de données avec les 42 fondateurs
 - **#19** : Frontend: Setup wagmi + RainbowKit pour connexion wallet
 - **#20** : Frontend: Créer composant ConnectButton avec RainbowKit
 - **#21** : Frontend: Gérer la vérification du réseau Base Mainnet
 - **#22** : Backend: Créer endpoint de vérification whitelist
+- **#23** : Frontend: Créer composant NotEligible (message d'erreur)
 
 ### Setup Additionnel (#77-81)
 - **#77** : Frontend: Setup Tailwind CSS v4
@@ -32,13 +33,12 @@
 
 ---
 
-## Issues OPEN (56)
+## Issues OPEN (55)
 
 ### Optionnel (#8)
 - **#8** : [OPTIONAL] Founders Data Enrichment
 
-### Frontend - Connexion & Wallet (#23-24)
-- **#23** : Frontend: Créer composant NotEligible (message d'erreur)
+### Frontend - Connexion & Wallet (#24)
 - **#24** : Frontend: Afficher les informations du wallet connecté
 
 ### Frontend - Propositions (#25-34)
@@ -195,5 +195,6 @@
 - **PR #84** - Configuration variables d'environnement (issue #79)
 - **PR #85** - Setup React Router pour navigation (issue #80)
 - **PR #86** - Installation et configuration INTUITION SDK (issue #81)
+- **PR #87** - Composant NotEligible (issue #23)
 
 **Note** : Le Layout créé (#78) est un composant wrapper basique. L'issue #49 (Layout + routing) concerne le layout complet avec navigation et React Router.
