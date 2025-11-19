@@ -3,6 +3,7 @@ import { Layout } from './components/Layout';
 import { NetworkGuard } from './components/NetworkGuard';
 import { HomePage } from './pages/HomePage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { ProposePage } from './pages/ProposePage';
 
 // Root layout with Layout and NetworkGuard
 function RootLayout() {
@@ -16,15 +17,6 @@ function RootLayout() {
 }
 
 // Placeholder pages - will be replaced with actual components
-
-function ProposePage() {
-  return (
-    <div className="text-center">
-      <h2 className="text-3xl font-bold text-white mb-4">Propose a Totem</h2>
-      <p className="text-white/70">Select a founder to propose a totem for.</p>
-    </div>
-  );
-}
 
 function VotePage() {
   return (

@@ -1,11 +1,11 @@
 # INTUITION Founders Totem - Liste Complète des Issues GitHub
 
 **Dernière mise à jour** : 19 novembre 2025
-**Total** : 74 issues
+**Total** : 74 issues (24 closed, 50 open)
 
 ---
 
-## Issues CLOSED (23)
+## Issues CLOSED (24)
 
 ### Recherche & Documentation (#1-7)
 - **#1** : [RESEARCH] Backend Architecture Choice
@@ -16,7 +16,7 @@
 - **#6** : [TESTING] Testing Strategy Definition
 - **#7** : [DEVOPS] Deployment & CI/CD Pipeline
 
-### Développement (#18-24, #48-50)
+### Développement (#18-24, #26, #48-50)
 - **#18** : Setup: Créer fichier de données avec les 42 fondateurs
 - **#19** : Frontend: Setup wagmi + RainbowKit pour connexion wallet
 - **#20** : Frontend: Créer composant ConnectButton avec RainbowKit
@@ -24,6 +24,7 @@
 - **#22** : Backend: Créer endpoint de vérification whitelist
 - **#23** : Frontend: Créer composant NotEligible (message d'erreur)
 - **#24** : Frontend: Afficher les informations du wallet connecté
+- **#26** : Frontend: Créer composant FounderCard
 - **#48** : Frontend: Créer page Landing/Home avec hero et navigation
 - **#49** : Frontend: Créer Layout principal avec navigation et routing
 - **#50** : Frontend: Créer page 404 Not Found
@@ -37,14 +38,13 @@
 
 ---
 
-## Issues OPEN (51)
+## Issues OPEN (50)
 
 ### Optionnel (#8)
 - **#8** : [OPTIONAL] Founders Data Enrichment
 
-### Frontend - Propositions (#25-34)
+### Frontend - Propositions (#25, #27-34)
 - **#25** : Frontend: Créer page Proposer avec grille des 42 fondateurs
-- **#26** : Frontend: Créer composant FounderCard
 - **#27** : Frontend: Créer composant ProposalModal (formulaire de proposition)
 - **#28** : Frontend: Créer composant ImageUpload avec upload IPFS (Pinata)
 - **#29** : Frontend: Intégrer INTUITION SDK - Création d'Atom (createAtomFromThing)
@@ -196,5 +196,6 @@
 - **PR #89** - Page Landing/Home (issue #48)
 - **PR #90** - Layout avec navigation (issue #49)
 - **PR #91** - Page 404 Not Found (issue #50)
+- **PR #92** - Composant FounderCard (issue #26)
 
 **Note** : Le Layout créé (#78) est un composant wrapper basique. L'issue #49 (Layout + routing) concerne le layout complet avec navigation et React Router.
