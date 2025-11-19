@@ -5,7 +5,7 @@
 
 ---
 
-## Issues CLOSED (20)
+## Issues CLOSED (21)
 
 ### Recherche & Documentation (#1-7)
 - **#1** : [RESEARCH] Backend Architecture Choice
@@ -16,7 +16,7 @@
 - **#6** : [TESTING] Testing Strategy Definition
 - **#7** : [DEVOPS] Deployment & CI/CD Pipeline
 
-### Développement (#18-24)
+### Développement (#18-24, #48)
 - **#18** : Setup: Créer fichier de données avec les 42 fondateurs
 - **#19** : Frontend: Setup wagmi + RainbowKit pour connexion wallet
 - **#20** : Frontend: Créer composant ConnectButton avec RainbowKit
@@ -24,6 +24,7 @@
 - **#22** : Backend: Créer endpoint de vérification whitelist
 - **#23** : Frontend: Créer composant NotEligible (message d'erreur)
 - **#24** : Frontend: Afficher les informations du wallet connecté
+- **#48** : Frontend: Créer page Landing/Home avec hero et navigation
 
 ### Setup Additionnel (#77-81)
 - **#77** : Frontend: Setup Tailwind CSS v4
@@ -34,7 +35,7 @@
 
 ---
 
-## Issues OPEN (54)
+## Issues OPEN (53)
 
 ### Optionnel (#8)
 - **#8** : [OPTIONAL] Founders Data Enrichment
@@ -68,8 +69,7 @@
 - **#46** : Backend: Créer requêtes GraphQL pour statistiques et résultats
 - **#47** : Backend: Créer endpoint export résultats (JSON/CSV/NFT metadata)
 
-### Frontend - Pages & Layout (#48-50)
-- **#48** : Frontend: Créer page Landing/Home avec hero et navigation
+### Frontend - Pages & Layout (#49-50)
 - **#49** : Frontend: Créer Layout principal avec navigation et routing
 - **#50** : Frontend: Créer page 404 Not Found
 
@@ -195,5 +195,6 @@
 - **PR #86** - Installation et configuration INTUITION SDK (issue #81)
 - **PR #87** - Composant NotEligible (issue #23)
 - **PR #88** - Composant WalletInfo (issue #24)
+- **PR #89** - Page Landing/Home (issue #48)
 
 **Note** : Le Layout créé (#78) est un composant wrapper basique. L'issue #49 (Layout + routing) concerne le layout complet avec navigation et React Router.
