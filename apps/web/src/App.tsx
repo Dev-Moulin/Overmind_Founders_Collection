@@ -6,6 +6,7 @@ import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
 
 import { config } from './config/wagmi';
 import { Layout } from './components/Layout';
+import { NetworkGuard } from './components/NetworkGuard';
 
 const queryClient = new QueryClient();
 
@@ -21,14 +22,16 @@ function App() {
           })}
         >
           <Layout>
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-white mb-4">
-                Welcome to Founders Totem
-              </h2>
-              <p className="text-white/70">
-                Connect your wallet to propose and vote for founder totems.
-              </p>
-            </div>
+            <NetworkGuard>
+              <div className="text-center">
+                <h2 className="text-3xl font-bold text-white mb-4">
+                  Welcome to Founders Totem
+                </h2>
+                <p className="text-white/70">
+                  Connect your wallet to propose and vote for founder totems.
+                </p>
+              </div>
+            </NetworkGuard>
           </Layout>
         </RainbowKitProvider>
       </QueryClientProvider>
