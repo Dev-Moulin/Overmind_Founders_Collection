@@ -7,29 +7,32 @@ Plateforme de vote collaborative pour définir les totems (objets, animaux, trai
 ## 📅 Suivi du projet
 
 **Date de début** : 17 novembre 2025
-**Dernière mise à jour** : 18 novembre 2025
-**Statut actuel** : ✅ Documentation terminée - 🚀 Prêt pour le développement
+**Dernière mise à jour** : 19 novembre 2025
+**Statut actuel** : 🚀 Développement en cours
 
 ### 📊 Bilan des issues GitHub
 
 - **Total issues créées** : 70 issues (#1-70)
-- **Issues ouvertes** : 53 issues (prêtes à coder)
-- **Issues fermées** : 17 issues (recherches/documentation + développement terminé)
+- **Issues ouvertes** : 50 issues (prêtes à coder)
+- **Issues fermées** : 20 issues (recherches/documentation + développement terminé)
 
 ### ✅ Issues terminées (développement)
 
 - **#18** : ✅ Créer fichier de données avec les 42 fondateurs (Done - 18/11/2025)
+- **#19** : ✅ Setup wagmi + RainbowKit pour connexion wallet (Done - 19/11/2025)
+- **#20** : ✅ Créer composant ConnectButton avec RainbowKit (Done - 19/11/2025)
+- **#21** : ✅ Setup Tailwind CSS (Done - 19/11/2025)
 
 ### 🎯 Plan de démarrage recommandé
 
 #### Phase 1 : Setup de base (Issues #18-24)
 1. ✅ **#18** - Créer fichier de données avec les 42 fondateurs (Done)
-2. **#19** - Setup wagmi + RainbowKit pour connexion wallet
-3. **#20** - Créer composant ConnectButton avec RainbowKit
-4. **#21** - Gérer la vérification du réseau Base Mainnet
-5. **#22** - Backend : Créer endpoint de vérification whitelist
+2. ✅ **#19** - Setup wagmi + RainbowKit pour connexion wallet (Done)
+3. ✅ **#20** - Créer composant ConnectButton avec RainbowKit (Done)
+4. ✅ **#21** - Setup Tailwind CSS (Done)
+5. **#22** - Créer composant Layout avec Header/Footer
 6. **#23** - Créer composant NotEligible (message d'erreur)
-7. **#24** - Afficher les informations du wallet connecté
+7. **#24** - Créer composant FounderCard
 
 #### Phase 2 : Backend (Issues #51-57)
 8. **#51** - Setup Fastify project structure
