@@ -5,6 +5,7 @@ import { HomePage } from './pages/HomePage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { ProposePage } from './pages/ProposePage';
 import { ResultsPage } from './pages/ResultsPage';
+import { FounderDetailsPage } from './pages/FounderDetailsPage';
 
 // Root layout with Layout and NetworkGuard
 function RootLayout() {
@@ -37,14 +38,6 @@ function FounderVotePage() {
   );
 }
 
-function FounderResultsPage() {
-  return (
-    <div className="text-center">
-      <h2 className="text-3xl font-bold text-white mb-4">Founder Results</h2>
-      <p className="text-white/70">Detailed results for this founder.</p>
-    </div>
-  );
-}
 
 function MyVotesPage() {
   return (
@@ -82,7 +75,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'results/:founderId',
-        element: <FounderResultsPage />,
+        element: <FounderDetailsPage />,
       },
       {
         path: 'my-votes',
