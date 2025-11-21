@@ -32,7 +32,7 @@ Correction du mécanisme d'agrégation des votes suite à la découverte que le 
 - [x] ✅ `formatTrustAmount()` - Formate les montants TRUST
 - [x] ✅ 17 tests unitaires passants
 - [x] ✅ Utilisé par `useAllProposals` et `FounderDetailsPage`
-- [ ] Ajouter commentaires sur issues #33, #34, #43-47
+- [x] ✅ Commentaires ajoutés sur issues #33, #34, #46, #47 (21/11/2025)
 - [ ] ⏳ Optionnel: PR pour ajouter 3 prédicats dans ProposalModal
 - [ ] ⏳ Optionnel: Refactorer `useAllTotems` pour utiliser la fonction utils
 

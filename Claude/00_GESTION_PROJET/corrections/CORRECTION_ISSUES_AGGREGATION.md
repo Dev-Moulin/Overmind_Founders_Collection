@@ -258,9 +258,23 @@ La fonction d'agrégation a été créée lors d'une session précédente et est
 
 ---
 
-### 2. Ajouter Commentaires sur Issues OPEN
+### 2. Ajouter Commentaires sur Issues OPEN ✅
 
-**Issues concernées** : #33, #34, #43, #44, #45, #46, #47
+**Issues concernées** : #33, #34, #46, #47 (issues #43, #44, #45 déjà fermées)
+
+**Status** : ✅ **COMPLÉTÉ** (21 novembre 2025)
+
+**Commentaires ajoutés** :
+- ✅ **Issue #33** : Explication complète du mécanisme d'agrégation + exemples de queries GraphQL correctes
+- ✅ **Issue #34** : Note que c'est un doublon de #33 + référence au commentaire principal
+- ✅ **Issue #46** : Explication pour les statistiques + correction de la query incorrecte + exemples d'agrégation
+- ✅ **Issue #47** : Note sur architecture frontend-only + exemples d'export avec agrégation (JSON/CSV/NFT metadata)
+
+**Liens vers les commentaires** :
+- [Issue #33 - Commentaire](https://github.com/Dev-Moulin/intuition-founders-totem/issues/33#issuecomment-3563846837)
+- [Issue #34 - Commentaire](https://github.com/Dev-Moulin/intuition-founders-totem/issues/34#issuecomment-3563848135)
+- [Issue #46 - Commentaire](https://github.com/Dev-Moulin/intuition-founders-totem/issues/46#issuecomment-3563850143)
+- [Issue #47 - Commentaire](https://github.com/Dev-Moulin/intuition-founders-totem/issues/47#issuecomment-3563852385)
 
 **Template de commentaire** :
 
@@ -389,7 +403,7 @@ Reference: Claude/03_TECHNOLOGIES/Vote_Aggregation_Research.md
 | **Fonction d'agrégation** | 1 | ✅ Existe déjà | ~~P0~~ |
 | **Issues fermées (grâce à l'agrégation)** | 3 | ✅ #43, #44, #45 | - |
 | **Issues toujours ouvertes** | 4 | ⏳ #33, #34, #46, #47 | P1 |
-| **Commentaires à ajouter** | 4 | ❌ À faire | P1 |
+| **Commentaires ajoutés sur issues** | 4 | ✅ Fait (21/11/2025) | ~~P1~~ |
 | **PR code (refactor useAllTotems)** | 1 | ⏳ Optionnel | P2 |
 | **Documentation mise à jour** | 8 | ✅ Fait | - |
 
@@ -399,11 +413,11 @@ Reference: Claude/03_TECHNOLOGIES/Vote_Aggregation_Research.md
 
 1. ✅ **Documentation mise à jour** (FAIT)
 2. ✅ **Fonction d'agrégation** (EXISTE DÉJÀ - `apps/web/src/utils/aggregateVotes.ts`)
-3. **Ajouter commentaires** sur issues #33, #34, #43-47 (À FAIRE)
+3. ✅ **Commentaires ajoutés** sur issues #33, #34, #46, #47 (FAIT - 21/11/2025)
 4. ⏳ **PR ProposalModal** - Ajouter 3 prédicats (Optionnel P2)
 5. ✅ **Fonction testée** - 17 tests passants (FAIT)
-6. 🔄 **Issues #33/#34** - Queries GraphQL déjà implémentées avec agrégation
-7. 🔄 **Issues #43-47** - Pages résultats déjà implémentées avec agrégation
+6. 🔄 **Issues #33/#34** - À implémenter avec agrégation (queries GraphQL)
+7. 🔄 **Issues #46/#47** - À implémenter avec agrégation (stats + export)
 
 ---
 
