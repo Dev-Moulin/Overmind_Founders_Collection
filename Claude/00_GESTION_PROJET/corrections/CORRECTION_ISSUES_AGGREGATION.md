@@ -247,14 +247,17 @@ Order by positiveVault totalAssets desc, limit 1
 **Utilisation actuelle** :
 - ✅ `hooks/useAllProposals.ts` - Agrège les propositions par fondateur
 - ✅ `pages/FounderDetailsPage.tsx` - Affiche les totems d'un fondateur
-- 🟡 `hooks/useAllTotems.ts` - **Duplique la logique** (à refactorer)
+- ✅ `hooks/useAllTotems.ts` - **Refactorisé** pour utiliser `aggregateTriplesByObject()`
 
 **Découverte** :
 La fonction d'agrégation a été créée lors d'une session précédente et est déjà complète avec tests. Pas besoin de créer d'issue #97.
 
-**Action requise** :
-- 🔄 Refactorer `useAllTotems.ts` pour utiliser `aggregateTriplesByObject` au lieu de dupliquer la logique
-- 📝 Mettre à jour la documentation pour refléter que cette fonction existe
+**Actions complétées** :
+- ✅ Refactorisé `useAllTotems.ts` pour utiliser `aggregateTriplesByObject` (21/11/2025)
+- ✅ Éliminé la duplication de logique d'agrégation
+- ✅ Ajouté interface `ExtendedClaim` avec alias `forVotes`/`againstVotes` pour compatibilité
+- ✅ Conservé les champs spécifiques : `founder`, `topPredicate`
+- ✅ Build TypeScript passant
 
 ---
 
@@ -404,7 +407,7 @@ Reference: Claude/03_TECHNOLOGIES/Vote_Aggregation_Research.md
 | **Issues fermées (grâce à l'agrégation)** | 3 | ✅ #43, #44, #45 | - |
 | **Issues toujours ouvertes** | 4 | ⏳ #33, #34, #46, #47 | P1 |
 | **Commentaires ajoutés sur issues** | 4 | ✅ Fait (21/11/2025) | ~~P1~~ |
-| **PR code (refactor useAllTotems)** | 1 | ⏳ Optionnel | P2 |
+| **Refactor useAllTotems** | 1 | ✅ Fait (21/11/2025) | ~~P2~~ |
 | **Documentation mise à jour** | 8 | ✅ Fait | - |
 
 ---
