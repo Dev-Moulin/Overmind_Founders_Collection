@@ -6,6 +6,7 @@ import { NotFoundPage } from './pages/NotFoundPage';
 import { ProposePage } from './pages/ProposePage';
 import { ResultsPage } from './pages/ResultsPage';
 import { FounderDetailsPage } from './pages/FounderDetailsPage';
+import { TotemDetailsPage } from './pages/TotemDetailsPage';
 
 // Root layout with Layout and NetworkGuard
 function RootLayout() {
@@ -76,6 +77,10 @@ export const router = createBrowserRouter([
       {
         path: 'results/:founderId',
         element: <FounderDetailsPage />,
+      },
+      {
+        path: 'results/:founderId/:totemId',
+        element: <TotemDetailsPage />,
       },
       {
         path: 'my-votes',
