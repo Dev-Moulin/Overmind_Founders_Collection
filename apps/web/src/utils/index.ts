@@ -17,3 +17,10 @@ export {
   clearCache,
   getCacheStats,
 } from './localCache';
+
+export {
+  formatError,
+  isUserRejection,
+  isRetryableError,
+  type FormattedError,
+} from './errorFormatter';
