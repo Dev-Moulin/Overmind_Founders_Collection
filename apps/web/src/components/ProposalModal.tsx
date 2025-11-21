@@ -27,6 +27,9 @@ const DEFAULT_PREDICATES = [
   'has totem',
   'is symbolized by',
   'is associated with',
+  'embodies',
+  'channels',
+  'resonates with',
 ];
 
 export function ProposalModal({
