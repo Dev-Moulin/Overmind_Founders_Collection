@@ -30,8 +30,10 @@
   },
   "dependencies": {
     "@0xintuition/sdk": "2.0.0-alpha.4",
+    "@apollo/client": "^3.11.0",
     "@rainbow-me/rainbowkit": "^2.2.9",
     "@tanstack/react-query": "^5.90.10",
+    "graphql": "^16.8.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.6",

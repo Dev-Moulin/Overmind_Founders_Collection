@@ -66,8 +66,12 @@ export function TotemDetailsPage() {
   }>();
 
   // TODO: Replace with GraphQL query
-  const founder = founderId ? MOCK_DATA.founders[founderId] : undefined;
-  const allTriples = founderId ? MOCK_DATA.triples[founderId] : undefined;
+  const founder = founderId
+    ? MOCK_DATA.founders[founderId as keyof typeof MOCK_DATA.founders]
+    : undefined;
+  const allTriples = founderId
+    ? MOCK_DATA.triples[founderId as keyof typeof MOCK_DATA.triples]
+    : undefined;
 
   if (!founder || !allTriples) {
     return (
@@ -89,7 +93,9 @@ export function TotemDetailsPage() {
   }
 
   // Filter triples for this specific totem
-  const totemTriples = allTriples.filter((t) => t.object.id === totemId);
+  const totemTriples = allTriples.filter(
+    (t: { object: { id: string } }) => t.object.id === totemId
+  );
 
   if (totemTriples.length === 0) {
     return (

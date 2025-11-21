@@ -1,0 +1,198 @@
+/**
+ * TypeScript types for INTUITION GraphQL schema
+ *
+ * Based on the INTUITION Protocol GraphQL schema
+ */
+
+/**
+ * Atom types in INTUITION Protocol
+ */
+export type AtomType = 'Thing' | 'Person' | 'Organization' | 'Account';
+
+/**
+ * Vault types - differentiate between atom vaults and triple vaults
+ */
+export type VaultType = 'atom' | 'triple_positive' | 'triple_negative';
+
+/**
+ * Account/User in INTUITION
+ */
+export interface Account {
+  id: string;
+  label?: string;
+}
+
+/**
+ * Vault - stores deposits of $TRUST tokens
+ */
+export interface Vault {
+  id: string;
+  curveId?: string;
+  isActive: boolean;
+  totalShares: string; // BigInt as string
+  totalAssets: string; // BigInt as string (wei)
+}
+
+/**
+ * Atom - atomic unit of knowledge (person, concept, object)
+ */
+export interface Atom {
+  term_id: string;
+  id: string;
+  wallet_id?: string;
+  creator?: Account;
+  creator_id: string;
+  label: string;
+  data?: string;
+  raw_data?: string;
+  emoji?: string;
+  image?: string;
+  type: AtomType;
+  block_number?: string;
+  log_index?: string;
+  transaction_hash?: string;
+  created_at: string;
+  updated_at?: string;
+  totalShares?: string;
+  totalAssets?: string;
+  vault?: Vault;
+}
+
+/**
+ * Triple - RDF triple statement (Subject - Predicate - Object)
+ *
+ * For our project: [Founder] [represented_by] [Totem]
+ */
+export interface Triple {
+  id: string;
+  term_id: string;
+  subject: Atom;
+  subject_id: string;
+  predicate: Atom;
+  predicate_id: string;
+  object: Atom;
+  object_id: string;
+  creator?: Account;
+  creator_id: string;
+  vault?: Vault;
+  vault_type?: VaultType;
+  positiveVault?: Vault;
+  negativeVault?: Vault;
+  block_number: string;
+  log_index?: string;
+  transaction_hash: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+/**
+ * Deposit - a vote (deposit of $TRUST tokens in a vault)
+ */
+export interface Deposit {
+  id: string;
+  sender?: Account;
+  sender_id: string;
+  receiver?: Account;
+  receiver_id: string;
+  term_id: string;
+  vault_type: VaultType;
+  shares: string; // BigInt as string
+  total_shares: string;
+  assets_after_fees: string; // BigInt as string (wei)
+  block_number: string;
+  log_index?: string;
+  transaction_hash: string;
+  created_at: string;
+  curve_id: string;
+  term?: {
+    id: string;
+    term_id: string;
+  };
+}
+
+/**
+ * Position - user's position on a term (atom or triple)
+ */
+export interface Position {
+  id: string;
+  account?: Account;
+  account_id: string;
+  term_id: string;
+  shares: string; // BigInt as string
+  total_deposit_assets_after_total_fees: string;
+  total_redeem_assets_for_receiver: string;
+  block_number?: string;
+  log_index?: string;
+  transaction_hash?: string;
+  transaction_index?: string;
+  created_at: string;
+  updated_at: string;
+  curve_id?: string;
+}
+
+/**
+ * Query result types
+ */
+
+export interface GetFounderProposalsResult {
+  triples: Triple[];
+}
+
+export interface GetUserProposalsResult {
+  triples: Triple[];
+}
+
+export interface CountUserProposalsForFounderResult {
+  triples_aggregate: {
+    aggregate: {
+      count: number;
+    };
+  };
+}
+
+export interface GetUserVotesResult {
+  deposits: Deposit[];
+}
+
+export interface GetUserVotesDetailedResult {
+  deposits: Deposit[];
+}
+
+export interface GetTripleByIdResult {
+  triples_by_pk: Triple | null;
+}
+
+export interface GetAtomByIdResult {
+  atoms: Atom[];
+}
+
+export interface SearchAtomsResult {
+  atoms: Atom[];
+}
+
+export interface GetAllProposalsResult {
+  triples: Triple[];
+}
+
+export interface GetUserPositionResult {
+  positions: Position[];
+}
+
+/**
+ * Aggregate vote counts for a triple
+ */
+export interface TripleVoteCounts {
+  forVotes: string; // Total $TRUST in positiveVault (wei)
+  againstVotes: string; // Total $TRUST in negativeVault (wei)
+  netVotes: string; // forVotes - againstVotes (wei)
+  forShares: string; // Total shares in positiveVault
+  againstShares: string; // Total shares in negativeVault
+}
+
+/**
+ * Proposal with computed vote data
+ */
+export interface ProposalWithVotes extends Triple {
+  votes: TripleVoteCounts;
+  percentage: number; // Percentage of FOR votes vs total votes (0-100)
+}

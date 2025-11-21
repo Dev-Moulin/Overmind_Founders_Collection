@@ -89,7 +89,9 @@ export function FounderDetailsPage() {
   const { founderId } = useParams<{ founderId: string }>();
 
   // TODO: Replace with GraphQL query
-  const founderData = founderId ? MOCK_FOUNDER_DATA[founderId] : undefined;
+  const founderData = founderId
+    ? MOCK_FOUNDER_DATA[founderId as keyof typeof MOCK_FOUNDER_DATA]
+    : undefined;
 
   if (!founderData) {
     return (

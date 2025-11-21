@@ -85,7 +85,7 @@ export function TransactionProgress({
   txHash,
   error,
   steps,
-  currentStep,
+  currentStep: _currentStep,
   onRetry,
 }: TransactionProgressProps) {
   const [dots, setDots] = useState('');
