@@ -31,3 +31,6 @@ export {
   getUserVoteDirection,
   type VoteWithDetails,
 } from './useUserVotes';
+
+// GraphQL hook for all totems (aggregated by object)
+export { useAllTotems, type AggregatedTotem } from './useAllTotems';
