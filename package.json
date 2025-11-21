@@ -4,8 +4,8 @@
   "private": true,
   "description": "INTUITION Founders Totem NFT Collection - Voting Platform",
   "scripts": {
-    "dev": "pnpm --parallel --filter './apps/*' dev",
-    "build": "pnpm --recursive --filter './apps/*' build",
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
     "test": "pnpm --recursive test",
     "type-check": "pnpm --recursive type-check"
   },
