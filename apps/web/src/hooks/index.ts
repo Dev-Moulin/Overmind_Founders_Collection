@@ -37,3 +37,11 @@ export { useAllTotems, type AggregatedTotem } from './useAllTotems';
 
 // Hook for voting on claims
 export { useVote, type UseVoteResult, type VoteStatus, type VoteError } from './useVote';
+
+// Hooks for vote statistics and leaderboard
+export {
+  useTripleVotes,
+  useRecentVotes,
+  useGlobalVoteStats,
+  useTopVoters,
+} from './useVoteStats';

@@ -325,3 +325,95 @@ export const GET_USER_POSITION = gql`
     }
   }
 `;
+
+/**
+ * Get all deposits (votes) for a specific triple
+ *
+ * Returns all voters on a proposal (both FOR and AGAINST)
+ */
+export const GET_TRIPLE_VOTES = gql`
+  query GetTripleVotes($termId: String!) {
+    deposits(
+      where: {
+        term_id: { _eq: $termId }
+        vault_type: { _in: ["triple_positive", "triple_negative"] }
+      }
+      order_by: { assets_after_fees: desc }
+    ) {
+      id
+      sender_id
+      term_id
+      vault_type
+      shares
+      assets_after_fees
+      created_at
+      transaction_hash
+    }
+  }
+`;
+
+/**
+ * Get recent votes across all proposals
+ *
+ * For activity feed / recent votes display
+ */
+export const GET_RECENT_VOTES = gql`
+  query GetRecentVotes($limit: Int = 20) {
+    deposits(
+      where: { vault_type: { _in: ["triple_positive", "triple_negative"] } }
+      order_by: { created_at: desc }
+      limit: $limit
+    ) {
+      id
+      sender_id
+      term_id
+      vault_type
+      shares
+      assets_after_fees
+      created_at
+      transaction_hash
+    }
+  }
+`;
+
+/**
+ * Get global vote statistics
+ *
+ * Aggregate stats for the entire platform
+ */
+export const GET_VOTE_STATS = gql`
+  query GetVoteStats {
+    deposits_aggregate(
+      where: { vault_type: { _in: ["triple_positive", "triple_negative"] } }
+    ) {
+      aggregate {
+        count
+        sum {
+          assets_after_fees
+        }
+      }
+      nodes {
+        sender_id
+      }
+    }
+  }
+`;
+
+/**
+ * Get top voters leaderboard
+ *
+ * Aggregate deposits by sender to find top voters
+ */
+export const GET_TOP_VOTERS = gql`
+  query GetTopVoters($limit: Int = 10) {
+    deposits(
+      where: { vault_type: { _in: ["triple_positive", "triple_negative"] } }
+      order_by: { assets_after_fees: desc }
+      limit: $limit
+    ) {
+      sender_id
+      assets_after_fees
+      created_at
+    }
+  }
+`;
