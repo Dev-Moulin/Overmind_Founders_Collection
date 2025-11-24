@@ -48,3 +48,9 @@ export {
   useVotesDistribution,
   useFounderStats,
 } from './useVoteStats';
+
+// Hook for platform-wide statistics (includes top totem globally)
+export { usePlatformStats, type PlatformStats, type TopTotem } from './usePlatformStats';
+
+// Hook for fetching voters of a specific totem
+export { useTotemVoters, type TotemVoter } from './useTotemVoters';
