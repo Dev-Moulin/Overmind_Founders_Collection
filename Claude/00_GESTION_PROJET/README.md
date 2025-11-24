@@ -48,6 +48,43 @@ git push origin feature/nom-descriptif
 
 ---
 
+## 🔄 RÈGLES - Synchronisation Issues GitHub
+
+### À chaque mise à jour de ISSUES_GITHUB.md
+
+1. **Vérifier la synchronisation avec GitHub** :
+   ```bash
+   gh issue list --state open --limit 50
+   ```
+   - Les issues OPEN dans la doc doivent correspondre à celles sur GitHub
+   - Les issues CLOSED dans la doc doivent être fermées sur GitHub
+
+2. **Vérifier la cohérence feature/issue** :
+   - Avant de fermer une issue, **confirmer que la feature est réellement implémentée**
+   - Ne pas fermer une issue en disant "essentiellement fait" ou "partiellement implémenté"
+   - Si le code existe → vérifier qu'il correspond bien à ce que demande l'issue
+
+3. **Processus de fermeture d'issue** :
+   - ✅ Lire le contenu de l'issue sur GitHub
+   - ✅ Vérifier que le code implémente bien TOUT ce qui est demandé
+   - ✅ Fermer sur GitHub avec un commentaire référençant le commit/PR
+   - ✅ Mettre à jour ISSUES_GITHUB.md avec les détails (fichiers créés, hooks ajoutés, etc.)
+
+4. **Ne jamais** :
+   - ❌ Fermer une issue sans avoir vérifié le code
+   - ❌ Supposer qu'une issue est faite sans vérification
+   - ❌ Fermer une issue partiellement implémentée
+
+5. **Après compression/résumé de conversation** :
+   - ✅ Relire ce README en priorité
+   - ✅ Vérifier les issues fermées récemment avec `gh issue view #XX`
+   - ✅ Si une issue a été fermée incorrectement :
+     - Rouvrir avec `gh issue reopen #XX`
+     - Documenter ce qui manque dans ISSUES_GITHUB.md
+     - Discuter avec Paul avant d'implémenter
+
+---
+
 ## 📂 Structure
 
 ```
@@ -149,3 +186,4 @@ La documentation à jour se trouve dans :
 ---
 
 **Dernière mise à jour** : 24 novembre 2025
+tru

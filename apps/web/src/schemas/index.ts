@@ -32,3 +32,15 @@ export {
   type TransactionHash,
   type TrustAmount,
 } from './common.schema';
+
+// Moderation schemas
+export {
+  ModerationActionSchema,
+  ModerationReasonSchema,
+  ModerationDecisionSchema,
+  ContentReportSchema,
+  type ModerationAction,
+  type ModerationReason,
+  type ModerationDecision,
+  type ContentReport,
+} from './moderation.schema';

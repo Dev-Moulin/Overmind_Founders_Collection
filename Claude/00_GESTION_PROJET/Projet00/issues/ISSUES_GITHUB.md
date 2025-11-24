@@ -1,15 +1,19 @@
 # INTUITION Founders Totem - Liste Complète des Issues GitHub
 
 **Dernière mise à jour** : 24 novembre 2025
-**Total** : ~75 issues (55+ closed, ~20 open)
+**Total** : ~75 issues (70+ closed, ~7 open)
 
 **Vérification de cohérence** : 24 novembre 2025
 - Synchronisé avec `gh issue list --state all`
 - Issues fermées car code implémenté : #35, #36, #37, #38, #40, #43, #44, #45, #96, #97, #98, #110, #112, #114
+- Session du 24/11/2025 : #33, #34, #39, #46, #47 fermées (GraphQL queries + hooks + export implémentés)
+- Session du 24/11/2025 (suite) : #28, #30, #31, #32 fermées (Phase 3 complète)
+- Session du 24/11/2025 (suite) : #41, #42 fermées (Phase 4 Vote complète)
+- Session du 24/11/2025 (suite) : #58, #59, #60, #61 fermées (Phase 7 Sécurité complète)
 
 ---
 
-## Issues CLOSED (40)
+## Issues CLOSED (55)
 
 ### Recherche & Documentation (#1-7)
 - **#1** : [RESEARCH] Backend Architecture Choice
@@ -56,47 +60,35 @@
 - **#63** : ~~Backend - Logging Pino~~ (CLOSED - Pas de backend)
 - **#64** : ~~Backend - Gestion secrets~~ (CLOSED - Pas de backend)
 
+### GraphQL & Data (FERMÉES #33-34, #39, #46-47) - Session 24/11/2025
+- **#33** : ~~Frontend: Créer requêtes GraphQL pour récupérer les propositions~~ (CLOSED - `queries.ts` GET_FOUNDER_PROPOSALS, GET_ALL_PROPOSALS existent)
+- **#34** : ~~Frontend: Requêtes GraphQL propositions~~ (CLOSED - doublon de #33)
+- **#39** : ~~Frontend: Créer requêtes GraphQL pour récupérer les votes~~ (CLOSED - `queries.ts` + `useVoteStats.ts` implémentés)
+- **#46** : ~~Frontend: GraphQL statistiques et résultats~~ (CLOSED - `usePlatformStats.ts` + `useTotemVoters.ts` ajoutés)
+- **#47** : ~~Frontend: Export résultats JSON/CSV~~ (CLOSED - `exportResults.ts` implémenté, NFT non nécessaire)
+
+### Phase 3 - Propositions (FERMÉES #28, #30-32) - Session 24/11/2025
+- **#28** : ~~Frontend: Créer composant ImageUpload avec upload IPFS~~ (CLOSED - SDK INTUITION gère IPFS automatiquement via `createAtomFromThing()`)
+- **#30** : ~~Frontend: Intégrer INTUITION SDK - Création de Triple~~ (CLOSED - `useIntuition.ts` implémente `createAtom`, `createTriple`, `createClaim`)
+- **#31** : ~~Frontend: Créer composant TransactionProgress~~ (CLOSED - `TransactionProgress.tsx` existe, 276 lignes)
+- **#32** : ~~Frontend: Gérer les erreurs de proposition~~ (CLOSED - `errorFormatter.ts` existe, 232 lignes + tests)
+
+### Phase 4 - Vote (FERMÉES #41-42) - Session 24/11/2025
+- **#41** : ~~Frontend: Créer hook useWithdraw~~ (CLOSED - `useWithdraw.ts` utilise `redeem` de `@0xintuition/protocol`)
+- **#42** : ~~Frontend: Gérer les erreurs de vote~~ (CLOSED - `VoteErrorAlert.tsx`, `InsufficientBalanceCard.tsx`, `NetworkErrorCard.tsx`, `WrongNetworkCard.tsx` + lucide-react)
+
+### Phase 7 - Sécurité Frontend (FERMÉES #58-61) - Session 24/11/2025
+- **#58** : ~~Frontend - Configurer DOMPurify pour sanitization XSS~~ (CLOSED - `sanitize.ts` + `SafeHTML.tsx` implémentés)
+- **#59** : ~~Frontend - Configurer Content Security Policy~~ (CLOSED - `csp.ts` avec directives pour INTUITION, WalletConnect, IPFS)
+- **#60** : ~~Frontend - Implémenter validation Zod~~ (CLOSED - `schemas/` créé avec `proposal.schema.ts`, `vote.schema.ts`, `common.schema.ts`)
+- **#61** : ~~Frontend - Sécuriser authentification wallet~~ (CLOSED - `auth.ts` + `useWalletAuth.ts` avec nonce/timestamp)
+
 ---
 
-## Issues OPEN (29)
+## Issues OPEN (7)
 
 ### Optionnel (#8)
 - **#8** : [OPTIONAL] Founders Data Enrichment
-
-### Frontend - Propositions (#28, #31-34)
-- **#28** : Frontend: Créer composant ImageUpload avec upload IPFS (SDK INTUITION)
-- **#31** : Frontend: Créer composant TransactionProgress (suivi des transactions)
-- **#32** : Frontend: Gérer les erreurs de proposition (rejection, gas, duplicates)
-- **#33** : Frontend: Créer requêtes GraphQL pour récupérer les propositions (avec agrégation)
-- **#34** : Frontend: Créer requêtes GraphQL pour récupérer les propositions (doublon de #33)
-
-### Frontend - Vote (#39, #41-42) - Partiellement implémenté
-- ~~**#35** : Frontend: Créer page Vote~~ (CLOSED - `VotePage.tsx` existe)
-- ~~**#36** : Frontend: Créer composant TotemCard~~ (CLOSED - `TotemVoteCard.tsx` existe)
-- ~~**#37** : Frontend: Créer composant VoteModal~~ (CLOSED - `VoteModal.tsx` existe)
-- ~~**#38** : Frontend: Créer hook useVote~~ (CLOSED - `useVote.ts` existe)
-- **#39** : Frontend: Créer requêtes GraphQL pour récupérer les votes
-- ~~**#40** : Frontend: Créer page MyVotes~~ (CLOSED - `MyVotesPage.tsx` existe)
-- **#41** : Frontend: Créer hook useWithdraw pour retirer TRUST après vote
-- **#42** : Frontend: Gérer les erreurs de vote (rejection, balance, network)
-
-### Frontend - Résultats (#46-47) - Partiellement implémenté
-- ~~**#43** : Frontend: Créer page Results globale~~ (CLOSED - `ResultsPage.tsx` existe)
-- ~~**#44** : Frontend: Créer page FounderDetails~~ (CLOSED - `FounderDetailsPage.tsx` existe)
-- ~~**#45** : Frontend: Créer page TotemDetails~~ (CLOSED - `TotemDetailsPage.tsx` existe)
-- **#46** : Frontend: Créer requêtes GraphQL pour statistiques et résultats
-- **#47** : Frontend: Fonction export résultats (JSON/CSV)
-
-### Frontend - Architecture Simplifiée (FERMÉES #96-98)
-- ~~**#96** : Frontend: Hook useWhitelist~~ (CLOSED - `useWhitelist.ts` existe)
-- ~~**#97** : Frontend: Cache local~~ (CLOSED - `localCache.ts` existe)
-- ~~**#98** : Utils: Fonction agrégation votes~~ (CLOSED - `aggregateVotes.ts` existe)
-
-### Sécurité Frontend (#58-61)
-- **#58** : Frontend - Configurer DOMPurify pour sanitization XSS
-- **#59** : Frontend - Configurer Content Security Policy (CSP)
-- **#60** : Frontend - Implémenter validation Zod pour tous les formulaires
-- **#61** : Frontend - Sécuriser authentification wallet (nonce + signature)
 
 ### Tests (#65-70)
 - **#65** : Tests - Setup Vitest et React Testing Library
@@ -130,15 +122,15 @@
 14. #49 - Layout + routing
 15. #50 - Page 404
 
-### Phase 3 : Propositions
-16. #26 - FounderCard component
-17. #25 - Page Proposer (grille fondateurs)
-18. #27 - ProposalModal
-19. #28 - ImageUpload (Pinata IPFS)
-20. #29 - SDK INTUITION - createAtom
-21. #30 - SDK INTUITION - createTriple
-22. #31 - TransactionProgress
-23. #32 - Gestion erreurs propositions
+### Phase 3 : Propositions (DONE)
+16. ✅ #26 - FounderCard component
+17. ✅ #25 - Page Proposer (grille fondateurs)
+18. ✅ #27 - ProposalModal
+19. ✅ #28 - ImageUpload (SDK INTUITION gère IPFS)
+20. ✅ #29 - SDK INTUITION - createAtom
+21. ✅ #30 - SDK INTUITION - createTriple
+22. ✅ #31 - TransactionProgress
+23. ✅ #32 - Gestion erreurs propositions
 
 ### Phase 4 : Vote
 24. #36 - TotemCard component
@@ -154,19 +146,19 @@
 32. #44 - Page FounderDetails
 33. #45 - Page TotemDetails
 
-### Phase 6 : Frontend - Architecture Simplifiée (Remplace Backend)
-34. #96 - Hook useWhitelist (vérification on-chain NFT)
-35. #97 - Cache local (localStorage/IndexedDB)
-36. #33/#34 - GraphQL propositions (avec agrégation)
-37. #39 - GraphQL votes
-38. #46 - GraphQL résultats (avec agrégation)
-39. #47 - Export résultats
+### Phase 6 : Frontend - Architecture Simplifiée (DONE)
+34. ✅ #96 - Hook useWhitelist (vérification on-chain NFT)
+35. ✅ #97 - Cache local (localStorage/IndexedDB)
+36. ✅ #33/#34 - GraphQL propositions (avec agrégation)
+37. ✅ #39 - GraphQL votes (`useVoteStats.ts`)
+38. ✅ #46 - GraphQL résultats (`usePlatformStats.ts`, `useTotemVoters.ts`)
+39. ✅ #47 - Export résultats (`exportResults.ts`)
 
-### Phase 7 : Sécurité
-40. #58 - DOMPurify XSS
-41. #59 - CSP
-42. #60 - Validation Zod
-43. #61 - Auth wallet nonce
+### Phase 7 : Sécurité (DONE)
+40. ✅ #58 - DOMPurify XSS (`sanitize.ts`, `SafeHTML.tsx`)
+41. ✅ #59 - CSP (`csp.ts`)
+42. ✅ #60 - Validation Zod (`schemas/`)
+43. ✅ #61 - Auth wallet nonce (`auth.ts`, `useWalletAuth.ts`)
 
 ### Phase 8 : Tests
 44. #65 - Setup Vitest + RTL
@@ -199,5 +191,7 @@
 - **PR #93** - Page Proposer avec grille fondateurs (issue #25)
 - **PR #94** - Composant ProposalModal (issue #27)
 - **PR #95** - Intégration INTUITION SDK pour création de claims (issues #29, #30)
+- **PR #118** - Use vote hook refactor (issue #38)
+- **PR #119** - GraphQL votes queries + hooks + export (issues #33, #34, #39, #46, #47)
 
 **Note** : Le Layout créé (#78) est un composant wrapper basique. L'issue #49 (Layout + routing) concerne le layout complet avec navigation et React Router.
