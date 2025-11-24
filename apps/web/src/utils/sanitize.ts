@@ -28,10 +28,13 @@ export function sanitizeHTML(dirty: string): string {
  * @returns Plain text with all HTML removed
  */
 export function sanitizeText(dirty: string): string {
-  return DOMPurify.sanitize(dirty, {
+  // First sanitize to remove dangerous content, then strip remaining tags
+  const sanitized = DOMPurify.sanitize(dirty, {
     ALLOWED_TAGS: [],
     ALLOWED_ATTR: [],
   });
+  // Strip any remaining HTML tags using regex as fallback
+  return sanitized.replace(/<[^>]*>/g, '');
 }
 
 /**
