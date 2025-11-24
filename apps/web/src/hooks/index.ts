@@ -64,3 +64,10 @@ export {
   type WithdrawError,
   type WithdrawPreview,
 } from './useWithdraw';
+
+// Hook for wallet authentication with signature
+export {
+  useWalletAuth,
+  type UseWalletAuthResult,
+  type AuthStatus,
+} from './useWalletAuth';
