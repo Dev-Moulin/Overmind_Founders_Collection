@@ -12,14 +12,23 @@ export default defineConfig({
     exclude: ['node_modules', 'dist', '.git'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'json', 'html', 'lcov'],
       exclude: [
         'node_modules/',
         'src/test/',
         '**/*.d.ts',
         '**/*.config.*',
         '**/index.ts',
+        '**/main.tsx',
+        '**/App.tsx',
+        '**/__mocks__/',
       ],
+      thresholds: {
+        statements: 80,
+        branches: 75,
+        functions: 80,
+        lines: 80,
+      },
     },
   },
   resolve: {
