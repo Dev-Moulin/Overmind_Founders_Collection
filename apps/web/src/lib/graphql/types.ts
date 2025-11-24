@@ -196,3 +196,65 @@ export interface ProposalWithVotes extends Triple {
   votes: TripleVoteCounts;
   percentage: number; // Percentage of FOR votes vs total votes (0-100)
 }
+
+/**
+ * Result type for GET_TRIPLE_VOTES query
+ */
+export interface GetTripleVotesResult {
+  deposits: Deposit[];
+}
+
+/**
+ * Result type for GET_RECENT_VOTES query
+ */
+export interface GetRecentVotesResult {
+  deposits: Deposit[];
+}
+
+/**
+ * Result type for GET_VOTE_STATS query
+ */
+export interface GetVoteStatsResult {
+  deposits_aggregate: {
+    aggregate: {
+      count: number;
+      sum: {
+        assets_after_fees: string;
+      };
+    };
+    nodes: Array<{ sender_id: string }>;
+  };
+}
+
+/**
+ * Result type for GET_TOP_VOTERS query
+ */
+export interface GetTopVotersResult {
+  deposits: Array<{
+    sender_id: string;
+    assets_after_fees: string;
+    created_at: string;
+  }>;
+}
+
+/**
+ * Aggregated voter for leaderboard
+ */
+export interface AggregatedVoter {
+  address: string;
+  totalVoted: string; // wei
+  voteCount: number;
+  formattedTotal: string;
+}
+
+/**
+ * Global vote statistics
+ */
+export interface VoteStats {
+  totalVotes: number;
+  totalTrustDeposited: string; // wei
+  uniqueVoters: number;
+  averageVoteAmount: string; // wei
+  formattedTotal: string;
+  formattedAverage: string;
+}
