@@ -417,3 +417,88 @@ export const GET_TOP_VOTERS = gql`
     }
   }
 `;
+
+/**
+ * Get votes timeline for a specific triple
+ *
+ * Returns all deposits ordered by time for chart display
+ */
+export const GET_VOTES_TIMELINE = gql`
+  query GetVotesTimeline($termId: String!) {
+    deposits(
+      where: {
+        term_id: { _eq: $termId }
+        vault_type: { _in: ["triple_positive", "triple_negative"] }
+      }
+      order_by: { created_at: asc }
+    ) {
+      id
+      vault_type
+      assets_after_fees
+      created_at
+    }
+  }
+`;
+
+/**
+ * Get all deposits for a triple to compute distribution
+ *
+ * Returns all vote amounts for histogram/distribution analysis
+ */
+export const GET_VOTES_DISTRIBUTION = gql`
+  query GetVotesDistribution($termId: String!) {
+    deposits(
+      where: {
+        term_id: { _eq: $termId }
+        vault_type: { _in: ["triple_positive", "triple_negative"] }
+      }
+      order_by: { assets_after_fees: desc }
+    ) {
+      id
+      sender_id
+      vault_type
+      assets_after_fees
+    }
+  }
+`;
+
+/**
+ * Get founder statistics
+ *
+ * Returns all triples for a founder with vault data
+ */
+export const GET_FOUNDER_STATS = gql`
+  query GetFounderStats($founderName: String!) {
+    triples(
+      where: {
+        subject: { label: { _eq: $founderName } }
+        predicate: { label: { _eq: "represented_by" } }
+      }
+    ) {
+      id
+      term_id
+      object {
+        term_id
+        label
+      }
+      positiveVault {
+        totalAssets
+        totalShares
+      }
+      negativeVault {
+        totalAssets
+        totalShares
+      }
+      created_at
+    }
+    deposits(
+      where: {
+        vault_type: { _in: ["triple_positive", "triple_negative"] }
+      }
+      order_by: { created_at: desc }
+      limit: 1
+    ) {
+      created_at
+    }
+  }
+`;

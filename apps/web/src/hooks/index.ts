@@ -44,4 +44,7 @@ export {
   useRecentVotes,
   useGlobalVoteStats,
   useTopVoters,
+  useVotesTimeline,
+  useVotesDistribution,
+  useFounderStats,
 } from './useVoteStats';
