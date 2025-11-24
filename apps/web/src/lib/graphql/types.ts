@@ -258,3 +258,99 @@ export interface VoteStats {
   formattedTotal: string;
   formattedAverage: string;
 }
+
+/**
+ * Result type for GET_VOTES_TIMELINE query
+ */
+export interface GetVotesTimelineResult {
+  deposits: Array<{
+    id: string;
+    vault_type: VaultType;
+    assets_after_fees: string;
+    created_at: string;
+  }>;
+}
+
+/**
+ * Result type for GET_VOTES_DISTRIBUTION query
+ */
+export interface GetVotesDistributionResult {
+  deposits: Array<{
+    id: string;
+    sender_id: string;
+    vault_type: VaultType;
+    assets_after_fees: string;
+  }>;
+}
+
+/**
+ * Result type for GET_FOUNDER_STATS query
+ */
+export interface GetFounderStatsResult {
+  triples: Array<{
+    id: string;
+    term_id: string;
+    object: {
+      term_id: string;
+      label: string;
+    };
+    positiveVault: {
+      totalAssets: string;
+      totalShares: string;
+    } | null;
+    negativeVault: {
+      totalAssets: string;
+      totalShares: string;
+    } | null;
+    created_at: string;
+  }>;
+  deposits: Array<{
+    created_at: string;
+  }>;
+}
+
+/**
+ * Timeline data point for charts
+ */
+export interface TimelineDataPoint {
+  timestamp: string;
+  date: Date;
+  cumulativeFor: bigint;
+  cumulativeAgainst: bigint;
+  cumulativeNet: bigint;
+  formattedFor: string;
+  formattedAgainst: string;
+  formattedNet: string;
+}
+
+/**
+ * Distribution bucket for histogram
+ */
+export interface DistributionBucket {
+  range: string; // e.g., "0-1", "1-5", "5-10"
+  minAmount: bigint;
+  maxAmount: bigint;
+  count: number;
+  totalAmount: bigint;
+  formattedTotal: string;
+}
+
+/**
+ * Founder statistics
+ */
+export interface FounderStats {
+  founderName: string;
+  totalTrust: string; // wei
+  formattedTrust: string;
+  proposalCount: number;
+  uniqueVoters: number;
+  mostRecentProposal: string | null;
+  mostRecentVote: string | null;
+  totemDistribution: Array<{
+    totemId: string;
+    totemLabel: string;
+    trustFor: string;
+    trustAgainst: string;
+    netScore: string;
+  }>;
+}
