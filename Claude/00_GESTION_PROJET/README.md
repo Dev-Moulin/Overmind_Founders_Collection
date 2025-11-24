@@ -51,28 +51,70 @@ git push origin feature/nom-descriptif
 ## 📂 Structure
 
 ```
-00_GESTION_PROJET/
-├── issues/
-│   └── ISSUES_GITHUB.md           # Liste complète des issues GitHub
-├── corrections/
-│   └── CORRECTION_ISSUES_AGGREGATION.md   # Corrections mécanisme d'agrégation
-├── modifications/
-│   ├── MODIFICATIONS_EN_COURS.md  # Tracker central des modifications
-│   └── ARCHITECTURE_NO_BACKEND.md # Architecture frontend-only
-└── README.md                      # Ce fichier (À LIRE APRÈS CHAQUE RÉSUMÉ)
+Claude/
+├── 00_GESTION_PROJET/
+│   ├── Projet00/                            # Gestion de projet (source de vérité)
+│   │   ├── issues/
+│   │   │   └── ISSUES_GITHUB.md            # Liste complète des issues GitHub
+│   │   ├── corrections/
+│   │   │   └── CORRECTION_ISSUES_AGGREGATION.md
+│   │   └── modifications/
+│   │       ├── MODIFICATIONS_EN_COURS.md
+│   │       └── ARCHITECTURE_NO_BACKEND.md
+│   ├── documentation/                       # Documentation corrigée et à jour
+│   │   ├── AUDIT_DOCUMENTATION.md          # Tracker de l'audit
+│   │   ├── fonctionnement/
+│   │   │   ├── 02_Propositions.md
+│   │   │   ├── 04_Resultats.md
+│   │   │   └── 05_Vote.md
+│   │   ├── technologies/
+│   │   │   ├── INTUITION_SDK.md
+│   │   │   ├── Stack_Frontend.md
+│   │   │   ├── Testnet_Configuration.md
+│   │   │   └── Vote_Aggregation_Research.md
+│   │   ├── structure_donnees/
+│   │   │   ├── Bonding_Curves.md
+│   │   │   └── Schema_GraphQL.md
+│   │   ├── ux_flow/
+│   │   │   └── Pages_Architecture.md
+│   │   ├── securite/
+│   │   │   └── Frontend_Security.md
+│   │   ├── ux_ui/
+│   │   │   └── Design_System.md
+│   │   ├── gestion_erreurs/
+│   │   │   └── Frontend_Error_Handling.md
+│   │   ├── objectif/
+│   │   │   └── Objectif.md
+│   │   └── donnees/
+│   │       ├── Verification_Builders.md
+│   │       └── Totems_Fondateurs.md
+│   └── README.md                            # Ce fichier
+└── trash/                                   # Documentation obsolète (19 fichiers)
 ```
 
 ## 📋 Fichiers
 
-### Issues
-- **[ISSUES_GITHUB.md](./issues/ISSUES_GITHUB.md)** : Liste exhaustive des issues du projet avec leur statut
+### Gestion de Projet (Projet00/)
 
-### Corrections
-- **[CORRECTION_ISSUES_AGGREGATION.md](./corrections/CORRECTION_ISSUES_AGGREGATION.md)** : Documentation détaillée de la correction du mécanisme d'agrégation INTUITION v2
+#### Issues
+- **[Projet00/issues/ISSUES_GITHUB.md](./Projet00/issues/ISSUES_GITHUB.md)** : Liste exhaustive des issues du projet avec leur statut
 
-### Modifications
-- **[MODIFICATIONS_EN_COURS.md](./modifications/MODIFICATIONS_EN_COURS.md)** : Tracker central de toutes les modifications en cours et à venir
-- **[ARCHITECTURE_NO_BACKEND.md](./modifications/ARCHITECTURE_NO_BACKEND.md)** : Décision architecture frontend-only (pas de serveur backend)
+#### Corrections
+- **[Projet00/corrections/CORRECTION_ISSUES_AGGREGATION.md](./Projet00/corrections/CORRECTION_ISSUES_AGGREGATION.md)** : Documentation détaillée de la correction du mécanisme d'agrégation INTUITION v2
+
+#### Modifications
+- **[Projet00/modifications/MODIFICATIONS_EN_COURS.md](./Projet00/modifications/MODIFICATIONS_EN_COURS.md)** : Tracker central de toutes les modifications en cours et à venir
+- **[Projet00/modifications/ARCHITECTURE_NO_BACKEND.md](./Projet00/modifications/ARCHITECTURE_NO_BACKEND.md)** : Décision architecture frontend-only (pas de serveur backend)
+
+### Documentation (Corrigée et à jour)
+
+#### Audit
+- **[documentation/AUDIT_DOCUMENTATION.md](./documentation/AUDIT_DOCUMENTATION.md)** : Tracker de l'audit de la documentation (4/4 fichiers traités ✅)
+
+#### Fonctionnement
+- **[documentation/fonctionnement/02_Propositions.md](./documentation/fonctionnement/02_Propositions.md)** : Processus de proposition de totems (CORRIGÉ - SDK INTUITION, frontend-only)
+- **[documentation/fonctionnement/04_Resultats.md](./documentation/fonctionnement/04_Resultats.md)** : Affichage des résultats avec agrégation (RÉÉCRIT - méthode correcte d'agrégation)
+- **[documentation/fonctionnement/05_Vote.md](./documentation/fonctionnement/05_Vote.md)** : Processus de vote (CORRIGÉ - agrégation, FOR/AGAINST, hook useVote)
 
 ## 🔄 Workflow
 
@@ -85,23 +127,25 @@ git push origin feature/nom-descriptif
 
 Ce dossier (`Claude/00_GESTION_PROJET/`) est la **source de vérité**.
 
-La documentation complète du projet se trouve dans :
-- `Claude/01_OBJECTIF/` - Objectifs du projet
-- `Claude/02_FONCTIONNEMENT/` - Fonctionnement détaillé
-- `Claude/03_TECHNOLOGIES/` - Stack technique
-- `Claude/04_VERIFICATION_WALLETS/` - Whitelist NFT
-- `Claude/05_STRUCTURE_DONNEES/` - Schémas de données
-- `Claude/05_UX_FLOW/` - Architecture des pages
-- `Claude/06_BACKEND/` - Backend (obsolète - frontend-only)
-- `Claude/07_SECURITE/` - Sécurité
-- `Claude/08_UX_UI/` - Design system
-- `Claude/09_GESTION_ERREURS/` - Gestion erreurs
-- `Claude/10_TESTS/` - Stratégie de tests
-- `Claude/13_DONNEES_FONDATEURS/` - Données fondateurs
-- `Claude/14_TOTEMS/` - Totems
+**Audit complet effectué le 24 novembre 2025** :
+- 14 dossiers audités
+- 22 fichiers traités
+- 14 fichiers conservés/corrigés dans `documentation/`
+- 19 fichiers obsolètes déplacés vers `trash/`
 
-**Note** : Il peut y avoir des différences entre les issues GitHub (créées au début) et la documentation actuelle. En cas de conflit, **ce dossier fait foi**.
+La documentation à jour se trouve dans :
+- `documentation/objectif/` - Objectifs du projet
+- `documentation/fonctionnement/` - Processus (propositions, votes, résultats)
+- `documentation/technologies/` - Stack technique (SDK INTUITION, GraphQL)
+- `documentation/structure_donnees/` - Schémas de données
+- `documentation/ux_flow/` - Architecture des pages
+- `documentation/securite/` - Sécurité frontend
+- `documentation/ux_ui/` - Design system
+- `documentation/gestion_erreurs/` - Gestion erreurs frontend
+- `documentation/donnees/` - Données fondateurs et totems
+
+**Note** : Les anciens dossiers (`01_OBJECTIF/`, `02_FONCTIONNEMENT/`, etc.) ont été supprimés. Toute la documentation à jour est dans `documentation/`.
 
 ---
 
-**Dernière mise à jour** : 21 novembre 2025
+**Dernière mise à jour** : 24 novembre 2025

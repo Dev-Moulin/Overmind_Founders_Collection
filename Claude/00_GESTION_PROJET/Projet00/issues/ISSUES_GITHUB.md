@@ -1,12 +1,11 @@
 # INTUITION Founders Totem - Liste Complète des Issues GitHub
 
-**Dernière mise à jour** : 21 novembre 2025
-**Total** : 69 issues (40 closed, 29 open)
+**Dernière mise à jour** : 24 novembre 2025
+**Total** : ~75 issues (55+ closed, ~20 open)
 
-**Modifications récentes** :
-- ❌ Fermées : 10 issues backend (#51-57, #62-64) - Architecture simplifiée (pas de serveur backend)
-- ✅ Créées : 2 issues frontend (#96, #97) - Remplacement frontend-only
-- ❌ Annulée : Issue #100 (IPFS upload) - SDK INTUITION gère déjà l'upload IPFS
+**Vérification de cohérence** : 24 novembre 2025
+- Synchronisé avec `gh issue list --state all`
+- Issues fermées car code implémenté : #35, #36, #37, #38, #40, #43, #44, #45, #96, #97, #98, #110, #112, #114
 
 ---
 
@@ -71,26 +70,27 @@
 - **#33** : Frontend: Créer requêtes GraphQL pour récupérer les propositions (avec agrégation)
 - **#34** : Frontend: Créer requêtes GraphQL pour récupérer les propositions (doublon de #33)
 
-### Frontend - Vote (#35-42)
-- **#35** : Frontend: Créer page Vote avec liste des propositions d'un fondateur
-- **#36** : Frontend: Créer composant TotemCard (affichage totem avec vote)
-- **#37** : Frontend: Créer composant VoteModal (choisir montant TRUST à déposer)
-- **#38** : Frontend: Créer hook useVote pour gérer les transactions de vote
+### Frontend - Vote (#39, #41-42) - Partiellement implémenté
+- ~~**#35** : Frontend: Créer page Vote~~ (CLOSED - `VotePage.tsx` existe)
+- ~~**#36** : Frontend: Créer composant TotemCard~~ (CLOSED - `TotemVoteCard.tsx` existe)
+- ~~**#37** : Frontend: Créer composant VoteModal~~ (CLOSED - `VoteModal.tsx` existe)
+- ~~**#38** : Frontend: Créer hook useVote~~ (CLOSED - `useVote.ts` existe)
 - **#39** : Frontend: Créer requêtes GraphQL pour récupérer les votes
-- **#40** : Frontend: Créer page MyVotes (historique des votes utilisateur)
+- ~~**#40** : Frontend: Créer page MyVotes~~ (CLOSED - `MyVotesPage.tsx` existe)
 - **#41** : Frontend: Créer hook useWithdraw pour retirer TRUST après vote
 - **#42** : Frontend: Gérer les erreurs de vote (rejection, balance, network)
 
-### Frontend - Résultats (#43-47)
-- **#43** : Frontend: Créer page Results globale (tous les fondateurs avec agrégation)
-- **#44** : Frontend: Créer page FounderDetails (résultats détaillés avec agrégation)
-- **#45** : Frontend: Créer page TotemDetails (détails des claims multiples)
+### Frontend - Résultats (#46-47) - Partiellement implémenté
+- ~~**#43** : Frontend: Créer page Results globale~~ (CLOSED - `ResultsPage.tsx` existe)
+- ~~**#44** : Frontend: Créer page FounderDetails~~ (CLOSED - `FounderDetailsPage.tsx` existe)
+- ~~**#45** : Frontend: Créer page TotemDetails~~ (CLOSED - `TotemDetailsPage.tsx` existe)
 - **#46** : Frontend: Créer requêtes GraphQL pour statistiques et résultats
 - **#47** : Frontend: Fonction export résultats (JSON/CSV)
 
-### Frontend - Architecture Simplifiée (NOUVELLES #96-97)
-- **#96** : Frontend: Hook useWhitelist pour vérification on-chain (remplace #53)
-- **#97** : Frontend: Système de cache local pour prédicats/objets (localStorage)
+### Frontend - Architecture Simplifiée (FERMÉES #96-98)
+- ~~**#96** : Frontend: Hook useWhitelist~~ (CLOSED - `useWhitelist.ts` existe)
+- ~~**#97** : Frontend: Cache local~~ (CLOSED - `localCache.ts` existe)
+- ~~**#98** : Utils: Fonction agrégation votes~~ (CLOSED - `aggregateVotes.ts` existe)
 
 ### Sécurité Frontend (#58-61)
 - **#58** : Frontend - Configurer DOMPurify pour sanitization XSS
