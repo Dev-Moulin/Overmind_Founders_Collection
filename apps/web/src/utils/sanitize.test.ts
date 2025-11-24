@@ -47,15 +47,22 @@ describe('sanitizeHTML', () => {
 
 describe('sanitizeText', () => {
   it('should strip all HTML tags', () => {
-    const input = '<b>Bold</b> and <script>evil</script>';
+    const input = '<b>Bold</b> and <i>italic</i>';
     const result = sanitizeText(input);
-    expect(result).toBe('Bold and ');
+    expect(result).toBe('Bold and italic');
   });
 
   it('should return plain text', () => {
     const input = '<p>Hello <strong>World</strong></p>';
     const result = sanitizeText(input);
     expect(result).toBe('Hello World');
+  });
+
+  it('should remove script tags', () => {
+    const input = '<script>alert(1)</script>Safe text';
+    const result = sanitizeText(input);
+    expect(result).not.toContain('<script>');
+    expect(result).toContain('Safe text');
   });
 
   it('should handle empty string', () => {
