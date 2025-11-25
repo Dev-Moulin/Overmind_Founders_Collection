@@ -82,6 +82,20 @@ const triple = await createTripleStatement(
 );
 ```
 
+**⚠️ Note technique V2 :**
+Le SDK alpha a un bug avec le contrat V2. L'appel direct au contrat est utilisé :
+```typescript
+// V2: assets[0] = tripleBaseCost + userDeposit
+// V2: msg.value = sum(assets)
+const totalAssetValue = tripleBaseCost + depositAmountWei;
+
+await publicClient.simulateContract({
+  functionName: 'createTriples',
+  args: [[subjectId], [predicateId], [objectId], [totalAssetValue]],
+  value: totalAssetValue,
+});
+```
+
 **Frais appliqués :**
 - 5% creator fees (reversés au créateur)
 - 2% protocol fees
@@ -152,8 +166,27 @@ Si quelqu'un propose "Lion" pour Joseph Lubin et qu'un autre propose "Lion" pour
 
 ### Erreur : Triple déjà existant
 - "Cette proposition existe déjà"
-- Redirection vers la proposition existante
+- Redirection automatique vers la page de vote avec le totem pré-filtré
 - Option de voter pour celle-ci
+
+**Implémentation technique :**
+```typescript
+// Avant création du triple, vérification via GraphQL
+const existingTriple = await findTriple(subjectId, predicateId, objectId);
+if (existingTriple) {
+  throw new ClaimExistsError({
+    termId: existingTriple.termId,
+    subjectLabel: existingTriple.subjectLabel,
+    predicateLabel: existingTriple.predicateLabel,
+    objectLabel: existingTriple.objectLabel,
+  });
+}
+
+// Dans ProposePage.tsx - redirection automatique
+if (err instanceof ClaimExistsError) {
+  navigate(`/vote?search=${encodeURIComponent(err.objectLabel)}`);
+}
+```
 
 ### Erreur : Limite atteinte
 - "Vous avez déjà proposé 3 totems pour ce fondateur"
@@ -261,6 +294,6 @@ const query = `
 
 ---
 
-**Dernière mise à jour** : 21 novembre 2025
+**Dernière mise à jour** : 25 novembre 2025
 **Architecture** : Frontend-only (pas de backend)
 **Réseau** : INTUITION L3 Testnet (chain ID: 13579)

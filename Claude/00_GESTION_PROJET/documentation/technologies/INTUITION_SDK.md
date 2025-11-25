@@ -312,7 +312,58 @@ apps/web/src/lib/graphql/
 
 ## Notes techniques
 
-### SDK INTUITION v2.0.0
+### SDK INTUITION v2.0.0-alpha
+
+#### ⚠️ IMPORTANT : Bug SDK alpha et fix V2
+
+Le SDK alpha (`@0xintuition/sdk@2.0.0-alpha.4`) a un bug dans `batchCreateTripleStatements` qui calcule mal le `msg.value`.
+
+**Problème identifié** :
+- Le SDK calcule : `msg.value = tripleBaseCost + depositAmount`
+- Mais le contrat V2 valide : `msg.value == sum(assets[])`
+- Résultat : Erreur `MultiVault_InsufficientBalance`
+
+**Solution implémentée** : Appel direct au contrat via viem (contourne le SDK)
+
+```typescript
+// CORRECT pour V2 : assets[0] inclut TOUT (base cost + user deposit)
+const totalAssetValue = tripleBaseCost + depositAmountWei;
+
+const { request } = await publicClient.simulateContract({
+  account: walletClient.account,
+  address: multiVaultAddress,
+  abi: MultiVaultAbi,
+  functionName: 'createTriples',
+  args: [[subjectId], [predicateId], [objectId], [totalAssetValue]],
+  value: totalAssetValue,  // msg.value = sum(assets)
+});
+```
+
+**Formule V2** :
+- `assets[i] = tripleBaseCost + userDeposit`
+- `msg.value = sum(assets[])`
+- Le contrat déduit `tripleBaseCost` en interne de chaque `assets[i]`
+
+#### Vérification de triple existant (évite `TripleExists`)
+
+Avant de créer un triple, on vérifie s'il existe déjà via GraphQL :
+
+```typescript
+// Requête GET_TRIPLE_BY_ATOMS
+const existingTriple = await findTriple(subjectId, predicateId, objectId);
+if (existingTriple) {
+  throw new ClaimExistsError({
+    termId: existingTriple.termId,
+    subjectLabel: existingTriple.subjectLabel,
+    predicateLabel: existingTriple.predicateLabel,
+    objectLabel: existingTriple.objectLabel,
+  });
+}
+```
+
+**`ClaimExistsError`** : Erreur personnalisée qui contient les infos du triple existant pour rediriger l'utilisateur vers la page de vote.
+
+#### Autres notes SDK
 
 1. **`batchCreateTripleStatements`** attend des tableaux :
    ```typescript
@@ -323,6 +374,16 @@ apps/web/src/lib/graphql/
 2. **Upload IPFS** : Le SDK gère automatiquement l'upload IPFS des images lors de la création d'atoms avec `createAtomFromThing()`.
 
 3. **Chain ID** : Toujours utiliser `intuitionTestnet.id` (13579), jamais `base.id` (8453).
+
+4. **Récupérer la config du contrat** :
+   ```typescript
+   import { multiCallIntuitionConfigs } from '@0xintuition/protocol';
+
+   const config = await multiCallIntuitionConfigs({ publicClient, address: multiVaultAddress });
+   // config.triple_cost - Coût de base pour créer un triple
+   // config.min_deposit - Dépôt minimum requis
+   // config.formatted_triple_cost - Version formatée en ETH
+   ```
 
 ---
 
