@@ -1,0 +1,77 @@
+{
+  "animals": [
+    { "id": "lion", "label": "Lion", "termId": null },
+    { "id": "aigle", "label": "Aigle", "termId": null },
+    { "id": "loup", "label": "Loup", "termId": null },
+    { "id": "hibou", "label": "Hibou", "termId": null },
+    { "id": "renard", "label": "Renard", "termId": null },
+    { "id": "dauphin", "label": "Dauphin", "termId": null },
+    { "id": "elephant", "label": "Éléphant", "termId": null },
+    { "id": "baleine", "label": "Baleine", "termId": null },
+    { "id": "faucon", "label": "Faucon", "termId": null },
+    { "id": "cheval", "label": "Cheval", "termId": null },
+    { "id": "lynx", "label": "Lynx", "termId": null },
+    { "id": "chouette", "label": "Chouette", "termId": null },
+    { "id": "perroquet", "label": "Perroquet", "termId": null },
+    { "id": "paon", "label": "Paon", "termId": null },
+    { "id": "cygne", "label": "Cygne", "termId": null },
+    { "id": "tortue", "label": "Tortue", "termId": null }
+  ],
+  "objects": [
+    { "id": "cle-maitre", "label": "Clé maître", "termId": null },
+    { "id": "fondation", "label": "Fondation", "termId": null },
+    { "id": "noeud-reseau", "label": "Nœud réseau", "termId": null },
+    { "id": "pont", "label": "Pont", "termId": null },
+    { "id": "megaphone", "label": "Mégaphone", "termId": null },
+    { "id": "boussole", "label": "Boussole", "termId": null },
+    { "id": "bouclier", "label": "Bouclier", "termId": null },
+    { "id": "cadenas", "label": "Cadenas", "termId": null },
+    { "id": "lampe-torche", "label": "Lampe torche", "termId": null },
+    { "id": "epee", "label": "Épée", "termId": null },
+    { "id": "telescope", "label": "Télescope", "termId": null },
+    { "id": "radar", "label": "Radar", "termId": null }
+  ],
+  "traits": [
+    { "id": "visionnaire", "label": "Visionnaire", "termId": null },
+    { "id": "leader", "label": "Leader", "termId": null },
+    { "id": "innovateur", "label": "Innovateur", "termId": null },
+    { "id": "connecteur", "label": "Connecteur", "termId": null },
+    { "id": "protecteur", "label": "Protecteur", "termId": null },
+    { "id": "stratege", "label": "Stratège", "termId": null },
+    { "id": "builder", "label": "Builder", "termId": null },
+    { "id": "pragmatique", "label": "Pragmatique", "termId": null },
+    { "id": "creatif", "label": "Créatif", "termId": null },
+    { "id": "methodique", "label": "Méthodique", "termId": null },
+    { "id": "analytique", "label": "Analytique", "termId": null }
+  ],
+  "universe": [
+    { "id": "ethereum-genesis", "label": "Ethereum genesis", "termId": null },
+    { "id": "consensys", "label": "ConsenSys", "termId": null },
+    { "id": "web3-infrastructure", "label": "Web3 infrastructure", "termId": null },
+    { "id": "enterprise-blockchain", "label": "Enterprise blockchain", "termId": null },
+    { "id": "securite-crypto", "label": "Sécurité crypto", "termId": null },
+    { "id": "defi", "label": "DeFi", "termId": null },
+    { "id": "nfts", "label": "NFTs", "termId": null },
+    { "id": "dao", "label": "DAO", "termId": null },
+    { "id": "gaming", "label": "Gaming", "termId": null },
+    { "id": "metaverse", "label": "Metaverse", "termId": null }
+  ],
+  "superpowers": [
+    { "id": "transformation-idees", "label": "Transformation d'idées en écosystèmes", "termId": null },
+    { "id": "connexion-finance", "label": "Connexion entre finance traditionnelle et crypto", "termId": null },
+    { "id": "detection-hacks", "label": "Détection de hacks", "termId": null },
+    { "id": "scaling-operationnel", "label": "Scaling opérationnel", "termId": null }
+  ],
+  "sports": [
+    { "id": "football", "label": "Football", "termId": null },
+    { "id": "basketball", "label": "Basketball", "termId": null },
+    { "id": "tennis", "label": "Tennis", "termId": null },
+    { "id": "surf", "label": "Surf", "termId": null },
+    { "id": "skateboard", "label": "Skateboard", "termId": null },
+    { "id": "escalade", "label": "Escalade", "termId": null },
+    { "id": "marathon", "label": "Marathon", "termId": null },
+    { "id": "boxe", "label": "Boxe", "termId": null },
+    { "id": "mma", "label": "MMA", "termId": null },
+    { "id": "chess", "label": "Chess", "termId": null }
+  ]
+}
