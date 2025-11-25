@@ -2,22 +2,23 @@
  * Triple data structure from INTUITION GraphQL API
  */
 export interface Triple {
-  id: string;
+  term_id: string;
   predicate: {
-    id: string;
+    term_id: string;
     label: string;
   };
   object: {
-    id: string;
+    term_id: string;
     label: string;
     image?: string;
     description?: string;
   };
-  positiveVault: {
-    totalAssets: string;
+  triple_vault?: {
+    total_assets: string;
   };
-  negativeVault: {
-    totalAssets: string;
+  counter_term?: {
+    id: string;
+    total_assets: string;
   };
 }
 
@@ -67,13 +68,16 @@ export function aggregateTriplesByObject(triples: Triple[]): AggregatedTotem[] {
   const grouped: Record<string, AggregatedTotem> = {};
 
   triples.forEach((triple) => {
-    const objectId = triple.object.id;
+    const objectId = triple.object.term_id;
 
     // Initialize totem entry if not exists
     if (!grouped[objectId]) {
       grouped[objectId] = {
         objectId: objectId,
-        object: triple.object,
+        object: {
+          id: triple.object.term_id,
+          ...triple.object
+        },
         claims: [],
         netScore: 0n,
         totalFor: 0n,
@@ -83,13 +87,13 @@ export function aggregateTriplesByObject(triples: Triple[]): AggregatedTotem[] {
     }
 
     // Parse vault amounts to bigint
-    const trustFor = BigInt(triple.positiveVault.totalAssets);
-    const trustAgainst = BigInt(triple.negativeVault.totalAssets);
+    const trustFor = BigInt(triple.triple_vault?.total_assets || '0');
+    const trustAgainst = BigInt(triple.counter_term?.total_assets || '0');
     const netScore = trustFor - trustAgainst;
 
     // Add claim to totem
     grouped[objectId].claims.push({
-      tripleId: triple.id,
+      tripleId: triple.term_id,
       predicate: triple.predicate.label,
       netScore: netScore,
       trustFor: trustFor,

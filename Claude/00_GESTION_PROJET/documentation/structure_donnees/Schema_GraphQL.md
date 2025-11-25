@@ -1,9 +1,31 @@
 # Structure des données - Schéma GraphQL INTUITION
 
+## ⚠️ IMPORTANT - Version du schéma
+
+Ce document décrit le **schéma V2** de l'API INTUITION utilisé sur le testnet (`https://testnet.intuition.sh/v1/graphql`).
+
+### Changements principaux V2 vs V1 :
+
+1. **Plus de champ `id` sur atoms et triples** → Utiliser uniquement `term_id`
+2. **Structure des vaults modifiée** :
+   - V1 : `positiveVault` / `negativeVault`
+   - V2 : `triple_vault` (FOR) / `counter_term` (AGAINST)
+3. **Accès aux votes AGAINST** : Via `counter_term.total_assets` au lieu de `negativeVault.totalAssets`
+
+**Sources de cette documentation** :
+- Tests directs avec `curl` sur l'API GraphQL : https://testnet.intuition.sh/v1/graphql
+- Introspection du schéma avec `__type` queries
+- SDK INTUITION : @0xintuition/sdk version 2.0.0-alpha.4
+
+**⚠️ Toute la documentation ci-dessous utilise le schéma V2.**
+
+---
+
 ## Vue d'ensemble
 
 Toutes les données du projet sont stockées on-chain via le protocol INTUITION et interrogeables via l'API GraphQL.
 
+**API Endpoint** : https://testnet.intuition.sh/v1/graphql
 **Schéma source** : https://raw.githubusercontent.com/0xIntuition/intuition-ts/main/packages/graphql/schema.graphql
 
 ## Types principaux
@@ -17,8 +39,7 @@ Un **Atom** représente une unité atomique de connaissance : personne, objet, c
 ```graphql
 type atoms {
   # Identifiants
-  term_id: String!              # ID unique de l'Atom
-  id: String!                   # Alias de term_id
+  term_id: String!              # ID unique de l'Atom (SEUL IDENTIFIANT DISPONIBLE)
   wallet_id: String!            # Adresse du vault wallet
 
   # Créateur
@@ -128,8 +149,7 @@ Pour notre projet : `[Fondateur] [represented_by] [Totem]`
 ```graphql
 type triples {
   # Identifiant
-  id: String!                   # ID unique du Triple
-  term_id: String!              # ID du term associé
+  term_id: String!              # ID unique du Triple (SEUL IDENTIFIANT DISPONIBLE)
 
   # Les trois Atoms
   subject: atoms                # Atom sujet (ex: Joseph Lubin)
@@ -145,28 +165,27 @@ type triples {
   creator: accounts             # Qui a créé ce Triple
   creator_id: String!
 
-  # Vaults (votes)
-  vault: vaults                 # Vault associé
-  vault_type: vault_type!       # Type de vault
-
-  positiveVault: vaults         # Vault FOR (votes positifs)
-  negativeVault: vaults         # Vault AGAINST (votes négatifs)
+  # Vaults (votes) - STRUCTURE V2
+  triple_vault: triple_vault    # Vault FOR (votes positifs)
+  counter_term: terms           # Term du vault AGAINST (votes négatifs)
+  counter_term_id: String!      # ID du counter_term
 
   # Blockchain
   block_number: numeric!        # Bloc de création
-  log_index: bigint!
   transaction_hash: String!
 
   # Timestamps
   created_at: timestamptz!
-  updated_at: timestamptz!
 
   # Relation
   term: terms
 }
 ```
 
-#### Exemple de query
+**IMPORTANT** : Le schéma V2 ne contient plus `id`, `positiveVault`, `negativeVault`.
+Utilisez `triple_vault` pour les votes FOR et `counter_term` pour accéder aux votes AGAINST.
+
+#### Exemple de query (V2)
 
 ```graphql
 query GetTripleProposals {
@@ -177,61 +196,69 @@ query GetTripleProposals {
     }
     order_by: { created_at: desc }
   ) {
-    id
     term_id
-    subject { label image }
-    predicate { label }
-    object { label image }
+    subject {
+      term_id
+      label
+      image
+    }
+    predicate {
+      term_id
+      label
+    }
+    object {
+      term_id
+      label
+      image
+    }
     creator {
       id
     }
-    positiveVault {
-      id
-      totalShares
-      totalAssets
+    triple_vault {
+      total_shares
+      total_assets
     }
-    negativeVault {
+    counter_term {
       id
-      totalShares
-      totalAssets
+      total_assets
     }
     created_at
   }
 }
 ```
 
-#### Exemple de réponse
+#### Exemple de réponse (V2)
 
 ```json
 {
   "data": {
     "triples": [
       {
-        "id": "0xtriple123...",
         "term_id": "0xterm456...",
         "subject": {
+          "term_id": "0xsubject123...",
           "label": "Joseph Lubin",
           "image": "ipfs://Qm..."
         },
         "predicate": {
+          "term_id": "0xpred789...",
           "label": "represented_by"
         },
         "object": {
+          "term_id": "0xobject456...",
           "label": "Lion",
           "image": "ipfs://Qm...lion"
         },
         "creator": {
           "id": "0xuser789..."
         },
-        "positiveVault": {
-          "id": "0xvault_pos...",
-          "totalShares": "150000000000000000000",
-          "totalAssets": "150000000000000000000"
+        "triple_vault": {
+          "total_shares": "150000000000000000000",
+          "total_assets": "150000000000000000000"
         },
-        "negativeVault": {
-          "id": "0xvault_neg...",
-          "totalShares": "5000000000000000000",
-          "totalAssets": "5000000000000000000"
+        "counter_term": {
+          "id": "0xcounter_term...",
+          "total_assets": "5000000000000000000"
         },
         "created_at": "2025-11-15T14:30:00Z"
       }
@@ -240,25 +267,33 @@ query GetTripleProposals {
 }
 ```
 
-### 3. Vaults (Stockage des votes)
+### 3. Triple Vault (Stockage des votes FOR)
 
-Un **Vault** contient les dépôts de $TRUST pour un Atom ou un Triple.
+Dans le schéma V2, chaque triple a un **triple_vault** qui stocke les votes FOR.
 
-#### Champs disponibles (d'après les queries)
+#### Définition GraphQL
 
 ```graphql
-type vaults {
-  id: String!                   # ID du vault
-  curveId: numeric              # ID de la bonding curve
-  isActive: Boolean!            # Actif ou non
-  totalShares: numeric          # Total de shares
-  totalAssets: numeric          # Total d'assets ($TRUST)
+type triple_vault {
+  term_id: String!              # ID du term associé
+  total_shares: numeric!        # Total de shares dans le vault
+  total_assets: numeric!        # Total d'assets ($TRUST) - votes FOR
+  market_cap: numeric!          # Capitalisation du marché
+  position_count: bigint!       # Nombre de positions
+  curve_id: numeric!            # ID de la bonding curve
+  block_number: numeric!
+  counter_term_id: String!      # ID du counter_term (pour votes AGAINST)
+  updated_at: timestamptz!
+
+  # Relations
+  term: terms
+  counter_term: terms           # Accès au vault AGAINST
 }
 ```
 
-**Note** : Pour les Triples, il y a **2 vaults** :
-- `positiveVault` : votes FOR
-- `negativeVault` : votes AGAINST
+**Note V2** : Pour les votes AGAINST, il faut accéder au `counter_term` qui est un autre `term` avec son propre `total_assets`:
+- `triple_vault.total_assets` : votes FOR
+- `counter_term.total_assets` : votes AGAINST
 
 ### 4. Deposits (Votes)
 
@@ -455,6 +490,7 @@ query GetFounderTotems($founderName: String!) {
   ) {
     id
     object {
+      term_id
       label
       image
       type
@@ -462,9 +498,13 @@ query GetFounderTotems($founderName: String!) {
     creator {
       id
     }
-    positiveVault {
-      totalShares
-      totalAssets
+    triple_vault {
+      total_shares
+      total_assets
+    }
+    counter_term {
+      id
+      total_assets
     }
     created_at
   }
@@ -487,21 +527,24 @@ query GetAllTriplesForFounder($founderName: String!) {
       subject: { label: { _eq: $founderName } }
     }
   ) {
-    id
-    predicate { label }
+    term_id
+    predicate {
+      term_id
+      label
+    }
     object {
-      id
+      term_id
       label
       image
       emoji
     }
-    positiveVault {
-      totalShares
-      totalAssets
+    triple_vault {
+      total_shares
+      total_assets
     }
-    negativeVault {
-      totalShares
-      totalAssets
+    counter_term {
+      id
+      total_assets
     }
   }
 }
@@ -533,10 +576,16 @@ query GetMyVotes($walletAddress: String!) {
     created_at
     term {
       ... on triples {
-        subject { label }
-        object { label }
-        positiveVault {
-          totalAssets
+        subject {
+          term_id
+          label
+        }
+        object {
+          term_id
+          label
+        }
+        triple_vault {
+          total_assets
         }
       }
     }

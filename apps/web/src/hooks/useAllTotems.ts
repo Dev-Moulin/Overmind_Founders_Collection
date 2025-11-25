@@ -63,7 +63,7 @@ export function useAllTotems() {
     // Group original triples by totem for founder info and predicate analysis
     const totemMap = new Map<string, Triple[]>();
     data.triples.forEach((triple: Triple) => {
-      const totemId = triple.object.id;
+      const totemId = triple.object.term_id;
       if (!totemMap.has(totemId)) {
         totemMap.set(totemId, []);
       }

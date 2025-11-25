@@ -113,7 +113,7 @@ export function usePlatformStats() {
 
       // Find which founder this totem belongs to
       const founderTriple = proposalsData.triples.find(
-        (t: Triple) => t.object.id === top.objectId
+        (t: Triple) => t.object.term_id === top.objectId
       );
 
       topTotem = {

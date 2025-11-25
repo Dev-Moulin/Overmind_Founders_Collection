@@ -68,7 +68,7 @@ export function useTotemDetails(founderName: string, totemId: string) {
 
   // Filter proposals to get only this totem
   const totemProposals = proposals.filter(
-    (p) => p.object.id === totemId
+    (p) => p.object.term_id === totemId
   );
 
   // Build totem details
@@ -109,8 +109,8 @@ export function useTotemDetails(founderName: string, totemId: string) {
     const allTotemsMap = new Map<string, { totalFor: bigint; totalAgainst: bigint }>();
 
     proposals.forEach((p) => {
-      const existing = allTotemsMap.get(p.object.id) || { totalFor: 0n, totalAgainst: 0n };
-      allTotemsMap.set(p.object.id, {
+      const existing = allTotemsMap.get(p.object.term_id) || { totalFor: 0n, totalAgainst: 0n };
+      allTotemsMap.set(p.object.term_id, {
         totalFor: existing.totalFor + BigInt(p.votes.forVotes),
         totalAgainst: existing.totalAgainst + BigInt(p.votes.againstVotes),
       });
@@ -132,7 +132,7 @@ export function useTotemDetails(founderName: string, totemId: string) {
     totemDetails = {
       totemId,
       totem: {
-        id: totemProposals[0].object.id,
+        id: totemProposals[0].object.term_id,
         label: totemProposals[0].object.label,
         image: totemProposals[0].object.image,
       },
