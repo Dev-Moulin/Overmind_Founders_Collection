@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAllTotems, type AggregatedTotem } from '../hooks/useAllTotems';
 import { TotemVoteCard } from '../components/TotemVoteCard';
 import { VoteModal } from '../components/VoteModal';
@@ -6,12 +7,21 @@ import { VoteModal } from '../components/VoteModal';
 type SortOption = 'netScore' | 'totalFor' | 'totalAgainst' | 'claimCount';
 
 export function VotePage() {
+  const [searchParams] = useSearchParams();
   const { totems, loading, error } = useAllTotems();
 
   // Filters
   const [selectedFounder, setSelectedFounder] = useState<string>('all');
   const [sortBy, setSortBy] = useState<SortOption>('netScore');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Initialize search query from URL params (for redirect from ProposePage)
+  useEffect(() => {
+    const searchFromUrl = searchParams.get('search');
+    if (searchFromUrl) {
+      setSearchQuery(searchFromUrl);
+    }
+  }, [searchParams]);
 
   // Vote Modal
   const [voteModalOpen, setVoteModalOpen] = useState(false);

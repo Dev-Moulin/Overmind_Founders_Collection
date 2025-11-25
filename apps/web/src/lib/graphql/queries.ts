@@ -514,13 +514,56 @@ export const GET_ATOMS_BY_LABELS = gql`
 `;
 
 /**
- * Get all predicates (for listing available predicates)
+ * Get all predicates used in triples (distinct)
+ * Since there's no "predicate" type, we get predicates from existing triples
  */
 export const GET_ALL_PREDICATES = gql`
   query GetAllPredicates {
-    atoms(where: { type: { _eq: "predicate" } }, order_by: { label: asc }) {
+    triples(
+      distinct_on: [predicate_id]
+      limit: 100
+    ) {
+      predicate {
+        term_id
+        label
+      }
+    }
+  }
+`;
+
+/**
+ * Vérifie si un triple existe déjà par ses subject/predicate/object term_ids
+ * Utilisé pour éviter l'erreur "TripleExists" lors de la création de claims
+ * Note: utilise subject_id, predicate_id, object_id directement sur le triple
+ */
+export const GET_TRIPLE_BY_ATOMS = gql`
+  query GetTripleByAtoms($subjectId: String!, $predicateId: String!, $objectId: String!) {
+    triples(
+      where: {
+        subject_id: { _eq: $subjectId }
+        predicate_id: { _eq: $predicateId }
+        object_id: { _eq: $objectId }
+      }
+      limit: 1
+    ) {
       term_id
-      label
+      subject {
+        term_id
+        label
+      }
+      predicate {
+        term_id
+        label
+      }
+      object {
+        term_id
+        label
+      }
+      triple_vault {
+        total_shares
+        total_assets
+      }
+      created_at
     }
   }
 `;
