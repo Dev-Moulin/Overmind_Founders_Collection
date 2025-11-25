@@ -409,8 +409,8 @@ export function useFounderStats(founderName: string | undefined) {
     let mostRecentProposal: string | null = null;
 
     data.triples.forEach((triple) => {
-      const forAmount = BigInt(triple.positiveVault?.totalAssets || '0');
-      const againstAmount = BigInt(triple.negativeVault?.totalAssets || '0');
+      const forAmount = BigInt(triple.triple_vault?.total_assets || '0');
+      const againstAmount = BigInt(triple.counter_term?.total_assets || '0');
       totalTrust += forAmount + againstAmount;
 
       // Track most recent proposal

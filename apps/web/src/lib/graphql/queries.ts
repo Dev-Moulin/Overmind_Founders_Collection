@@ -21,7 +21,6 @@ export const GET_FOUNDER_PROPOSALS = gql`
       }
       order_by: { created_at: desc }
     ) {
-      id
       term_id
       subject {
         term_id
@@ -45,22 +44,17 @@ export const GET_FOUNDER_PROPOSALS = gql`
         id
       }
       creator_id
-      positiveVault {
-        id
-        totalShares
-        totalAssets
-        isActive
+      triple_vault {
+        total_shares
+        total_assets
       }
-      negativeVault {
+      counter_term {
         id
-        totalShares
-        totalAssets
-        isActive
+        total_assets
       }
       block_number
       transaction_hash
       created_at
-      updated_at
     }
   }
 `;
@@ -77,7 +71,6 @@ export const GET_USER_PROPOSALS = gql`
       }
       order_by: { created_at: desc }
     ) {
-      id
       term_id
       subject {
         term_id
@@ -86,6 +79,7 @@ export const GET_USER_PROPOSALS = gql`
         emoji
       }
       predicate {
+        term_id
         label
       }
       object {
@@ -95,13 +89,13 @@ export const GET_USER_PROPOSALS = gql`
         emoji
       }
       creator_id
-      positiveVault {
-        totalShares
-        totalAssets
+      triple_vault {
+        total_shares
+        total_assets
       }
-      negativeVault {
-        totalShares
-        totalAssets
+      counter_term {
+        id
+        total_assets
       }
       created_at
     }
@@ -189,9 +183,8 @@ export const GET_USER_VOTES_DETAILED = gql`
  * Get a specific triple by its ID
  */
 export const GET_TRIPLE_BY_ID = gql`
-  query GetTripleById($tripleId: String!) {
-    triples_by_pk(id: $tripleId) {
-      id
+  query GetTripleById($termId: String!) {
+    triples(where: { term_id: { _eq: $termId } }, limit: 1) {
       term_id
       subject {
         term_id
@@ -200,6 +193,7 @@ export const GET_TRIPLE_BY_ID = gql`
         emoji
       }
       predicate {
+        term_id
         label
       }
       object {
@@ -212,15 +206,13 @@ export const GET_TRIPLE_BY_ID = gql`
         id
       }
       creator_id
-      positiveVault {
-        id
-        totalShares
-        totalAssets
+      triple_vault {
+        total_shares
+        total_assets
       }
-      negativeVault {
+      counter_term {
         id
-        totalShares
-        totalAssets
+        total_assets
       }
       created_at
       transaction_hash
@@ -280,12 +272,15 @@ export const GET_ALL_PROPOSALS = gql`
       where: { predicate: { label: { _eq: "represented_by" } } }
       order_by: { created_at: desc }
     ) {
-      id
       term_id
       subject {
         term_id
         label
         image
+      }
+      predicate {
+        term_id
+        label
       }
       object {
         term_id
@@ -293,13 +288,13 @@ export const GET_ALL_PROPOSALS = gql`
         image
         emoji
       }
-      positiveVault {
-        totalShares
-        totalAssets
+      triple_vault {
+        total_shares
+        total_assets
       }
-      negativeVault {
-        totalShares
-        totalAssets
+      counter_term {
+        id
+        total_assets
       }
       created_at
     }
@@ -475,19 +470,18 @@ export const GET_FOUNDER_STATS = gql`
         predicate: { label: { _eq: "represented_by" } }
       }
     ) {
-      id
       term_id
       object {
         term_id
         label
       }
-      positiveVault {
-        totalAssets
-        totalShares
+      triple_vault {
+        total_assets
+        total_shares
       }
-      negativeVault {
-        totalAssets
-        totalShares
+      counter_term {
+        id
+        total_assets
       }
       created_at
     }

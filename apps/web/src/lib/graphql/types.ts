@@ -64,7 +64,6 @@ export interface Atom {
  * For our project: [Founder] [represented_by] [Totem]
  */
 export interface Triple {
-  id: string;
   term_id: string;
   subject: Atom;
   subject_id: string;
@@ -74,10 +73,14 @@ export interface Triple {
   object_id: string;
   creator?: Account;
   creator_id: string;
-  vault?: Vault;
-  vault_type?: VaultType;
-  positiveVault?: Vault;
-  negativeVault?: Vault;
+  triple_vault?: {
+    total_shares: string;
+    total_assets: string;
+  };
+  counter_term?: {
+    id: string;
+    total_assets: string;
+  };
   block_number: string;
   log_index?: string;
   transaction_hash: string;
@@ -159,7 +162,7 @@ export interface GetUserVotesDetailedResult {
 }
 
 export interface GetTripleByIdResult {
-  triples_by_pk: Triple | null;
+  triples: Triple[];
 }
 
 export interface GetAtomByIdResult {
@@ -288,19 +291,18 @@ export interface GetVotesDistributionResult {
  */
 export interface GetFounderStatsResult {
   triples: Array<{
-    id: string;
     term_id: string;
     object: {
       term_id: string;
       label: string;
     };
-    positiveVault: {
-      totalAssets: string;
-      totalShares: string;
+    triple_vault?: {
+      total_assets: string;
+      total_shares: string;
     } | null;
-    negativeVault: {
-      totalAssets: string;
-      totalShares: string;
+    counter_term?: {
+      id: string;
+      total_assets: string;
     } | null;
     created_at: string;
   }>;
