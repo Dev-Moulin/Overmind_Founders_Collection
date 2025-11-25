@@ -72,11 +72,11 @@ export function FounderDetailsPage() {
 
   // Convert proposals to the format expected by aggregateTriplesByObject
   const triples = proposals.map((p) => ({
-    id: p.id,
-    predicate: { id: 'represented_by', label: 'represented_by' },
+    term_id: p.term_id,
+    predicate: { term_id: 'represented_by', label: 'represented_by' },
     object: p.object,
-    positiveVault: { totalAssets: p.votes.forVotes.toString() },
-    negativeVault: { totalAssets: p.votes.againstVotes.toString() },
+    triple_vault: { total_assets: p.votes.forVotes.toString() },
+    counter_term: { id: '', total_assets: p.votes.againstVotes.toString() },
   }));
 
   // Aggregate votes by totem

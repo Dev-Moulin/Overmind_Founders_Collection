@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { FounderData } from './FounderCard';
 import type { Hex } from 'viem';
 
@@ -30,6 +31,34 @@ const DEFAULT_PREDICATES = [
   'embodies',
   'channels',
   'resonates with',
+];
+
+// Catégories de totems suggérés (mêmes que la page Admin)
+const TOTEM_CATEGORIES = [
+  {
+    id: 'animals',
+    name: 'Animaux',
+    emoji: '🦁',
+    examples: ['Lion', 'Aigle', 'Loup', 'Hibou', 'Renard', 'Dauphin', 'Éléphant', 'Baleine', 'Faucon', 'Cheval', 'Lynx', 'Chouette', 'Tortue']
+  },
+  {
+    id: 'objects',
+    name: 'Objets',
+    emoji: '⚔️',
+    examples: ['Clé maître', 'Fondation', 'Pont', 'Boussole', 'Bouclier', 'Lampe torche', 'Épée', 'Télescope']
+  },
+  {
+    id: 'traits',
+    name: 'Traits',
+    emoji: '⭐',
+    examples: ['Visionnaire', 'Leader', 'Innovateur', 'Connecteur', 'Protecteur', 'Stratège', 'Builder', 'Créatif']
+  },
+  {
+    id: 'superpowers',
+    name: 'Superpowers',
+    emoji: '⚡',
+    examples: ['Transformation', 'Connexion', 'Détection', 'Scaling', 'Innovation', 'Résilience']
+  },
 ];
 
 export function ProposalModal({
@@ -104,26 +133,42 @@ export function ProposalModal({
 
   const isFormValid = isPredicateValid && isObjectValid && isTrustValid;
 
-  // Combine default predicates with existing ones
-  const allPredicates = [
-    ...DEFAULT_PREDICATES.map((label, i) => ({
-      id: `default-${i}` as Hex,
+  // Build predicates list: prioritize existing ones (with atomId), add missing as "to create"
+  const allPredicates = DEFAULT_PREDICATES.map((label) => {
+    const existing = existingPredicates.find(p => p.label === label);
+    return {
+      id: existing?.id || (`new:${label}` as Hex), // Prefix "new:" indicates atom needs to be created
       label,
-      isDefault: true
-    })),
-    ...existingPredicates.map(p => ({ ...p, isDefault: false })),
-  ];
+      isOnChain: !!existing,
+    };
+  });
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={handleClose}
-      />
-
+  const modalContent = (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 9999,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px',
+      }}
+      onClick={handleClose}
+    >
       {/* Modal */}
-      <div className="relative glass-card p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+      <div
+        className="glass-card p-6 w-full overflow-y-auto"
+        style={{
+          maxWidth: '512px',
+          maxHeight: '90vh',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex justify-between items-start mb-6">
           <div>
@@ -169,7 +214,7 @@ export function ProposalModal({
           <div>
             <div className="flex justify-between items-center mb-2">
               <label className="block text-sm font-medium text-white/70">
-                Predicate *
+                Predicate * <span className="text-white/40">({allPredicates.length} disponibles)</span>
               </label>
               <div className="flex gap-2">
                 <button
@@ -181,7 +226,7 @@ export function ProposalModal({
                       : 'bg-white/5 text-white/50 hover:text-white'
                   }`}
                 >
-                  Choisir
+                  Choisir ({allPredicates.length})
                 </button>
                 <button
                   type="button"
@@ -192,7 +237,7 @@ export function ProposalModal({
                       : 'bg-white/5 text-white/50 hover:text-white'
                   }`}
                 >
-                  Créer
+                  Créer nouveau
                 </button>
               </div>
             </div>
@@ -204,10 +249,10 @@ export function ProposalModal({
                 disabled={isLoading}
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-purple-400/50 focus:ring-1 focus:ring-purple-400/50 transition-colors disabled:opacity-50"
               >
-                <option value="">Sélectionner un predicate...</option>
+                <option value="">-- Sélectionner un predicate --</option>
                 {allPredicates.map((p) => (
-                  <option key={p.id} value={p.isDefault ? p.label : p.id}>
-                    {p.label}
+                  <option key={p.id} value={p.isOnChain ? p.id : p.label}>
+                    {p.label}{!p.isOnChain ? ' (nouveau)' : ''}
                   </option>
                 ))}
               </select>
@@ -216,7 +261,7 @@ export function ProposalModal({
                 type="text"
                 value={newPredicate}
                 onChange={(e) => setNewPredicate(e.target.value)}
-                placeholder="Ex: is represented by"
+                placeholder="Ex: is represented by, has totem..."
                 disabled={isLoading}
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-purple-400/50 focus:ring-1 focus:ring-purple-400/50 transition-colors disabled:opacity-50"
                 maxLength={100}
@@ -226,63 +271,83 @@ export function ProposalModal({
 
           {/* Object (Totem) */}
           <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="block text-sm font-medium text-white/70">
-                Objet (Totem) *
-              </label>
-              <div className="flex gap-2">
-                {existingObjects.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setObjectMode('select')}
-                    className={`text-xs px-2 py-1 rounded ${
-                      objectMode === 'select'
-                        ? 'bg-purple-500/30 text-purple-300'
-                        : 'bg-white/5 text-white/50 hover:text-white'
-                    }`}
-                  >
-                    Choisir
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setObjectMode('create')}
-                  className={`text-xs px-2 py-1 rounded ${
-                    objectMode === 'create'
-                      ? 'bg-purple-500/30 text-purple-300'
-                      : 'bg-white/5 text-white/50 hover:text-white'
-                  }`}
-                >
-                  Créer
-                </button>
+            <label className="block text-sm font-medium text-white/70 mb-2">
+              Objet (Totem) *
+            </label>
+
+            {/* Input pour le totem */}
+            <input
+              type="text"
+              value={objectMode === 'select' ? (existingObjects.find(o => o.id === selectedObject)?.label || '') : newObject}
+              onChange={(e) => {
+                setObjectMode('create');
+                setNewObject(e.target.value);
+                setSelectedObject('');
+              }}
+              placeholder="Tapez un totem ou choisissez ci-dessous..."
+              disabled={isLoading}
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-purple-400/50 focus:ring-1 focus:ring-purple-400/50 transition-colors disabled:opacity-50"
+              maxLength={100}
+            />
+
+            {/* Totems existants (si on en a) */}
+            {existingObjects.length > 0 && (
+              <div className="mt-3">
+                <p className="text-xs text-white/50 mb-2">Totems existants :</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {existingObjects.slice(0, 10).map((o) => (
+                    <button
+                      key={o.id}
+                      type="button"
+                      onClick={() => {
+                        setObjectMode('select');
+                        setSelectedObject(o.id);
+                        setNewObject('');
+                      }}
+                      className={`px-2 py-1 text-xs rounded-lg transition-colors ${
+                        selectedObject === o.id
+                          ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50'
+                          : 'bg-white/5 text-white/70 hover:bg-white/10 border border-white/10'
+                      }`}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Suggestions par catégorie */}
+            <div className="mt-3">
+              <p className="text-xs text-white/50 mb-2">Suggestions :</p>
+              <div className="space-y-2 max-h-32 overflow-y-auto">
+                {TOTEM_CATEGORIES.map((cat) => (
+                  <div key={cat.id}>
+                    <p className="text-xs text-white/40 mb-1">{cat.emoji} {cat.name}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {cat.examples.slice(0, 6).map((example) => (
+                        <button
+                          key={example}
+                          type="button"
+                          onClick={() => {
+                            setObjectMode('create');
+                            setNewObject(example);
+                            setSelectedObject('');
+                          }}
+                          className={`px-2 py-1 text-xs rounded-lg transition-colors ${
+                            newObject === example
+                              ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50'
+                              : 'bg-white/5 text-white/70 hover:bg-white/10 border border-white/10'
+                          }`}
+                        >
+                          {example}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-
-            {objectMode === 'select' && existingObjects.length > 0 ? (
-              <select
-                value={selectedObject}
-                onChange={(e) => setSelectedObject(e.target.value as Hex)}
-                disabled={isLoading}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-purple-400/50 focus:ring-1 focus:ring-purple-400/50 transition-colors disabled:opacity-50"
-              >
-                <option value="">Sélectionner un totem...</option>
-                {existingObjects.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                type="text"
-                value={newObject}
-                onChange={(e) => setNewObject(e.target.value)}
-                placeholder="Ex: guitare, écharpe, phoenix..."
-                disabled={isLoading}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-purple-400/50 focus:ring-1 focus:ring-purple-400/50 transition-colors disabled:opacity-50"
-                maxLength={100}
-              />
-            )}
           </div>
 
           {/* Trust Amount */}
@@ -290,7 +355,7 @@ export function ProposalModal({
             <label htmlFor="trustAmount" className="block text-sm font-medium text-white/70 mb-2">
               Montant TRUST à déposer *
             </label>
-            <div className="relative">
+            <div style={{ position: 'relative' }}>
               <input
                 id="trustAmount"
                 type="number"
@@ -299,9 +364,20 @@ export function ProposalModal({
                 value={trustAmount}
                 onChange={(e) => setTrustAmount(e.target.value)}
                 disabled={isLoading}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-purple-400/50 focus:ring-1 focus:ring-purple-400/50 transition-colors disabled:opacity-50 pr-16"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-purple-400/50 focus:ring-1 focus:ring-purple-400/50 transition-colors disabled:opacity-50"
+                style={{ paddingRight: '64px' }}
               />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 text-sm">
+              <span
+                style={{
+                  position: 'absolute',
+                  right: '16px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'rgba(255, 255, 255, 0.5)',
+                  fontSize: '14px',
+                  pointerEvents: 'none',
+                }}
+              >
                 ETH
               </span>
             </div>
@@ -347,4 +423,6 @@ export function ProposalModal({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
