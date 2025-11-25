@@ -80,11 +80,11 @@ export function useAllProposals() {
     founderMap.forEach((triples, founderName) => {
       // Convert to format expected by aggregateTriplesByObject
       const formattedTriples = triples.map((t) => ({
-        id: t.id,
-        predicate: { id: t.predicate?.label || '', label: t.predicate?.label || '' },
+        term_id: t.term_id,
+        predicate: { term_id: t.predicate?.term_id || '', label: t.predicate?.label || '' },
         object: t.object,
-        positiveVault: { totalAssets: t.positiveVault?.totalAssets || '0' },
-        negativeVault: { totalAssets: t.negativeVault?.totalAssets || '0' },
+        triple_vault: { total_assets: t.triple_vault?.total_assets || '0' },
+        counter_term: { id: '', total_assets: t.counter_term?.total_assets || '0' },
       }));
 
       // Aggregate by totem

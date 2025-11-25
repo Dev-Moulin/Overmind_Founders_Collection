@@ -18,10 +18,10 @@ import type {
  * Calculate vote counts and statistics for a triple
  */
 function calculateVoteCounts(triple: Triple): TripleVoteCounts {
-  const forVotes = triple.positiveVault?.totalAssets || '0';
-  const againstVotes = triple.negativeVault?.totalAssets || '0';
-  const forShares = triple.positiveVault?.totalShares || '0';
-  const againstShares = triple.negativeVault?.totalShares || '0';
+  const forVotes = triple.triple_vault?.total_assets || '0';
+  const againstVotes = triple.counter_term?.total_assets || '0';
+  const forShares = triple.triple_vault?.total_shares || '0';
+  const againstShares = '0'; // counter_term doesn't have shares in V2 schema
 
   // Calculate net votes (FOR - AGAINST)
   const forBigInt = BigInt(forVotes);

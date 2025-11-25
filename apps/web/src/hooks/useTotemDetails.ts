@@ -80,7 +80,7 @@ export function useTotemDetails(founderName: string, totemId: string) {
       const forVotes = BigInt(p.votes.forVotes);
       const againstVotes = BigInt(p.votes.againstVotes);
       return {
-        tripleId: p.id,
+        tripleId: p.term_id,
         predicate: p.predicate?.label || 'represented_by',
         netScore: forVotes - againstVotes,
         trustFor: forVotes,
