@@ -8,7 +8,8 @@ test.describe('Navigation', () => {
 
   test('should have connect wallet button', async ({ page }) => {
     await page.goto('/');
-    const connectButton = page.getByRole('button', { name: /connect|wallet/i });
+    // Use header button specifically (there are 2 "Connect Wallet" buttons on homepage)
+    const connectButton = page.getByRole('banner').getByRole('button', { name: /connect wallet/i });
     await expect(connectButton).toBeVisible();
   });
 
@@ -24,6 +25,7 @@ test.describe('Navigation', () => {
 
   test('should navigate to results page', async ({ page }) => {
     await page.goto('/results');
-    await expect(page.locator('body')).toContainText(/result|ranking|classement/i);
+    // Page uses French "Résultats"
+    await expect(page.locator('body')).toContainText(/résultat|result|ranking|classement/i);
   });
 });
