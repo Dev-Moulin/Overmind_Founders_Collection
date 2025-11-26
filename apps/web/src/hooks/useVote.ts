@@ -2,7 +2,8 @@ import { useState, useCallback, useRef } from 'react';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import { parseEther, type Hex, type Address } from 'viem';
 import { getMultiVaultAddressFromChainId } from '@0xintuition/sdk';
-import { intuitionTestnet, MultiVaultAbi } from '@0xintuition/protocol';
+import { MultiVaultAbi } from '@0xintuition/protocol';
+import { currentIntuitionChain } from '../config/wagmi';
 import { toast } from 'sonner';
 
 export type VoteStatus =
@@ -66,7 +67,7 @@ export function useVote(): UseVoteResult {
   // Ref to track current status for error handling in async callbacks
   const statusRef = useRef<VoteStatus>('idle');
 
-  const multiVaultAddress = getMultiVaultAddressFromChainId(intuitionTestnet.id);
+  const multiVaultAddress = getMultiVaultAddressFromChainId(currentIntuitionChain.id);
 
   // Helper to update both state and ref
   const updateStatus = useCallback((newStatus: VoteStatus) => {

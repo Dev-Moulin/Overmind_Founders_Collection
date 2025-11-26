@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useAccount, useChainId, useSwitchChain } from 'wagmi';
-import { useTranslation } from 'react-i18next';
-import { intuitionTestnet } from '@0xintuition/protocol';
+import { currentIntuitionChain } from '../config/wagmi';
+import { getCurrentNetwork } from '../lib/networkConfig';
 import { useWhitelist } from '../hooks/useWhitelist';
 
 interface NetworkGuardProps {
@@ -9,14 +9,17 @@ interface NetworkGuardProps {
 }
 
 export function NetworkGuard({ children }: NetworkGuardProps) {
-  const { t } = useTranslation();
   const chainId = useChainId();
   const { switchChain, isPending } = useSwitchChain();
   const { address, isConnected } = useAccount();
   const { isEligible, isLoading: isCheckingWhitelist } = useWhitelist(address);
 
-  // Si on n'est pas sur INTUITION L3 Testnet, afficher le message d'erreur
-  if (chainId !== intuitionTestnet.id) {
+  const currentNetwork = getCurrentNetwork();
+  const expectedChainId = currentIntuitionChain.id;
+  const networkName = currentNetwork === 'mainnet' ? 'Mainnet' : 'Testnet';
+
+  // Si on n'est pas sur le bon réseau INTUITION L3, afficher le message d'erreur
+  if (chainId !== expectedChainId) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="glass-card p-8 max-w-md text-center">
@@ -25,14 +28,14 @@ export function NetworkGuard({ children }: NetworkGuardProps) {
             Mauvais réseau détecté
           </h2>
           <p className="text-white/70 mb-6">
-            {t('errors.switchNetwork')}
+            Veuillez basculer sur INTUITION L3 {networkName} (Chain ID: {expectedChainId})
           </p>
           <button
-            onClick={() => switchChain?.({ chainId: intuitionTestnet.id })}
+            onClick={() => switchChain?.({ chainId: expectedChainId })}
             disabled={isPending}
             className="glass-button w-full"
           >
-            {isPending ? 'Changement en cours...' : 'Switch to INTUITION Testnet'}
+            {isPending ? 'Changement en cours...' : `Switch to INTUITION ${networkName}`}
           </button>
         </div>
       </div>

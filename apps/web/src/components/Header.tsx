@@ -5,7 +5,7 @@ import { WalletConnectButton } from './ConnectButton';
 import { NetworkSwitch } from './NetworkSwitch';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
-const ADMIN_WALLET = '0xefc86f5fabe767daac9358d0ba2dfd9ac7d29948';
+const ADMIN_WALLET = import.meta.env.VITE_ADMIN_WALLET_ADDRESS || '';
 
 export function Header() {
   const { t } = useTranslation();
@@ -34,6 +34,7 @@ export function Header() {
 
         {isConnected && (
           <nav className="flex items-center gap-4 flex-wrap">
+            {/* Pages cachées temporairement - seront supprimées plus tard
             <Link to="/propose" className={navLinkClass('/propose')}>
               {t('header.nav.propose')}
             </Link>
@@ -46,6 +47,7 @@ export function Header() {
             <Link to="/my-votes" className={navLinkClass('/my-votes')}>
               {t('header.nav.myVotes')}
             </Link>
+            */}
             {isAdmin && (
               <Link to="/admin/audit" className={navLinkClass('/admin/audit')}>
                 {t('header.nav.admin')}

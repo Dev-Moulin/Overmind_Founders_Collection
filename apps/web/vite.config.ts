@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react';
 import cspPlugin from 'vite-plugin-csp-guard';
 
 export default defineConfig({
+  // Base path for GitHub Pages deployment
+  base: process.env.GITHUB_ACTIONS ? '/Overmind_Founders_Collection/' : '/',
   plugins: [
     react(),
     cspPlugin({

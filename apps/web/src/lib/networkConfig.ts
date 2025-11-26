@@ -12,6 +12,7 @@ export interface NetworkConfig {
   graphqlWs: string;
   rpcHttp: string;
   rpcWs: string;
+  explorerUrl: string;
 }
 
 /**
@@ -19,20 +20,22 @@ export interface NetworkConfig {
  */
 export const NETWORK_CONFIGS: Record<Network, NetworkConfig> = {
   testnet: {
-    name: 'INTUITION L3 Testnet',
+    name: 'Intuition Testnet',
     chainId: 13579,
     graphqlHttp: 'https://testnet.intuition.sh/v1/graphql',
     graphqlWs: 'wss://testnet.intuition.sh/v1/graphql',
     rpcHttp: 'https://testnet.rpc.intuition.systems/http',
     rpcWs: 'wss://testnet.rpc.intuition.systems/ws',
+    explorerUrl: 'https://testnet.explorer.intuition.systems',
   },
   mainnet: {
-    name: 'INTUITION L3 Mainnet',
-    chainId: 13580, // À confirmer
-    graphqlHttp: 'https://mainnet.intuition.sh/v1/graphql', // À confirmer
-    graphqlWs: 'wss://mainnet.intuition.sh/v1/graphql', // À confirmer
-    rpcHttp: 'https://mainnet.rpc.intuition.systems/http', // À confirmer
-    rpcWs: 'wss://mainnet.rpc.intuition.systems/ws', // À confirmer
+    name: 'Intuition Mainnet',
+    chainId: 1155,
+    graphqlHttp: 'https://mainnet.intuition.sh/v1/graphql',
+    graphqlWs: 'wss://mainnet.intuition.sh/v1/graphql',
+    rpcHttp: 'https://rpc.intuition.systems/http',
+    rpcWs: 'wss://rpc.intuition.systems/ws',
+    explorerUrl: 'https://explorer.intuition.systems',
   },
 };
 

@@ -7,7 +7,8 @@ import {
   getMultiVaultAddressFromChainId,
 } from '@0xintuition/sdk';
 import { parseEther, formatEther, type Hex } from 'viem';
-import { intuitionTestnet, multiCallIntuitionConfigs, MultiVaultAbi } from '@0xintuition/protocol';
+import { multiCallIntuitionConfigs, MultiVaultAbi } from '@0xintuition/protocol';
+import { currentIntuitionChain } from '../config/wagmi';
 import { GET_ATOMS_BY_LABELS, GET_TRIPLE_BY_ATOMS } from '../lib/graphql/queries';
 import categoriesConfig from '../../../../packages/shared/src/data/categories.json';
 
@@ -111,7 +112,7 @@ export function useIntuition() {
   const { data: walletClient } = useWalletClient();
   const apolloClient = useApolloClient();
 
-  const multiVaultAddress = getMultiVaultAddressFromChainId(intuitionTestnet.id);
+  const multiVaultAddress = getMultiVaultAddressFromChainId(currentIntuitionChain.id);
 
   /**
    * Look up an existing atom by label via GraphQL

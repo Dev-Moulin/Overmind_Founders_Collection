@@ -4,8 +4,8 @@ import { formatEther, parseEther } from 'viem';
 import {
   multiCallIntuitionConfigs,
   getMultiVaultAddressFromChainId,
-  intuitionTestnet,
 } from '@0xintuition/protocol';
+import { currentIntuitionChain } from '../config/wagmi';
 
 /**
  * Configuration du protocole INTUITION
@@ -74,7 +74,7 @@ export function useProtocolConfig() {
         setLoading(true);
         setError(null);
 
-        const multiVaultAddress = getMultiVaultAddressFromChainId(intuitionTestnet.id);
+        const multiVaultAddress = getMultiVaultAddressFromChainId(currentIntuitionChain.id);
 
         const contractConfig = await multiCallIntuitionConfigs({
           publicClient,

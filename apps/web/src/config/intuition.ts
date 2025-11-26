@@ -1,31 +1,35 @@
 import { createPublicClient, http } from 'viem';
-import { intuitionTestnet } from '@0xintuition/protocol';
 import { getMultiVaultAddressFromChainId } from '@0xintuition/sdk';
+import { getNetworkConfig } from '../lib/networkConfig';
+import { currentIntuitionChain } from './wagmi';
 
-// INTUITION L3 Testnet configuration
+// Get current network configuration
+const networkConfig = getNetworkConfig();
+
+// INTUITION L3 configuration (dynamic based on network selection)
 export const INTUITION_CONFIG = {
-  // MultiVault contract address on INTUITION L3 Testnet (Chain ID: 13579)
-  multiVaultAddress: getMultiVaultAddressFromChainId(intuitionTestnet.id),
+  // MultiVault contract address (dynamic based on chain ID)
+  multiVaultAddress: getMultiVaultAddressFromChainId(currentIntuitionChain.id),
 
-  // GraphQL API endpoint (testnet)
-  graphqlEndpoint: 'https://testnet.intuition.sh/v1/graphql',
+  // GraphQL API endpoint (dynamic based on network)
+  graphqlEndpoint: networkConfig.graphqlHttp,
 
-  // Chain configuration
-  chain: intuitionTestnet,
-  chainId: intuitionTestnet.id, // 13579
+  // Chain configuration (dynamic)
+  chain: currentIntuitionChain,
+  chainId: currentIntuitionChain.id, // 13579 (testnet) or 13580 (mainnet)
 
-  // RPC endpoints
-  rpcUrl: 'https://testnet.rpc.intuition.systems/http',
-  wsUrl: 'wss://testnet.rpc.intuition.systems/ws',
+  // RPC endpoints (dynamic based on network)
+  rpcUrl: networkConfig.rpcHttp,
+  wsUrl: networkConfig.rpcWs,
 
-  // Explorer
-  explorerUrl: 'https://testnet.explorer.intuition.systems',
+  // Explorer (dynamic based on network)
+  explorerUrl: networkConfig.explorerUrl,
 };
 
-// Public client for reading from the blockchain
+// Public client for reading from the blockchain (dynamic)
 export const publicClient = createPublicClient({
-  chain: intuitionTestnet,
-  transport: http('https://testnet.rpc.intuition.systems/http'),
+  chain: currentIntuitionChain,
+  transport: http(networkConfig.rpcHttp),
 });
 
 // Helper to get API URL

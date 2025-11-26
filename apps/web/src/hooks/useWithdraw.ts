@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import { formatEther, type Hex } from 'viem';
 import { redeem, getMultiVaultAddressFromChainId } from '@0xintuition/protocol';
-import { intuitionTestnet } from '@0xintuition/protocol';
+import { currentIntuitionChain } from '../config/wagmi';
 import { toast } from 'sonner';
 
 /**
@@ -90,7 +90,7 @@ export function useWithdraw(): UseWithdrawResult {
   const [status, setStatus] = useState<WithdrawStatus>('idle');
   const [error, setError] = useState<WithdrawError | null>(null);
 
-  const multiVaultAddress = getMultiVaultAddressFromChainId(intuitionTestnet.id);
+  const multiVaultAddress = getMultiVaultAddressFromChainId(currentIntuitionChain.id);
 
   const reset = useCallback(() => {
     setStatus('idle');

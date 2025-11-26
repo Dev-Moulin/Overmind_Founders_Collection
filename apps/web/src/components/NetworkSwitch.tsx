@@ -3,9 +3,9 @@ import { useNetwork } from '../hooks/useNetwork';
 
 /**
  * Wallet address autorisé à voir et utiliser le switch réseau
- * TODO: Remplacer par l'adresse publique de Paul
+ * Défini via variable d'environnement VITE_ADMIN_WALLET_ADDRESS
  */
-const AUTHORIZED_WALLET = '0xefc86f5fabe767daac9358d0ba2dfd9ac7d29948';
+const AUTHORIZED_WALLET = import.meta.env.VITE_ADMIN_WALLET_ADDRESS || '';
 
 /**
  * NetworkSwitch Component

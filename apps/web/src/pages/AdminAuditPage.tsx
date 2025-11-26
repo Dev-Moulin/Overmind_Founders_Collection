@@ -6,7 +6,7 @@ import { useIntuition, getFounderImageUrl } from '../hooks/useIntuition';
 import foundersData from '../../../../packages/shared/src/data/founders.json';
 import categoriesConfig from '../../../../packages/shared/src/data/categories.json';
 
-const ADMIN_WALLET = '0xefc86f5fabe767daac9358d0ba2dfd9ac7d29948';
+const ADMIN_WALLET = import.meta.env.VITE_ADMIN_WALLET_ADDRESS || '';
 
 interface Atom {
   term_id: string;
