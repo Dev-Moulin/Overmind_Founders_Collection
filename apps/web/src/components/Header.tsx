@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAccount } from 'wagmi';
 import { WalletConnectButton } from './ConnectButton';
+import { NetworkSwitch } from './NetworkSwitch';
 
 const ADMIN_WALLET = '0xefc86f5fabe767daac9358d0ba2dfd9ac7d29948';
 
@@ -51,7 +52,10 @@ export function Header() {
         )}
       </div>
 
-      <WalletConnectButton />
+      <div className="flex items-center gap-3">
+        <NetworkSwitch />
+        <WalletConnectButton />
+      </div>
     </header>
   );
 }
