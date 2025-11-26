@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useAccount, useBalance } from 'wagmi';
-import { useQuery, useLazyQuery } from '@apollo/client';
+import { useQuery, useLazyQuery, useSubscription } from '@apollo/client';
 import { formatEther, type Hex } from 'viem';
 import type { FounderForHomePage } from '../hooks/useFoundersForHomePage';
 import { useFounderProposals, formatVoteAmount } from '../hooks/useFounderProposals';
@@ -9,10 +9,12 @@ import { useIntuition, ClaimExistsError } from '../hooks/useIntuition';
 import { WalletConnectButton } from './ConnectButton';
 import { ClaimExistsModal, type ExistingClaimInfo } from './ClaimExistsModal';
 import { GET_TRIPLES_BY_PREDICATES, GET_ATOMS_BY_LABELS, GET_TRIPLE_BY_ATOMS, GET_FOUNDER_RECENT_VOTES } from '../lib/graphql/queries';
+import { SUBSCRIBE_TOTEM_CATEGORIES } from '../lib/graphql/subscriptions';
 import predicatesData from '../../../../packages/shared/src/data/predicates.json';
+import categoriesConfig from '../../../../packages/shared/src/data/categories.json';
 
-// Préfixe utilisé dans la description des atoms pour identifier la catégorie
-const CATEGORY_PREFIX = 'Categorie : ';
+// Préfixe utilisé pour les catégories OFC (Overmind Founders Collection)
+const OFC_PREFIX = 'OFC:';
 
 /**
  * Format timestamp to relative time string (e.g., "2m ago", "1h ago")
@@ -33,33 +35,27 @@ function getTimeAgo(timestamp: string): string {
   return new Date(timestamp).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 }
 
-// Catégories de totems suggérés (mêmes que ProposalModal)
-const TOTEM_CATEGORIES = [
-  {
-    id: 'animals',
-    name: 'Animaux',
-    emoji: '🦁',
-    examples: ['Lion', 'Aigle', 'Loup', 'Hibou', 'Renard', 'Dauphin', 'Éléphant', 'Baleine', 'Faucon', 'Cheval', 'Lynx', 'Chouette', 'Tortue']
-  },
-  {
-    id: 'objects',
-    name: 'Objets',
-    emoji: '⚔️',
-    examples: ['Clé maître', 'Fondation', 'Pont', 'Boussole', 'Bouclier', 'Lampe torche', 'Épée', 'Télescope']
-  },
-  {
-    id: 'traits',
-    name: 'Traits',
-    emoji: '⭐',
-    examples: ['Visionnaire', 'Leader', 'Innovateur', 'Connecteur', 'Protecteur', 'Stratège', 'Builder', 'Créatif']
-  },
-  {
-    id: 'superpowers',
-    name: 'Superpowers',
-    emoji: '⚡',
-    examples: ['Transformation', 'Connexion', 'Détection', 'Scaling', 'Innovation', 'Résilience']
-  },
-];
+// Type for categories.json config
+interface CategoryConfigType {
+  predicate: {
+    id: string;
+    label: string;
+    description: string;
+    termId: string | null;
+  };
+  categories: Array<{
+    id: string;
+    label: string;
+    name: string;
+    termId: string | null;
+  }>;
+}
+
+// Cast imported JSON to typed config
+const typedCategoriesConfig = categoriesConfig as CategoryConfigType;
+
+// Helper to extract category name from OFC label (e.g., "OFC:Animal" -> "Animal")
+const getCategoryName = (label: string) => label.replace(OFC_PREFIX, '');
 
 interface Predicate {
   id: string;
@@ -82,7 +78,7 @@ export function VotePanel({ founder }: VotePanelProps) {
   const predicates = predicatesData as Predicate[];
 
   // INTUITION SDK hook
-  const { createClaim, createClaimWithDescription, isReady } = useIntuition();
+  const { createClaim, createClaimWithCategory, isReady } = useIntuition();
 
   // Fetch existing proposals/totems for this founder
   const { proposals, refetch: refetchProposals } = useFounderProposals(founder.name);
@@ -116,7 +112,7 @@ export function VotePanel({ founder }: VotePanelProps) {
   });
 
   // Lazy query for proactive claim existence check
-  const [checkClaimExists, { data: claimCheckData, loading: claimCheckLoading }] = useLazyQuery<{
+  const [checkClaimExists, { data: claimCheckData, loading: claimCheckLoading, refetch: refetchClaimCheck }] = useLazyQuery<{
     triples: Array<{
       term_id: string;
       subject: { term_id: string; label: string };
@@ -147,6 +143,28 @@ export function VotePanel({ founder }: VotePanelProps) {
     fetchPolicy: 'cache-and-network',
   });
 
+  // Subscribe to totem categories via WebSocket (OFC: triple system)
+  const { data: categoriesSubData } = useSubscription<{
+    triples: Array<{
+      term_id: string;
+      subject: { term_id: string; label: string; image?: string };
+      object: { term_id: string; label: string };
+      created_at: string;
+    }>;
+  }>(SUBSCRIBE_TOTEM_CATEGORIES);
+
+  // Build a map of totem ID -> category from WebSocket subscription
+  const totemCategoriesMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (categoriesSubData?.triples) {
+      categoriesSubData.triples.forEach((triple) => {
+        // subject = totem, object = OFC:Category
+        map.set(triple.subject.term_id, getCategoryName(triple.object.label));
+      });
+    }
+    return map;
+  }, [categoriesSubData]);
+
   // Build predicates with their on-chain atomIds
   const predicatesWithAtomIds = useMemo(() => {
     if (!predicatesAtomData?.atoms) return predicates.map(p => ({ ...p, atomId: null, isOnChain: false }));
@@ -163,29 +181,55 @@ export function VotePanel({ founder }: VotePanelProps) {
     }));
   }, [predicates, predicatesAtomData]);
 
-  // Extract unique objects (totems) from triples, filtered by description containing "Categorie :"
-  // This ensures we only show totems created via our voting system
+  // Extract unique objects (totems) from two sources:
+  // 1. Triples de vote existants (triplesData) - totems déjà utilisés dans des votes
+  // 2. Triples de catégorie (categoriesSubData) - tous les totems avec catégorie OFC:
   const allExistingTotems = useMemo(() => {
-    if (!triplesData?.triples) return [];
     const objectMap = new Map<string, { id: string; label: string; image?: string; category?: string }>();
-    triplesData.triples.forEach((triple: {
-      object: { term_id: string; label: string; image?: string; description?: string }
-    }) => {
-      const obj = triple.object;
-      // Only include objects with description starting with our category prefix
-      if (obj?.label && obj?.description?.startsWith(CATEGORY_PREFIX) && !objectMap.has(obj.term_id)) {
-        // Extract category from description
-        const category = obj.description.replace(CATEGORY_PREFIX, '');
-        objectMap.set(obj.term_id, {
-          id: obj.term_id,
-          label: obj.label,
-          image: obj.image,
-          category,
-        });
-      }
-    });
+
+    // Source 1: Totems from vote triples (already used in votes)
+    if (triplesData?.triples) {
+      triplesData.triples.forEach((triple: {
+        object: { term_id: string; label: string; image?: string; description?: string }
+      }) => {
+        const obj = triple.object;
+        if (obj?.label && !objectMap.has(obj.term_id)) {
+          // Get category from OFC: triple system (WebSocket) or fallback to description (HTTP)
+          const categoryFromTriple = totemCategoriesMap.get(obj.term_id);
+          const categoryFromDescription = obj?.description?.startsWith('Categorie : ')
+            ? obj.description.replace('Categorie : ', '')
+            : undefined;
+          const category = categoryFromTriple || categoryFromDescription;
+
+          if (category) {
+            objectMap.set(obj.term_id, {
+              id: obj.term_id,
+              label: obj.label,
+              image: obj.image,
+              category,
+            });
+          }
+        }
+      });
+    }
+
+    // Source 2: Totems from category triples (includes newly created totems from AdminAuditPage)
+    if (categoriesSubData?.triples) {
+      categoriesSubData.triples.forEach((triple) => {
+        const totemId = triple.subject.term_id;
+        if (!objectMap.has(totemId)) {
+          objectMap.set(totemId, {
+            id: totemId,
+            label: triple.subject.label,
+            image: triple.subject.image,
+            category: getCategoryName(triple.object.label),
+          });
+        }
+      });
+    }
+
     return Array.from(objectMap.values());
-  }, [triplesData]);
+  }, [triplesData, totemCategoriesMap, categoriesSubData]);
 
   // Form state
   const [selectedPredicateId, setSelectedPredicateId] = useState<string>(predicates[0]?.id || '');
@@ -213,11 +257,12 @@ export function VotePanel({ founder }: VotePanelProps) {
   };
 
   // Set initial trust amount to minimum deposit when config loads
+  // Only set once when config first loads (trustAmount is empty string initially)
   useEffect(() => {
-    if (protocolConfig?.formattedMinDeposit && !trustAmount) {
+    if (protocolConfig?.formattedMinDeposit && trustAmount === '') {
       setTrustAmount(protocolConfig.formattedMinDeposit);
     }
-  }, [protocolConfig?.formattedMinDeposit, trustAmount]);
+  }, [protocolConfig?.formattedMinDeposit]); // Don't include trustAmount to avoid loop
 
   // Get selected predicate with atomId (for proactive check)
   const selectedPredicateWithAtom = useMemo(
@@ -254,14 +299,15 @@ export function VotePanel({ founder }: VotePanelProps) {
     if (claimCheckData?.triples && claimCheckData.triples.length > 0) {
       const triple = claimCheckData.triples[0];
       const vault = triple.triple_vault;
-      setProactiveClaimInfo({
+      const newInfo = {
         termId: triple.term_id,
         subjectLabel: triple.subject.label,
         predicateLabel: triple.predicate.label,
         objectLabel: triple.object.label,
-        forVotes: vault?.total_shares || '0',
+        forVotes: vault?.total_assets || '0', // Use total_assets (wei amount), not total_shares
         againstVotes: '0', // La query ne récupère pas les votes AGAINST séparément
-      });
+      };
+      setProactiveClaimInfo(newInfo);
     } else if (claimCheckData?.triples?.length === 0) {
       setProactiveClaimInfo(null);
     }
@@ -324,6 +370,53 @@ export function VotePanel({ founder }: VotePanelProps) {
     return allExistingTotems.filter((t) => t.label.toLowerCase().includes(query));
   }, [allExistingTotems, searchQuery]);
 
+  // Group totems by category for display
+  const totemsByCategory = useMemo(() => {
+    const grouped = new Map<string, Array<{ id: string; label: string; image?: string; category?: string }>>();
+
+    // Group all existing totems by their category
+    allExistingTotems.forEach((totem) => {
+      const category = totem.category || 'Autre';
+      if (!grouped.has(category)) {
+        grouped.set(category, []);
+      }
+      grouped.get(category)!.push(totem);
+    });
+
+    // Sort categories: predefined first (from config), then dynamic ones, "Autre" last
+    const predefinedOrder = typedCategoriesConfig.categories.map(c => c.name);
+    const sortedEntries = Array.from(grouped.entries()).sort((a, b) => {
+      const indexA = predefinedOrder.indexOf(a[0]);
+      const indexB = predefinedOrder.indexOf(b[0]);
+
+      // "Autre" always last
+      if (a[0] === 'Autre') return 1;
+      if (b[0] === 'Autre') return -1;
+
+      // Predefined categories first (by config order)
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+
+      // Dynamic categories alphabetically
+      return a[0].localeCompare(b[0]);
+    });
+
+    return new Map(sortedEntries);
+  }, [allExistingTotems]);
+
+  // Get unique categories from WebSocket subscription (dynamic categories)
+  const dynamicCategories = useMemo(() => {
+    const categories = new Set<string>();
+    if (categoriesSubData?.triples) {
+      categoriesSubData.triples.forEach((triple) => {
+        const categoryName = getCategoryName(triple.object.label);
+        categories.add(categoryName);
+      });
+    }
+    return Array.from(categories);
+  }, [categoriesSubData]);
+
   // Build preview text
   const previewText = useMemo(() => {
     const predicateLabel = selectedPredicate?.label || '...';
@@ -350,10 +443,16 @@ export function VotePanel({ founder }: VotePanelProps) {
     return getTotalTripleCost(trustAmount);
   }, [trustAmount, getTotalTripleCost]);
 
-  // Build description with category for new totem
-  const newTotemDescription = useMemo(() => {
+  // Get category ID from category name (for OFC: triple system)
+  // Supports both predefined categories (from config) and dynamic ones
+  const selectedCategoryId = useMemo(() => {
     if (!newTotemCategory) return '';
-    return `Categorie : ${newTotemCategory}`;
+    // Find matching category in config
+    const category = typedCategoriesConfig.categories.find(
+      c => c.name.toLowerCase() === newTotemCategory.toLowerCase()
+    );
+    // If predefined, return its id; otherwise use the name as id (dynamic category)
+    return category?.id || newTotemCategory.toLowerCase().replace(/\s+/g, '-');
   }, [newTotemCategory]);
 
   // Handle form submit
@@ -376,21 +475,6 @@ export function VotePanel({ founder }: VotePanelProps) {
         );
       }
 
-      console.log('[VotePanel] Creating claim:', {
-        founder: founder.name,
-        founderId: founder.atomId,
-        predicate: selectedPredicateWithAtom?.label,
-        predicateAtomId: selectedPredicateWithAtom?.atomId,
-        totemMode,
-        totemId: totemMode === 'existing' ? selectedTotemId : null,
-        newTotem: totemMode === 'new' ? {
-          name: newTotemName,
-          category: newTotemCategory,
-          description: newTotemDescription,
-        } : null,
-        trustAmount,
-      });
-
       // Determine predicate value (atomId if exists, label if needs creation)
       const predicateValue = selectedPredicateWithAtom?.atomId || selectedPredicateWithAtom?.label;
       if (!predicateValue) {
@@ -412,21 +496,23 @@ export function VotePanel({ founder }: VotePanelProps) {
           depositAmount: trustAmount,
         });
       } else {
-        // Create new totem with description - use createClaimWithDescription
+        // Create new totem with category triple (OFC: system)
         if (!newTotemName.trim()) {
           throw new Error('Nom du totem requis');
         }
 
-        result = await createClaimWithDescription({
+        if (!selectedCategoryId) {
+          throw new Error('Catégorie invalide. Veuillez choisir une catégorie existante.');
+        }
+
+        result = await createClaimWithCategory({
           subjectId: founder.atomId as Hex,
           predicate: predicateValue,
           objectName: newTotemName.trim(),
-          objectDescription: newTotemDescription,
+          categoryId: selectedCategoryId, // Uses OFC: triple system
           depositAmount: trustAmount,
         });
       }
-
-      console.log('[VotePanel] Claim created:', result);
 
       // Show success message
       const totemLabel = totemMode === 'existing' ? selectedTotem?.label : newTotemName;
@@ -451,7 +537,6 @@ export function VotePanel({ founder }: VotePanelProps) {
     } catch (err) {
       // Check if claim already exists - open modal to vote on it
       if (err instanceof ClaimExistsError) {
-        console.log('[VotePanel] Claim exists, opening modal:', err.objectLabel);
         setExistingClaimInfo({
           termId: err.termId,
           subjectLabel: err.subjectLabel,
@@ -462,10 +547,6 @@ export function VotePanel({ founder }: VotePanelProps) {
         setIsSubmitting(false);
         return;
       }
-
-      // Log detailed error
-      console.error('[VotePanel] === ERREUR CRÉATION CLAIM ===');
-      console.error('Erreur complète:', err);
 
       let errorMessage = err instanceof Error ? err.message : 'Erreur lors de la création du claim';
 
@@ -506,7 +587,7 @@ export function VotePanel({ founder }: VotePanelProps) {
       {success && (
         <div className="mb-4 p-3 bg-green-500/20 border border-green-500/50 rounded-lg">
           <div className="flex items-start gap-2">
-            <svg className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-5 h-5 text-green-400 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
             <div className="flex-1">
@@ -528,7 +609,7 @@ export function VotePanel({ founder }: VotePanelProps) {
       {error && (
         <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
           <div className="flex items-start gap-2">
-            <div className="w-5 h-5 rounded-full bg-red-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <div className="w-5 h-5 rounded-full bg-red-500/30 flex items-center justify-center shrink-0 mt-0.5">
               <span className="text-red-400 text-xs font-bold">!</span>
             </div>
             <div className="flex-1">
@@ -724,7 +805,7 @@ export function VotePanel({ founder }: VotePanelProps) {
                   </div>
                 )}
 
-                {/* Tous les totems existants (globaux) */}
+                {/* Tous les totems existants (groupés par catégorie) */}
                 {allExistingTotems.length > 0 && (
                   <div>
                     <p className="text-xs text-white/50 mb-2">Tous les totems ({allExistingTotems.length}) :</p>
@@ -738,56 +819,106 @@ export function VotePanel({ founder }: VotePanelProps) {
                         className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white placeholder-white/30 focus:outline-none focus:border-purple-500/50"
                       />
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {filteredAllTotems.slice(0, 15).map((totem) => (
-                        <button
-                          key={totem.id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedTotemId(totem.id);
-                            setNewTotemName('');
-                            setOpenSection(null); // Fermer l'accordéon
-                          }}
-                          className={`px-2 py-1 text-xs rounded-lg transition-colors ${
-                            selectedTotemId === totem.id
-                              ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50'
-                              : 'bg-white/5 text-white/70 hover:bg-white/10 border border-white/10'
-                          }`}
-                        >
-                          {totem.label}
-                        </button>
-                      ))}
-                    </div>
+
+                    {/* Grouped by category */}
+                    {searchQuery ? (
+                      // Search mode: flat list
+                      <div className="flex flex-wrap gap-1.5">
+                        {filteredAllTotems.slice(0, 15).map((totem) => (
+                          <button
+                            key={totem.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedTotemId(totem.id);
+                              setNewTotemName('');
+                              setOpenSection(null);
+                            }}
+                            className={`px-2 py-1 text-xs rounded-lg transition-colors ${
+                              selectedTotemId === totem.id
+                                ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50'
+                                : 'bg-white/5 text-white/70 hover:bg-white/10 border border-white/10'
+                            }`}
+                          >
+                            {totem.label}
+                            {totem.category && <span className="text-white/40 ml-1">({totem.category})</span>}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      // Normal mode: grouped by category
+                      <div className="space-y-3 max-h-48 overflow-y-auto">
+                        {Array.from(totemsByCategory.entries()).map(([category, totems]) => (
+                          <div key={category}>
+                            <p className="text-xs text-purple-400 font-medium mb-1.5">
+                              {category} ({totems.length})
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {totems.slice(0, 10).map((totem) => (
+                                <button
+                                  key={totem.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedTotemId(totem.id);
+                                    setNewTotemName('');
+                                    setOpenSection(null);
+                                  }}
+                                  className={`px-2 py-1 text-xs rounded-lg transition-colors ${
+                                    selectedTotemId === totem.id
+                                      ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50'
+                                      : 'bg-white/5 text-white/70 hover:bg-white/10 border border-white/10'
+                                  }`}
+                                >
+                                  {totem.label}
+                                </button>
+                              ))}
+                              {totems.length > 10 && (
+                                <span className="text-xs text-white/40 self-center">+{totems.length - 10} autres</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* Suggestions par catégorie (aussi dans mode existant) */}
+                {/* Catégories disponibles (OFC: system - prédéfinies + dynamiques) */}
                 <div>
-                  <p className="text-xs text-white/50 mb-2">Ou créer depuis suggestions :</p>
-                  <div className="space-y-2">
-                    {TOTEM_CATEGORIES.map((cat) => (
-                      <div key={cat.id}>
-                        <p className="text-xs text-white/40 mb-1">{cat.emoji} {cat.name}</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {cat.examples.slice(0, 4).map((example) => (
-                            <button
-                              key={example}
-                              type="button"
-                              onClick={() => {
-                                // Basculer en mode création avec suggestion
-                                setTotemMode('new');
-                                setNewTotemName(example);
-                                setNewTotemCategory(cat.name);
-                                setSelectedTotemId('');
-                              }}
-                              className="px-2 py-1 text-xs rounded-lg transition-colors bg-white/5 text-white/70 hover:bg-white/10 border border-white/10"
-                            >
-                              {example}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                  <p className="text-xs text-white/50 mb-2">Créer avec catégorie :</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {/* Catégories prédéfinies */}
+                    {typedCategoriesConfig.categories.map((cat) => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => {
+                          setTotemMode('new');
+                          setNewTotemCategory(cat.name);
+                          setSelectedTotemId('');
+                        }}
+                        className="px-2 py-1 text-xs rounded-lg transition-colors bg-white/5 text-white/70 hover:bg-white/10 border border-white/10"
+                      >
+                        {cat.name}
+                      </button>
                     ))}
+                    {/* Catégories dynamiques (créées on-chain mais pas dans config) */}
+                    {dynamicCategories
+                      .filter(cat => !typedCategoriesConfig.categories.some(c => c.name === cat))
+                      .map((cat) => (
+                        <button
+                          key={`dynamic-${cat}`}
+                          type="button"
+                          onClick={() => {
+                            setTotemMode('new');
+                            setNewTotemCategory(cat);
+                            setSelectedTotemId('');
+                          }}
+                          className="px-2 py-1 text-xs rounded-lg transition-colors bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/30"
+                          title="Catégorie créée dynamiquement"
+                        >
+                          {cat} ✨
+                        </button>
+                      ))}
                   </div>
                 </div>
 
@@ -813,7 +944,7 @@ export function VotePanel({ founder }: VotePanelProps) {
                     />
                   </div>
 
-                  {/* Catégorie - input texte libre */}
+                  {/* Catégorie - sélection ou création nouvelle */}
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <label className="block text-xs text-white/50">Catégorie</label>
@@ -821,39 +952,9 @@ export function VotePanel({ founder }: VotePanelProps) {
                         <span className="text-xs text-red-400 animate-pulse">obligatoire</span>
                       )}
                     </div>
-                    <input
-                      type="text"
-                      placeholder="Ex: Animaux, Objets, Traits..."
-                      value={newTotemCategory}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setNewTotemCategory(value);
-                        // Auto-match avec catégorie existante (insensible à la casse)
-                        const matchedCategory = TOTEM_CATEGORIES.find(
-                          cat => cat.name.toLowerCase() === value.toLowerCase()
-                        );
-                        if (matchedCategory) {
-                          setNewTotemCategory(matchedCategory.name);
-                        }
-                      }}
-                      className={`w-full bg-white/5 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none transition-all duration-300 ${
-                        newTotemName && !newTotemCategory
-                          ? 'border border-red-500/50 animate-pulse focus:border-red-400/70'
-                          : 'border border-white/10 focus:border-purple-500/50'
-                      }`}
-                    />
-                    {newTotemCategory && (
-                      <p className="text-xs text-white/40 mt-1">
-                        Description: <span className="text-purple-400">{newTotemDescription}</span>
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Suggestions rapides = catégories */}
-                  <div>
-                    <p className="text-xs text-white/50 mb-2">Catégories suggérées :</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {TOTEM_CATEGORIES.map((cat) => (
+                    {/* Catégories prédéfinies */}
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {typedCategoriesConfig.categories.map((cat) => (
                         <button
                           key={cat.id}
                           type="button"
@@ -864,10 +965,42 @@ export function VotePanel({ founder }: VotePanelProps) {
                               : 'bg-white/5 text-white/70 hover:bg-white/10 border border-white/10'
                           }`}
                         >
-                          {cat.emoji} {cat.name}
+                          {cat.name}
                         </button>
                       ))}
+                      {/* Catégories dynamiques existantes */}
+                      {dynamicCategories
+                        .filter(cat => !typedCategoriesConfig.categories.some(c => c.name === cat))
+                        .map((cat) => (
+                          <button
+                            key={`dynamic-${cat}`}
+                            type="button"
+                            onClick={() => setNewTotemCategory(cat)}
+                            className={`px-2 py-1 text-xs rounded-lg transition-colors ${
+                              newTotemCategory === cat
+                                ? 'bg-blue-500/30 text-blue-300 border border-blue-500/50'
+                                : 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/30'
+                            }`}
+                          >
+                            {cat} ✨
+                          </button>
+                        ))}
                     </div>
+                    {/* Input pour nouvelle catégorie */}
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Ou créer nouvelle catégorie..."
+                        value={!typedCategoriesConfig.categories.some(c => c.name === newTotemCategory) && !dynamicCategories.includes(newTotemCategory) ? newTotemCategory : ''}
+                        onChange={(e) => setNewTotemCategory(e.target.value)}
+                        className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white placeholder-white/30 focus:outline-none focus:border-purple-500/50"
+                      />
+                    </div>
+                    {newTotemCategory && (
+                      <p className="text-xs text-white/40 mt-2">
+                        Triple créé: <span className="text-purple-400">[{newTotemName || '...'}] [has_category] [{OFC_PREFIX}{newTotemCategory}]</span>
+                      </p>
+                    )}
                   </div>
                 </div>
               </>
@@ -882,8 +1015,8 @@ export function VotePanel({ founder }: VotePanelProps) {
         <div className="flex items-center gap-3">
           <input
             type="number"
-            min="0"
-            step="1"
+            min={protocolConfig?.formattedMinDeposit || '0.001'}
+            step="0.001"
             value={trustAmount}
             onChange={(e) => setTrustAmount(e.target.value)}
             className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-500/50"
@@ -896,8 +1029,24 @@ export function VotePanel({ founder }: VotePanelProps) {
             <p>Chargement config protocole...</p>
           ) : protocolConfig ? (
             <>
-              <p>Minimum requis: {protocolConfig.formattedMinDeposit} TRUST</p>
+              <p className="flex items-center gap-2">
+                Minimum requis: {protocolConfig.formattedMinDeposit} TRUST
+                {!isDepositValid(trustAmount) && trustAmount && (
+                  <button
+                    type="button"
+                    onClick={() => setTrustAmount(protocolConfig.formattedMinDeposit)}
+                    className="text-purple-400 hover:text-purple-300 underline"
+                  >
+                    Mettre au minimum
+                  </button>
+                )}
+              </p>
               <p>Frais d'entrée: {protocolConfig.formattedEntryFee}</p>
+              {!isDepositValid(trustAmount) && trustAmount && parseFloat(trustAmount) > 0 && (
+                <p className="text-red-400 font-medium">
+                  ⚠️ Montant inférieur au minimum ({protocolConfig.formattedMinDeposit} TRUST)
+                </p>
+              )}
             </>
           ) : null}
         </div>
@@ -977,16 +1126,54 @@ export function VotePanel({ founder }: VotePanelProps) {
         }}
         claim={existingClaimInfo}
         initialAmount={trustAmount}
-        onVoteSuccess={() => {
-          // Reset form and refresh data after successful vote
+        onVoteSuccess={async () => {
+
+          // Reset form after successful vote (but NOT proactiveClaimInfo yet)
           setNewTotemName('');
           setNewTotemCategory('');
-          setSelectedTotemId('');
-          setTotemMode('existing');
-          setOpenSection('predicate');
-          refetchProposals();
-          setSuccess('Vote enregistré avec succès sur le claim existant !');
+
+          setSuccess('Vote enregistré avec succès !');
           setTimeout(() => setSuccess(null), 5000);
+
+          // Store current values BEFORE any state changes
+          const currentForVotes = proactiveClaimInfo?.forVotes || '0';
+
+          // Refetch with polling to get updated data from indexer
+          for (let attempt = 0; attempt < 10; attempt++) {
+            const delay = attempt === 0 ? 500 : 1000;
+            await new Promise(resolve => setTimeout(resolve, delay));
+
+            // Refetch proposals
+            refetchProposals();
+
+            // Refetch the claim check
+            if (refetchClaimCheck) {
+              try {
+                const result = await refetchClaimCheck();
+                const triple = result.data?.triples?.[0];
+
+                if (triple) {
+                  const newForVotes = triple.triple_vault?.total_assets || '0';
+
+                  // Update proactiveClaimInfo with fresh data
+                  setProactiveClaimInfo({
+                    termId: triple.term_id,
+                    subjectLabel: triple.subject.label,
+                    predicateLabel: triple.predicate.label,
+                    objectLabel: triple.object.label,
+                    forVotes: newForVotes,
+                    againstVotes: '0',
+                  });
+
+                  if (newForVotes !== currentForVotes) {
+                    break;
+                  }
+                }
+              } catch (err) {
+                console.error('[VotePanel] Refetch error:', err);
+              }
+            }
+          }
         }}
       />
     </div>
