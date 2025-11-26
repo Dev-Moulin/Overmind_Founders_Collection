@@ -177,29 +177,28 @@ describe('useVote', () => {
 
       expect(result.current.status).toBe('success');
       expect(result.current.totalSteps).toBe(2); // Only checking + depositing
-      expect(vi.mocked(sdk.batchDepositStatement)).toHaveBeenCalled();
+      expect(mockSimulateContract).toHaveBeenCalled();
+      expect(mockWriteContract).toHaveBeenCalled();
       expect(toast.success).toHaveBeenCalledWith(
         'Vote FOR enregistré avec succès !',
         { id: 'deposit' }
       );
     });
 
-    it('should vote AGAINST correctly', async () => {
+    it('should reject AGAINST votes (not yet supported)', async () => {
       const { result } = renderHook(() => useVote());
 
       await act(async () => {
         await result.current.vote('0x123' as `0x${string}`, '5', false);
       });
 
-      expect(result.current.status).toBe('success');
-      expect(toast.success).toHaveBeenCalledWith(
-        'Vote AGAINST enregistré avec succès !',
-        { id: 'deposit' }
-      );
+      expect(result.current.status).toBe('error');
+      expect(result.current.error?.message).toBe('Les votes AGAINST ne sont pas encore supportés. Il faut le counter_term_id du triple.');
     });
   });
 
-  describe('vote flow - approval needed', () => {
+  // Note: These tests are now obsolete - TRUST is a native token, no approval needed
+  describe('vote flow - native token (no approval)', () => {
     beforeEach(() => {
       vi.mocked(wagmi.useAccount).mockReturnValue({
         address: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
@@ -212,14 +211,9 @@ describe('useVote', () => {
       vi.mocked(wagmi.useWalletClient).mockReturnValue({
         data: { writeContract: mockWriteContract },
       } as any);
-      // Low allowance - approval needed
-      vi.mocked(wagmi.useReadContract).mockReturnValue({
-        data: 0n,
-        refetch: mockRefetchAllowance,
-      } as any);
     });
 
-    it('should complete vote with approval when allowance is insufficient', async () => {
+    it('should complete vote directly without approval (TRUST is native)', async () => {
       const { result } = renderHook(() => useVote());
 
       await act(async () => {
@@ -227,12 +221,11 @@ describe('useVote', () => {
       });
 
       expect(result.current.status).toBe('success');
-      expect(result.current.totalSteps).toBe(3); // checking + approving + depositing
-      expect(mockWriteContract).toHaveBeenCalled(); // For approval
-      expect(toast.info).toHaveBeenCalledWith('Approval required. Please sign the transaction...');
+      expect(result.current.totalSteps).toBe(2); // Only checking + depositing (no approval)
+      expect(mockWriteContract).toHaveBeenCalled(); // For deposit only
     });
 
-    it('should handle approval transaction failure', async () => {
+    it('should handle transaction receipt failure', async () => {
       mockWaitForTransactionReceipt.mockResolvedValueOnce({ status: 'reverted' });
 
       const { result } = renderHook(() => useVote());
@@ -242,7 +235,7 @@ describe('useVote', () => {
       });
 
       expect(result.current.status).toBe('error');
-      expect(result.current.error?.message).toContain('Approval transaction failed');
+      expect(result.current.error?.message).toContain('Transaction de vote échouée');
     });
   });
 
@@ -275,7 +268,7 @@ describe('useVote', () => {
       });
 
       expect(result.current.status).toBe('error');
-      expect(result.current.error?.message).toContain('Deposit transaction failed');
+      expect(result.current.error?.message).toContain('Transaction de vote échouée');
     });
   });
 
@@ -299,7 +292,7 @@ describe('useVote', () => {
     });
 
     it('should handle user rejection error', async () => {
-      vi.mocked(sdk.batchDepositStatement).mockRejectedValueOnce(
+      mockSimulateContract.mockRejectedValueOnce(
         new Error('User rejected the request')
       );
 
@@ -311,11 +304,11 @@ describe('useVote', () => {
 
       expect(result.current.status).toBe('error');
       expect(result.current.error?.code).toBe('USER_REJECTED');
-      expect(result.current.error?.message).toBe('Transaction rejected by user');
+      expect(result.current.error?.message).toBe('Transaction rejetée par l\'utilisateur');
     });
 
     it('should handle insufficient funds error', async () => {
-      vi.mocked(sdk.batchDepositStatement).mockRejectedValueOnce(
+      mockSimulateContract.mockRejectedValueOnce(
         new Error('insufficient funds for gas')
       );
 
@@ -326,13 +319,13 @@ describe('useVote', () => {
       });
 
       expect(result.current.status).toBe('error');
-      expect(result.current.error?.code).toBe('INSUFFICIENT_GAS');
-      expect(result.current.error?.message).toBe('Insufficient ETH for gas fees');
+      expect(result.current.error?.code).toBe('INSUFFICIENT_BALANCE');
+      expect(result.current.error?.message).toBe('Balance TRUST insuffisante pour cette transaction');
     });
 
     it('should handle insufficient balance error', async () => {
-      vi.mocked(sdk.batchDepositStatement).mockRejectedValueOnce(
-        new Error('Insufficient balance to complete transaction')
+      mockSimulateContract.mockRejectedValueOnce(
+        new Error('InsufficientBalance')
       );
 
       const { result } = renderHook(() => useVote());
@@ -347,7 +340,7 @@ describe('useVote', () => {
     });
 
     it('should handle generic error', async () => {
-      vi.mocked(sdk.batchDepositStatement).mockRejectedValueOnce(
+      mockSimulateContract.mockRejectedValueOnce(
         new Error('Some random blockchain error')
       );
 

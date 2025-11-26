@@ -404,7 +404,7 @@ describe('VoteModal', () => {
         error: null,
         isLoading: true,
         currentStep: 1,
-        totalSteps: 3,
+        totalSteps: 2,
         reset: mockReset,
       };
 
@@ -417,18 +417,19 @@ describe('VoteModal', () => {
         />
       );
 
-      expect(screen.getByText(/checking allowance/i)).toBeInTheDocument();
-      expect(screen.getByText('Step 1/3')).toBeInTheDocument();
+      expect(screen.getByText(/vérification balance/i)).toBeInTheDocument();
+      expect(screen.getByText('Étape 1/2')).toBeInTheDocument();
     });
 
-    it('should show approving status', () => {
+    // Note: 'approving' status no longer exists - TRUST is native token, no approval needed
+    it('should show checking status', () => {
       mockUseVoteReturnValue = {
         vote: mockVote,
-        status: 'approving',
+        status: 'checking',
         error: null,
         isLoading: true,
-        currentStep: 2,
-        totalSteps: 3,
+        currentStep: 1,
+        totalSteps: 2,
         reset: mockReset,
       };
 
@@ -441,7 +442,7 @@ describe('VoteModal', () => {
         />
       );
 
-      expect(screen.getByText(/approving trust/i)).toBeInTheDocument();
+      expect(screen.getByText(/vérification balance/i)).toBeInTheDocument();
     });
 
     it('should show depositing status', () => {
@@ -450,8 +451,8 @@ describe('VoteModal', () => {
         status: 'depositing',
         error: null,
         isLoading: true,
-        currentStep: 3,
-        totalSteps: 3,
+        currentStep: 2,
+        totalSteps: 2,
         reset: mockReset,
       };
 
@@ -464,7 +465,7 @@ describe('VoteModal', () => {
         />
       );
 
-      expect(screen.getByText(/submitting vote/i)).toBeInTheDocument();
+      expect(screen.getByText(/envoi du vote/i)).toBeInTheDocument();
     });
 
     it('should disable buttons when loading', () => {
