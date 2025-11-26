@@ -10,6 +10,7 @@ vi.mock('wagmi', () => ({
   useAccount: vi.fn(() => ({ address: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266' })),
   usePublicClient: vi.fn(() => ({
     waitForTransactionReceipt: mockWaitForTransactionReceipt,
+    getBalance: vi.fn().mockResolvedValue(1000000000000000000n), // 1 ETH
   })),
   useWalletClient: vi.fn(() => ({
     data: {
@@ -102,7 +103,7 @@ describe('useVote', () => {
 
       expect(result.current.status).toBe('error');
       expect(result.current.error?.code).toBe('WALLET_NOT_CONNECTED');
-      expect(result.current.error?.message).toBe('Please connect your wallet');
+      expect(result.current.error?.message).toBe('Veuillez connecter votre wallet');
       expect(result.current.error?.step).toBe('checking');
     });
 
