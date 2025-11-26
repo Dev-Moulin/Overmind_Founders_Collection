@@ -120,8 +120,6 @@ export function ProposePage() {
         );
       }
 
-      console.log('Creating claim:', data);
-
       // Create the claim using INTUITION SDK
       const result = await createClaim({
         subjectId: data.founderAtomId,
@@ -129,8 +127,6 @@ export function ProposePage() {
         object: data.object,
         depositAmount: data.trustAmount,
       });
-
-      console.log('Claim created:', result);
 
       // Close modal on success
       handleCloseModal();
@@ -143,7 +139,6 @@ export function ProposePage() {
     } catch (err) {
       // Check if claim already exists - redirect to vote page
       if (err instanceof ClaimExistsError) {
-        console.log('[ProposePage] Claim exists, redirecting to vote page:', err.objectLabel);
         handleCloseModal();
 
         // Show info message and redirect to vote page with search pre-filled
