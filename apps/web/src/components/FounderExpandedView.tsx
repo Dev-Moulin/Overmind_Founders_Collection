@@ -1,7 +1,13 @@
+import { useEffect } from 'react';
 import { formatEther } from 'viem';
 import type { FounderForHomePage } from '../hooks/useFoundersForHomePage';
+import {
+  useFounderSubscription,
+  useAutoSubscriptionPause,
+} from '../hooks';
 import { getFounderImageUrl } from './FounderCard';
 import { VotePanel } from './VotePanel';
+import { RefreshIndicator } from './RefreshIndicator';
 
 interface FounderExpandedViewProps {
   founder: FounderForHomePage;
@@ -11,9 +17,41 @@ interface FounderExpandedViewProps {
 /**
  * Full-screen overlay showing expanded founder card (left) + vote panel (right)
  * Implements V2_FONDATION split layout design
+ *
+ * Uses WebSocket subscription for real-time updates on founder proposals.
+ * Automatically pauses subscription when tab is hidden.
  */
 export function FounderExpandedView({ founder, onClose }: FounderExpandedViewProps) {
   const imageUrl = getFounderImageUrl(founder);
+
+  // Real-time subscription for founder proposals
+  // Note: proposals and loading are available for future Phase 2 integration
+  const {
+    // proposals,  // Will be used to pass real-time data to VotePanel
+    // loading: subscriptionLoading,
+    secondsSinceUpdate,
+    isConnected,
+    isPaused,
+    pause,
+    resume,
+  } = useFounderSubscription(founder.name);
+
+  // Auto-pause subscription when tab is hidden
+  useAutoSubscriptionPause(pause, resume, {
+    pauseOnHidden: true,
+    resumeDelay: 100,
+  });
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
 
   // Format net score for display
   const formatScore = (score: bigint): string => {
@@ -70,6 +108,15 @@ export function FounderExpandedView({ founder, onClose }: FounderExpandedViewPro
             <h2 className="text-2xl font-bold text-white text-center mb-2">
               {founder.name}
             </h2>
+
+            {/* Real-time indicator */}
+            <div className="flex justify-center mb-4">
+              <RefreshIndicator
+                secondsSinceUpdate={secondsSinceUpdate}
+                isConnected={isConnected}
+                isPaused={isPaused}
+              />
+            </div>
 
             {/* Short Bio */}
             {founder.shortBio && (

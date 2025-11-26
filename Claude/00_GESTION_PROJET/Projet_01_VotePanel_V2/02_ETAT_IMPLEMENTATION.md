@@ -60,13 +60,14 @@
 | `useFoundersForHomePage` | [useFoundersForHomePage.ts](../../../apps/web/src/hooks/useFoundersForHomePage.ts) | Liste des 42 fondateurs avec stats |
 | `useVote` | [useVote.ts](../../../apps/web/src/hooks/useVote.ts) | **EXISTANT** - Vote sur claim existant (approve + deposit) |
 | `useWithdraw` | [useWithdraw.ts](../../../apps/web/src/hooks/useWithdraw.ts) | **EXISTANT** - Retrait TRUST d'un vault (redeem) |
+| `useFounderSubscription` | [useFounderSubscription.ts](../../../apps/web/src/hooks/useFounderSubscription.ts) | **NOUVEAU** - Subscription WebSocket temps réel, pause auto |
+| `useWindowFocus` | [useWindowFocus.ts](../../../apps/web/src/hooks/useWindowFocus.ts) | **NOUVEAU** - Détection visibilité onglet, auto-pause subscriptions |
 
-### À créer
+### À créer (Phase 2)
 
 | Hook | Description | Priorité |
 |------|-------------|----------|
-| `useWindowFocus` | Détecter si onglet visible (pause subscriptions) | Haute |
-| `useFounderSubscription` | Subscription WebSocket pour données temps réel | Haute |
+| - | Phase 1 hooks complétés | - |
 
 ### Hooks découverts - Détails importants
 
@@ -225,11 +226,11 @@ estimateWithdrawAmount(shares, totalShares, totalAssets, exitFeePercent = 7)
 
 | Aspect | Status | Notes |
 |--------|--------|-------|
-| HTTP Link | OK | Pointe vers `testnet.intuition.sh` |
-| Cache | OK | `cache-and-network` pour watchQuery |
-| Auth | OK | Pas nécessaire sur testnet public |
-| WebSocket Link | À FAIRE | Package `graphql-ws` à installer |
-| Split Link | À FAIRE | HTTP pour queries, WS pour subscriptions |
+| HTTP Link | ✅ OK | Pointe vers `testnet.intuition.sh` |
+| Cache | ✅ OK | `cache-and-network` pour watchQuery |
+| Auth | ✅ OK | Pas nécessaire sur testnet public |
+| WebSocket Link | ✅ OK | Package `graphql-ws` installé, WS link configuré |
+| Split Link | ✅ OK | HTTP pour queries, WS pour subscriptions |
 
 ### Fichier concerné
 
@@ -249,14 +250,14 @@ estimateWithdrawAmount(shares, totalShares, totalAssets, exitFeePercent = 7)
 
 ## 9. Prochaines Étapes (Ordre recommandé)
 
-### Phase 1 : WebSocket Subscriptions (Priorité HAUTE)
+### Phase 1 : WebSocket Subscriptions ✅ TERMINÉE
 
-1. Installer `graphql-ws`
-2. Configurer WebSocket link dans Apollo Client
-3. Créer subscription `SUBSCRIBE_FOUNDER_PROPOSALS`
-4. Créer hook `useFounderSubscription`
-5. Créer hook `useWindowFocus` (pause quand onglet masqué)
-6. Ajouter indicateur "Actualisé"
+1. ✅ Installer `graphql-ws`
+2. ✅ Configurer WebSocket link dans Apollo Client
+3. ✅ Créer subscription `SUBSCRIBE_FOUNDER_PROPOSALS`
+4. ✅ Créer hook `useFounderSubscription`
+5. ✅ Créer hook `useWindowFocus` (pause quand onglet masqué)
+6. ✅ Ajouter indicateur "Actualisé" (`RefreshIndicator`)
 
 ### Phase 2 : UX Claim vs Vote (Priorité HAUTE)
 
@@ -285,14 +286,9 @@ estimateWithdrawAmount(shares, totalShares, totalAssets, exitFeePercent = 7)
   "@apollo/client": "^3.x",
   "wagmi": "^2.x",
   "viem": "^2.x",
-  "sonner": "^1.x"
+  "sonner": "^1.x",
+  "graphql-ws": "^6.0.6"
 }
-```
-
-### Package à ajouter
-
-```bash
-pnpm add graphql-ws
 ```
 
 > **Note** : `graphql-ws` est le package moderne recommandé par Hasura et Apollo (pas `subscriptions-transport-ws` qui est déprécié).

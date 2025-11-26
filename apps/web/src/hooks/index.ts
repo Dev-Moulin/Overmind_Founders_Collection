@@ -75,3 +75,15 @@ export {
 
 // Hook for INTUITION protocol configuration (costs, fees)
 export { useProtocolConfig, type ProtocolConfig } from './useProtocolConfig';
+
+// Hook for real-time founder proposals via WebSocket subscription
+export {
+  useFounderSubscription,
+  formatTimeSinceUpdate,
+} from './useFounderSubscription';
+
+// Hook for detecting window/tab focus state
+export {
+  useWindowFocus,
+  useAutoSubscriptionPause,
+} from './useWindowFocus';
