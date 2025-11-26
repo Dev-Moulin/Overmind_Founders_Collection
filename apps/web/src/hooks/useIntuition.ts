@@ -9,6 +9,26 @@ import {
 import { parseEther, formatEther, type Hex } from 'viem';
 import { intuitionTestnet, multiCallIntuitionConfigs, MultiVaultAbi } from '@0xintuition/protocol';
 import { GET_ATOMS_BY_LABELS, GET_TRIPLE_BY_ATOMS } from '../lib/graphql/queries';
+import categoriesConfig from '../../../../packages/shared/src/data/categories.json';
+
+// Type for categories.json config
+interface CategoryConfig {
+  predicate: {
+    id: string;
+    label: string;
+    description: string;
+    termId: string | null;
+  };
+  categories: Array<{
+    id: string;
+    label: string;
+    name: string;
+    termId: string | null;
+  }>;
+}
+
+// Cast imported JSON to typed config
+const typedCategoriesConfig = categoriesConfig as CategoryConfig;
 
 export interface CreateAtomResult {
   uri: string;
@@ -131,12 +151,6 @@ export function useIntuition() {
       objectId: Hex
     ): Promise<{ termId: Hex; subjectLabel: string; predicateLabel: string; objectLabel: string } | null> => {
       try {
-        console.log('[useIntuition] findTriple - searching with:', {
-          subjectId,
-          predicateId,
-          objectId,
-        });
-
         const { data } = await apolloClient.query<{
           triples: Array<{
             term_id: string;
@@ -150,8 +164,6 @@ export function useIntuition() {
           fetchPolicy: 'network-only',
         });
 
-        console.log('[useIntuition] findTriple - result:', data);
-
         if (data?.triples && data.triples.length > 0) {
           const triple = data.triples[0];
           return {
@@ -161,7 +173,6 @@ export function useIntuition() {
             objectLabel: triple.object.label,
           };
         }
-        console.log('[useIntuition] findTriple - triple NOT found');
         return null;
       } catch (error) {
         console.warn('[useIntuition] Error looking up triple:', error);
@@ -208,12 +219,10 @@ export function useIntuition() {
       // First, check if atom already exists
       const existingId = await findAtomByLabel(value);
       if (existingId) {
-        console.log('[useIntuition] Atom already exists:', value, existingId);
         return { termId: existingId, created: false };
       }
 
       // Create new atom
-      console.log('[useIntuition] Creating new atom:', value);
       const result = await createAtom(value, depositAmount);
       return { termId: result.termId, created: true };
     },
@@ -268,12 +277,10 @@ export function useIntuition() {
       // First, check if atom already exists by name
       const existingId = await findAtomByLabel(name);
       if (existingId) {
-        console.log('[useIntuition] Atom already exists:', name, existingId);
         return { termId: existingId, created: false };
       }
 
       // Create new atom with description
-      console.log('[useIntuition] Creating new atom with description:', name, description);
       const result = await createAtomWithDescription(name, description, depositAmount);
       return { termId: result.termId, created: true };
     },
@@ -349,18 +356,6 @@ export function useIntuition() {
         const minDeposit = BigInt(contractConfig.min_deposit);
         const totalRequired = tripleBaseCost + depositAmountWei;
 
-        console.log('[useIntuition] === CONFIGURATION CONTRAT V2 ===');
-        console.log('[useIntuition] Triple base cost:', contractConfig.formatted_triple_cost, 'tTRUST');
-        console.log('[useIntuition] Min deposit:', contractConfig.formatted_min_deposit, 'tTRUST');
-        console.log('[useIntuition] Entry fee:', contractConfig.formatted_entry_fee);
-        console.log('[useIntuition] Protocol fee:', contractConfig.formatted_protocol_fee);
-        console.log('[useIntuition] === VOTRE TRANSACTION ===');
-        console.log('[useIntuition] Deposit amount:', depositAmount, 'tTRUST');
-        console.log('[useIntuition] Total required (base + deposit):', formatEther(totalRequired), 'tTRUST');
-        console.log('[useIntuition] Your wallet balance:', formatEther(walletBalance), 'tTRUST');
-        console.log('[useIntuition] Deposit >= minDeposit?', depositAmountWei >= minDeposit ? 'YES ✓' : 'NO ✗');
-        console.log('[useIntuition] Balance >= required?', walletBalance >= totalRequired ? 'YES ✓' : 'NO ✗');
-
         // Check minDeposit FIRST - this is likely the issue!
         if (depositAmountWei < minDeposit) {
           throw new Error(
@@ -400,13 +395,6 @@ export function useIntuition() {
       // V2: msg.value = sum(assets) = assets[0] (for single triple)
       const totalAssetValue = tripleBaseCost + depositAmountWei;
 
-      console.log('[useIntuition] === APPEL DIRECT CONTRAT V2 ===');
-      console.log('[useIntuition] Triple base cost (wei):', tripleBaseCost.toString());
-      console.log('[useIntuition] User deposit (wei):', depositAmountWei.toString());
-      console.log('[useIntuition] assets[0] = base + deposit (wei):', totalAssetValue.toString());
-      console.log('[useIntuition] msg.value = sum(assets) (wei):', totalAssetValue.toString());
-      console.log('[useIntuition] msg.value (ETH):', formatEther(totalAssetValue));
-
       // Simulate first to catch errors
       // V2: msg.value MUST EQUAL sum(assets), and assets includes the base cost
       const { request } = await publicClient.simulateContract({
@@ -420,11 +408,9 @@ export function useIntuition() {
 
       // Execute the transaction
       const txHash = await walletClient.writeContract(request);
-      console.log('[useIntuition] Transaction hash:', txHash);
 
-      // Wait for transaction receipt to get events
-      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-      console.log('[useIntuition] Transaction confirmed, block:', receipt.blockNumber);
+      // Wait for transaction receipt
+      await publicClient.waitForTransactionReceipt({ hash: txHash });
 
       // For now, return the transaction hash - we'll parse events later if needed
       return {
@@ -484,10 +470,8 @@ export function useIntuition() {
       }
 
       // Vérifier si le triple existe déjà AVANT de tenter la création
-      console.log('[useIntuition] Vérification si le triple existe déjà...');
       const existingTriple = await findTriple(params.subjectId, predicateId, objectId);
       if (existingTriple) {
-        console.log('[useIntuition] Triple existe déjà:', existingTriple);
         throw new ClaimExistsError({
           termId: existingTriple.termId,
           subjectLabel: existingTriple.subjectLabel,
@@ -557,10 +541,8 @@ export function useIntuition() {
       objectCreated = objectResult.created;
 
       // Vérifier si le triple existe déjà AVANT de tenter la création
-      console.log('[useIntuition] Vérification si le triple existe déjà...');
       const existingTriple = await findTriple(params.subjectId, predicateId, objectId);
       if (existingTriple) {
-        console.log('[useIntuition] Triple existe déjà:', existingTriple);
         throw new ClaimExistsError({
           termId: existingTriple.termId,
           subjectLabel: existingTriple.subjectLabel,
@@ -586,12 +568,140 @@ export function useIntuition() {
     [getOrCreateAtom, getOrCreateAtomWithDescription, createTriple, findTriple]
   );
 
+  /**
+   * Create a complete claim with category triple (OFC: system)
+   * Creates TWO triples:
+   * 1. [Founder] [predicate] [Totem] - Vote principal
+   * 2. [Totem] [has_category] [OFC:Category] - Catégorie
+   *
+   * This enables WebSocket subscriptions for categories (description field not available in WS)
+   */
+  const createClaimWithCategory = useCallback(
+    async (params: {
+      subjectId: Hex; // Founder atom ID (pre-existing)
+      predicate: string | Hex; // String = get or create atom, Hex = use existing
+      objectName: string; // Object name (totem name)
+      categoryId: string; // Category ID from categories.json (e.g. "animal", "objet")
+      depositAmount: string;
+    }): Promise<{
+      triple: CreateTripleResult;
+      categoryTriple: CreateTripleResult | null;
+      predicateCreated: boolean;
+      objectCreated: boolean;
+      categoryPredicateCreated: boolean;
+      categoryObjectCreated: boolean;
+    }> => {
+      let predicateId: Hex;
+      let objectId: Hex;
+      let predicateCreated = false;
+      let objectCreated = false;
+      let categoryPredicateCreated = false;
+      let categoryObjectCreated = false;
+
+      // Find category config - support both predefined and dynamic categories
+      const predefinedCategory = typedCategoriesConfig.categories.find(c => c.id === params.categoryId);
+
+      // For dynamic categories, generate the OFC label from the category name
+      // Format: "OFC:CategoryName" (e.g., "tech" -> "OFC:Tech")
+      const categoryLabel = predefinedCategory
+        ? predefinedCategory.label
+        : `OFC:${params.categoryId.charAt(0).toUpperCase()}${params.categoryId.slice(1)}`;
+
+
+      // Helper to check if a value is a Hex atomId (starts with 0x and is 66 chars long)
+      const isHexAtomId = (value: string): boolean => {
+        return value.startsWith('0x') && value.length === 66;
+      };
+
+      // Get or create predicate atom if it's NOT already a Hex atomId
+      if (typeof params.predicate === 'string' && !isHexAtomId(params.predicate)) {
+        const result = await getOrCreateAtom(params.predicate);
+        predicateId = result.termId;
+        predicateCreated = result.created;
+      } else {
+        predicateId = params.predicate as Hex;
+      }
+
+      // Get or create object atom (totem) - simple atom without description
+      const objectResult = await getOrCreateAtom(params.objectName);
+      objectId = objectResult.termId;
+      objectCreated = objectResult.created;
+
+      // Vérifier si le triple existe déjà AVANT de tenter la création
+      const existingTriple = await findTriple(params.subjectId, predicateId, objectId);
+      if (existingTriple) {
+        throw new ClaimExistsError({
+          termId: existingTriple.termId,
+          subjectLabel: existingTriple.subjectLabel,
+          predicateLabel: existingTriple.predicateLabel,
+          objectLabel: existingTriple.objectLabel,
+        });
+      }
+
+      // === TRIPLE 1: Vote principal ===
+      const triple = await createTriple(
+        params.subjectId,
+        predicateId,
+        objectId,
+        params.depositAmount
+      );
+
+      // === TRIPLE 2: Catégorie (OFC:) ===
+      let categoryTriple: CreateTripleResult | null = null;
+      try {
+
+        // Get or create "has_category" predicate
+        const categoryPredicateResult = await getOrCreateAtom(typedCategoriesConfig.predicate.label);
+        const categoryPredicateId = categoryPredicateResult.termId;
+        categoryPredicateCreated = categoryPredicateResult.created;
+
+        // Get or create OFC:Category atom (predefined or dynamic)
+        const categoryObjectResult = await getOrCreateAtom(categoryLabel);
+        const categoryObjectId = categoryObjectResult.termId;
+        categoryObjectCreated = categoryObjectResult.created;
+
+        // Vérifier si le triple de catégorie existe déjà
+        const existingCategoryTriple = await findTriple(objectId, categoryPredicateId, categoryObjectId);
+        if (existingCategoryTriple) {
+          // C'est OK, on ne le crée pas à nouveau
+        } else {
+          // Get min deposit for category triple (minimum cost)
+          const contractConfig = await multiCallIntuitionConfigs({ publicClient: publicClient!, address: multiVaultAddress });
+          const minDeposit = formatEther(BigInt(contractConfig.min_deposit));
+
+          categoryTriple = await createTriple(
+            objectId, // Subject = le totem qu'on vient de créer
+            categoryPredicateId, // Predicate = has_category
+            categoryObjectId, // Object = OFC:Animal, OFC:Objet, etc.
+            minDeposit // Dépôt minimum pour le triple de catégorie
+          );
+        }
+      } catch (categoryError) {
+        // Log but don't fail - the main vote triple was created successfully
+        console.error('[useIntuition] Erreur création triple catégorie (non bloquant):', categoryError);
+      }
+
+      return {
+        triple,
+        categoryTriple,
+        predicateCreated,
+        objectCreated,
+        categoryPredicateCreated,
+        categoryObjectCreated,
+      };
+    },
+    [getOrCreateAtom, createTriple, findTriple, publicClient, multiVaultAddress]
+  );
+
   return {
     createAtom,
     createFounderAtom,
     createTriple,
     createClaim,
     createClaimWithDescription,
+    createClaimWithCategory,
+    getOrCreateAtom,
+    findTriple,
     isReady: !!walletClient && !!publicClient,
   };
 }

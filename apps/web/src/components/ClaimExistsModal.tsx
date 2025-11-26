@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAccount } from 'wagmi';
 import { useQuery } from '@apollo/client';
 import { formatEther, type Hex } from 'viem';
@@ -47,6 +47,17 @@ export function ClaimExistsModal({
   const [direction, setDirection] = useState<'for' | 'against'>('for');
   const [validationError, setValidationError] = useState<string | null>(null);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const hasClosedRef = useRef(false); // Prevent multiple close attempts
+
+  // Store callbacks in refs to avoid useEffect re-runs
+  const onVoteSuccessRef = useRef(onVoteSuccess);
+  const onCloseRef = useRef(onClose);
+
+  // Update refs when props change
+  useEffect(() => {
+    onVoteSuccessRef.current = onVoteSuccess;
+    onCloseRef.current = onClose;
+  }, [onVoteSuccess, onClose]);
 
   // Query user's position on this claim
   const { data: positionData } = useQuery<{ positions: UserPosition[] }>(
@@ -71,19 +82,25 @@ export function ClaimExistsModal({
       setAmount(initialAmount);
       setDirection('for');
       setValidationError(null);
+      hasClosedRef.current = false; // Reset close flag when modal opens
       reset();
     }
   }, [isOpen, initialAmount, reset]);
 
-  // Close modal on success
+  // Close modal on success (with cleanup and single-close protection)
   useEffect(() => {
-    if (status === 'success') {
-      setTimeout(() => {
-        onVoteSuccess?.();
-        onClose();
-      }, 1500);
+    if (status === 'success' && !hasClosedRef.current) {
+      hasClosedRef.current = true; // Prevent multiple closes
+      const timeoutId = setTimeout(() => {
+        onVoteSuccessRef.current?.();
+        onCloseRef.current();
+      }, 2000); // 2 seconds to see the success message
+
+      return () => {
+        clearTimeout(timeoutId);
+      };
     }
-  }, [status, onClose, onVoteSuccess]);
+  }, [status]); // Only depend on status, callbacks are stored in refs
 
   const handleSubmit = async () => {
     setValidationError(null);
@@ -116,7 +133,7 @@ export function ClaimExistsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-gradient-to-b from-gray-900 to-gray-800 rounded-xl shadow-2xl border border-white/20 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-linear-to-b from-gray-900 to-gray-800 rounded-xl shadow-2xl border border-white/20 max-w-lg w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="p-6 border-b border-white/10">
           <div className="flex items-start justify-between">
@@ -255,8 +272,7 @@ export function ClaimExistsModal({
             <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-blue-400 font-medium">
-                  {status === 'checking' && 'Vérification allowance...'}
-                  {status === 'approving' && 'Approbation TRUST...'}
+                  {status === 'checking' && 'Vérification balance...'}
                   {status === 'depositing' && 'Envoi du vote...'}
                 </span>
                 <span className="text-blue-400 text-sm">

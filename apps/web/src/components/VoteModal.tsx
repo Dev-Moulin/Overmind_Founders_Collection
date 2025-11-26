@@ -78,7 +78,7 @@ export function VoteModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-gradient-to-b from-gray-900 to-gray-800 rounded-xl shadow-2xl border border-white/20 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-linear-to-b from-gray-900 to-gray-800 rounded-xl shadow-2xl border border-white/20 max-w-lg w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="p-6 border-b border-white/10">
           <div className="flex items-start justify-between">
@@ -217,12 +217,11 @@ export function VoteModal({
             <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-blue-400 font-medium">
-                  {status === 'checking' && 'Checking allowance...'}
-                  {status === 'approving' && 'Approving TRUST...'}
-                  {status === 'depositing' && 'Submitting vote...'}
+                  {status === 'checking' && 'Vérification balance...'}
+                  {status === 'depositing' && 'Envoi du vote...'}
                 </span>
                 <span className="text-blue-400 text-sm">
-                  Step {currentStep}/{totalSteps}
+                  Étape {currentStep}/{totalSteps}
                 </span>
               </div>
               <div className="w-full bg-white/10 rounded-full h-2">

@@ -82,6 +82,10 @@ export function useFounderProposals(founderName: string) {
     {
       variables: { founderName },
       skip: !founderName,
+      // Use cache-and-network to show cached data immediately but also fetch fresh data
+      fetchPolicy: 'cache-and-network',
+      // Ensure refetch always goes to network
+      notifyOnNetworkStatusChange: true,
     }
   );
 

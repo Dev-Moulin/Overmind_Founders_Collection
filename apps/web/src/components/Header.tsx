@@ -10,9 +10,6 @@ export function Header() {
 
   const isAdmin = address?.toLowerCase() === ADMIN_WALLET.toLowerCase();
 
-  // Debug - à supprimer après
-  console.log('Header - address:', address, 'isAdmin:', isAdmin, 'isConnected:', isConnected);
-
   const isActive = (path: string) => {
     return location.pathname === path;
   };

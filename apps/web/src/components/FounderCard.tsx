@@ -52,7 +52,7 @@ export function FounderCard({ founder, proposalCount = 0, onPropose }: FounderCa
       {/* Header with photo and name */}
       <div className="flex items-start gap-4 mb-4">
         {/* Photo - taille fixe 80x80 */}
-        <div className="w-20 h-20 flex-shrink-0 rounded-full overflow-hidden bg-white/10 border-2 border-purple-500/30">
+        <div className="w-20 h-20 shrink-0 rounded-full overflow-hidden bg-white/10 border-2 border-purple-500/30">
           <img
             src={imageUrl}
             alt={founder.name}

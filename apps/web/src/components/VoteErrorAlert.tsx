@@ -107,8 +107,7 @@ export function VoteErrorAlert({ error, onRetry, onDismiss }: VoteErrorAlertProp
 
           {error.step && (
             <p className="mt-1 text-xs text-white/50">
-              Étape: {error.step === 'checking' ? 'Vérification' :
-                      error.step === 'approving' ? 'Approbation' : 'Dépôt'}
+              Étape: {error.step === 'checking' ? 'Vérification' : 'Dépôt'}
             </p>
           )}
         </div>

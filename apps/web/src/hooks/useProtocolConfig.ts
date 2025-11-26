@@ -81,16 +81,24 @@ export function useProtocolConfig() {
           address: multiVaultAddress,
         });
 
+        // Clean up formatted values - remove trailing zeros for cleaner display
+        const cleanNumber = (value: string): string => {
+          const num = parseFloat(value);
+          if (isNaN(num)) return value;
+          // Keep at most 6 decimal places, remove trailing zeros
+          return parseFloat(num.toFixed(6)).toString();
+        };
+
         setConfig({
           // Coûts de base (wei)
           atomCost: contractConfig.atom_cost,
           tripleCost: contractConfig.triple_cost,
           minDeposit: contractConfig.min_deposit,
 
-          // Coûts formatés (TRUST)
-          formattedAtomCost: contractConfig.formatted_atom_cost,
-          formattedTripleCost: contractConfig.formatted_triple_cost,
-          formattedMinDeposit: contractConfig.formatted_min_deposit,
+          // Coûts formatés (TRUST) - cleaned up
+          formattedAtomCost: cleanNumber(contractConfig.formatted_atom_cost),
+          formattedTripleCost: cleanNumber(contractConfig.formatted_triple_cost),
+          formattedMinDeposit: cleanNumber(contractConfig.formatted_min_deposit),
 
           // Frais (basis points)
           entryFee: contractConfig.entry_fee,

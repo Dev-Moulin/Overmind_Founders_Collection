@@ -1,14 +1,13 @@
 import { useState, useCallback, useRef } from 'react';
-import { useAccount, usePublicClient, useWalletClient, useReadContract } from 'wagmi';
-import { parseEther, type Hex, erc20Abi } from 'viem';
-import { batchDepositStatement, getMultiVaultAddressFromChainId } from '@0xintuition/sdk';
-import { intuitionTestnet } from '@0xintuition/protocol';
+import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
+import { parseEther, type Hex, type Address } from 'viem';
+import { getMultiVaultAddressFromChainId } from '@0xintuition/sdk';
+import { intuitionTestnet, MultiVaultAbi } from '@0xintuition/protocol';
 import { toast } from 'sonner';
 
 export type VoteStatus =
   | 'idle'
   | 'checking'
-  | 'approving'
   | 'depositing'
   | 'success'
   | 'error';
@@ -16,7 +15,7 @@ export type VoteStatus =
 export interface VoteError {
   code: string;
   message: string;
-  step: 'checking' | 'approving' | 'depositing';
+  step: 'checking' | 'depositing';
 }
 
 export interface UseVoteResult {
@@ -29,11 +28,11 @@ export interface UseVoteResult {
   reset: () => void;
 }
 
-// Address du token TRUST sur Base Mainnet (INTUITION L3 Testnet uses same token)
-const TRUST_TOKEN_ADDRESS = '0x6cd905dF2Ed214b22e0d48FF17CD4200C1C6d8A3' as Hex;
-
 /**
- * Hook pour gérer le processus complet de vote (approve + deposit)
+ * Hook pour gérer le processus de vote sur un claim existant
+ *
+ * Sur INTUITION L3 Testnet, TRUST est le token NATIF (comme ETH).
+ * Pas besoin d'approve ERC20 - on envoie directement avec msg.value.
  *
  * @example
  * ```tsx
@@ -41,7 +40,7 @@ const TRUST_TOKEN_ADDRESS = '0x6cd905dF2Ed214b22e0d48FF17CD4200C1C6d8A3' as Hex;
  *   const { vote, status, error, isLoading, currentStep, totalSteps } = useVote();
  *
  *   const handleVote = async () => {
- *     await vote(claimId, "10", true); // Vote FOR with 10 TRUST
+ *     await vote(claimId, "0.01", true); // Vote FOR with 0.01 TRUST
  *   };
  *
  *   return (
@@ -62,23 +61,12 @@ export function useVote(): UseVoteResult {
   const [status, setStatus] = useState<VoteStatus>('idle');
   const [error, setError] = useState<VoteError | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
-  const [totalSteps, setTotalSteps] = useState(2);
+  const [totalSteps] = useState(2); // checking + depositing
 
   // Ref to track current status for error handling in async callbacks
   const statusRef = useRef<VoteStatus>('idle');
 
   const multiVaultAddress = getMultiVaultAddressFromChainId(intuitionTestnet.id);
-
-  // Read current allowance
-  const { data: allowance, refetch: refetchAllowance } = useReadContract({
-    address: TRUST_TOKEN_ADDRESS,
-    abi: erc20Abi,
-    functionName: 'allowance',
-    args: address && multiVaultAddress ? [address, multiVaultAddress] : undefined,
-    query: {
-      enabled: !!address && !!multiVaultAddress,
-    },
-  });
 
   // Helper to update both state and ref
   const updateStatus = useCallback((newStatus: VoteStatus) => {
@@ -90,7 +78,6 @@ export function useVote(): UseVoteResult {
     updateStatus('idle');
     setError(null);
     setCurrentStep(0);
-    setTotalSteps(2);
   }, [updateStatus]);
 
   const vote = useCallback(
@@ -98,7 +85,7 @@ export function useVote(): UseVoteResult {
       if (!address) {
         setError({
           code: 'WALLET_NOT_CONNECTED',
-          message: 'Please connect your wallet',
+          message: 'Veuillez connecter votre wallet',
           step: 'checking',
         });
         updateStatus('error');
@@ -119,116 +106,98 @@ export function useVote(): UseVoteResult {
         reset();
         const amountWei = parseEther(amount);
 
-        // Step 1: Check allowance
+        // Step 1: Check balance
         updateStatus('checking');
         setCurrentStep(1);
-        toast.info('Checking TRUST allowance...');
+        toast.info('Vérification de la balance...');
 
-        await refetchAllowance();
-
-        const currentAllowance = (allowance as bigint) || 0n;
-        const needsApproval = currentAllowance < amountWei;
-
-        if (needsApproval) {
-          setTotalSteps(3); // checking + approving + depositing
-        } else {
-          setTotalSteps(2); // checking + depositing
+        const balance = await publicClient.getBalance({ address });
+        if (balance < amountWei) {
+          throw new Error(
+            `Balance TRUST insuffisante. Vous avez ${(Number(balance) / 1e18).toFixed(4)} TRUST mais il faut ${amount} TRUST.`
+          );
         }
 
-        // Step 2: Approve if necessary
-        if (needsApproval) {
-          updateStatus('approving');
-          setCurrentStep(2);
-          toast.info('Approval required. Please sign the transaction...');
-
-          // Use wagmi's writeContract for approval
-          const approveTx = await walletClient.writeContract({
-            address: TRUST_TOKEN_ADDRESS,
-            abi: erc20Abi,
-            functionName: 'approve',
-            args: [multiVaultAddress, amountWei],
-          });
-
-          toast.loading('Approving TRUST tokens...', { id: 'approve' });
-
-          // Wait for approval confirmation
-          const approveReceipt = await publicClient.waitForTransactionReceipt({
-            hash: approveTx,
-          });
-
-          if (approveReceipt.status !== 'success') {
-            throw new Error('Approval transaction failed');
-          }
-
-          toast.success('TRUST tokens approved!', { id: 'approve' });
-
-          // Refetch allowance after approval
-          await refetchAllowance();
-        }
-
-        // Step 3: Deposit
+        // Step 2: Deposit (TRUST is native token on INTUITION L3)
         updateStatus('depositing');
-        setCurrentStep(needsApproval ? 3 : 2);
-        toast.info('Please sign the deposit transaction...');
+        setCurrentStep(2);
+        toast.info('Veuillez signer la transaction de vote...');
 
-        const config = {
-          walletClient,
-          publicClient,
+        // NOTE: For deposits on triples in INTUITION V2:
+        // The SDK uses curveId = 1n for all deposits (default bonding curve)
+        // See @0xintuition/sdk/src/experimental/utils.ts line 607:
+        //   termIds.map(() => 1n), // curveIds (all 1 for default curve)
+        //
+        // FOR vs AGAINST is NOT determined by curveId, but by which vault you deposit to:
+        // - FOR = deposit on the triple's term_id (positive vault)
+        // - AGAINST = deposit on the triple's counter_term_id (negative vault)
+        //
+        // Currently this hook only supports FOR votes.
+        if (!isFor) {
+          throw new Error('Les votes AGAINST ne sont pas encore supportés. Il faut le counter_term_id du triple.');
+        }
+
+        const curveId = 1n; // Default bonding curve for all deposits (per SDK)
+
+        // Call depositBatch directly on the contract
+        // TRUST is native on INTUITION L3, so we send it as msg.value
+        // Args: receiver, termIds[], curveIds[], assets[], minShares[]
+        const { request } = await publicClient.simulateContract({
+          account: walletClient.account,
           address: multiVaultAddress,
-        };
+          abi: MultiVaultAbi,
+          functionName: 'depositBatch',
+          args: [
+            address as Address,  // receiver - shares go to the voter
+            [claimId],           // termIds - the claim/triple term_id
+            [curveId],           // curveIds - 1n = default bonding curve
+            [amountWei],         // assets - amount to deposit
+            [0n],                // minShares - minimum shares to receive (0 = no minimum)
+          ],
+          value: amountWei, // TRUST is native token, send as msg.value
+        });
 
-        // TODO: Fix batchDepositStatement signature
-        // The SDK signature might be different than expected
-        // Temporarily using 'as any' until we can test the real signature
-        const depositResult = await (batchDepositStatement as any)(
-          config,
-          [[claimId], [amountWei], [isFor]]
-        );
+        toast.loading('Envoi du vote...', { id: 'deposit' });
 
-        toast.loading('Depositing TRUST...', { id: 'deposit' });
+        const depositTxHash = await walletClient.writeContract(request);
 
         // Wait for deposit confirmation
         const depositReceipt = await publicClient.waitForTransactionReceipt({
-          hash: depositResult.transactionHash as Hex,
+          hash: depositTxHash,
         });
 
         if (depositReceipt.status !== 'success') {
-          throw new Error('Deposit transaction failed');
+          throw new Error('Transaction de vote échouée');
         }
 
         toast.success(
-          `Vote ${isFor ? 'FOR' : 'AGAINST'} successfully recorded!`,
+          `Vote ${isFor ? 'FOR' : 'AGAINST'} enregistré avec succès !`,
           { id: 'deposit' }
         );
 
         updateStatus('success');
         setError(null);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Vote error:', err);
 
-        let errorMessage = 'An unexpected error occurred';
+        let errorMessage = 'Une erreur inattendue est survenue';
         let errorCode = 'UNKNOWN_ERROR';
-        let errorStep: 'checking' | 'approving' | 'depositing' = 'checking';
+        const errorStep: 'checking' | 'depositing' = statusRef.current === 'depositing' ? 'depositing' : 'checking';
+
+        const errWithMessage = err as { message?: string };
 
         // Parse error messages
-        if (err.message?.includes('User rejected')) {
-          errorMessage = 'Transaction rejected by user';
+        if (errWithMessage.message?.includes('User rejected') || errWithMessage.message?.includes('user rejected')) {
+          errorMessage = 'Transaction rejetée par l\'utilisateur';
           errorCode = 'USER_REJECTED';
-        } else if (err.message?.includes('insufficient funds')) {
-          errorMessage = 'Insufficient ETH for gas fees';
-          errorCode = 'INSUFFICIENT_GAS';
-        } else if (err.message?.includes('balance')) {
-          errorMessage = 'Insufficient TRUST balance';
+        } else if (errWithMessage.message?.includes('insufficient funds') || errWithMessage.message?.includes('InsufficientBalance')) {
+          errorMessage = 'Balance TRUST insuffisante pour cette transaction';
           errorCode = 'INSUFFICIENT_BALANCE';
-        } else if (err.message) {
-          errorMessage = err.message;
-        }
-
-        // Determine which step failed using ref for current status
-        if (statusRef.current === 'approving') {
-          errorStep = 'approving';
-        } else if (statusRef.current === 'depositing') {
-          errorStep = 'depositing';
+        } else if (errWithMessage.message?.includes('Balance TRUST insuffisante')) {
+          errorMessage = errWithMessage.message;
+          errorCode = 'INSUFFICIENT_BALANCE';
+        } else if (errWithMessage.message) {
+          errorMessage = errWithMessage.message;
         }
 
         setError({
@@ -246,8 +215,6 @@ export function useVote(): UseVoteResult {
       walletClient,
       publicClient,
       multiVaultAddress,
-      allowance,
-      refetchAllowance,
       reset,
       updateStatus,
     ]
@@ -257,7 +224,7 @@ export function useVote(): UseVoteResult {
     vote,
     status,
     error,
-    isLoading: ['checking', 'approving', 'depositing'].includes(status),
+    isLoading: ['checking', 'depositing'].includes(status),
     currentStep,
     totalSteps,
     reset,

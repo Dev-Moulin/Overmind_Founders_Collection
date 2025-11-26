@@ -55,7 +55,7 @@ export function FounderHomeCard({ founder, onSelect, isSelected }: FounderHomeCa
           alt={founder.name}
           width={64}
           height={64}
-          className="rounded-full object-cover flex-shrink-0 bg-white/10 border-2 border-purple-500/30"
+          className="rounded-full object-cover shrink-0 bg-white/10 border-2 border-purple-500/30"
           onError={(e) => {
             (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(founder.name)}`;
           }}

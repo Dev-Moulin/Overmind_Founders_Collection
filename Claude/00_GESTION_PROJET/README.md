@@ -106,6 +106,7 @@ Claude/
 │   │   │   └── 05_Vote.md
 │   │   ├── technologies/
 │   │   │   ├── INTUITION_SDK.md
+│   │   │   ├── Categories_Triples_OFC.md     # 🆕 Architecture catégories via triples
 │   │   │   ├── Stack_Frontend.md
 │   │   │   ├── Testnet_Configuration.md
 │   │   │   └── Vote_Aggregation_Research.md
@@ -137,6 +138,14 @@ Claude/
 │   │   └── donnees/
 │   │       ├── Verification_Builders.md
 │   │       └── Totems_Fondateurs.md
+│   ├── Projet_01_VotePanel_V2/              # 🆕 VotePanel V2 - HomePage interactive
+│   │   ├── 01_ARCHITECTURE.md
+│   │   ├── 02_ETAT_IMPLEMENTATION.md
+│   │   ├── 03_RECHERCHES.md
+│   │   ├── 04_RECHERCHES_APPROFONDIES.md
+│   │   ├── 05_FIX_ACTUALISATION_VOTES.md   # 🆕 Fix useEffect cleanup bug
+│   │   ├── README.md
+│   │   └── TODO_Synchronisation_et_UX.md
 │   └── README.md                            # Ce fichier
 └── trash/                                   # Documentation obsolète (19 fichiers)
 ```
@@ -221,4 +230,4 @@ Transformation de la HomePage en interface **single-page interactive** :
 
 ---
 
-**Dernière mise à jour** : 25 novembre 2025
+**Dernière mise à jour** : 26 novembre 2025

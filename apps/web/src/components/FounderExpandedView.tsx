@@ -97,7 +97,7 @@ export function FounderExpandedView({ founder, onClose }: FounderExpandedViewPro
       <div className="w-full max-w-6xl h-[90vh] max-h-[800px] flex flex-col lg:flex-row gap-6 animate-fade-in">
 
         {/* Left Panel - Founder Card (1/4 on desktop, full on mobile) */}
-        <div className="lg:w-1/4 flex-shrink-0">
+        <div className="lg:w-1/4 shrink-0">
           <div className="glass-card p-6 h-full flex flex-col relative animate-slide-in-left">
             {/* Close button */}
             <button

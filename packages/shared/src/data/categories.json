@@ -1,0 +1,46 @@
+{
+  "predicate": {
+    "id": "has-category",
+    "label": "has_category",
+    "description": "Predicate for categorizing totems in OFC",
+    "termId": null
+  },
+  "categories": [
+    {
+      "id": "animal",
+      "label": "OFC:Animal",
+      "name": "Animal",
+      "termId": null
+    },
+    {
+      "id": "objet",
+      "label": "OFC:Objet",
+      "name": "Objet",
+      "termId": null
+    },
+    {
+      "id": "trait",
+      "label": "OFC:Trait",
+      "name": "Trait",
+      "termId": null
+    },
+    {
+      "id": "concept",
+      "label": "OFC:Concept",
+      "name": "Concept",
+      "termId": null
+    },
+    {
+      "id": "element",
+      "label": "OFC:Element",
+      "name": "Element",
+      "termId": null
+    },
+    {
+      "id": "mythologie",
+      "label": "OFC:Mythologie",
+      "name": "Mythologie",
+      "termId": null
+    }
+  ]
+}

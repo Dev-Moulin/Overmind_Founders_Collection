@@ -1,7 +1,7 @@
 # État de l'Implémentation - VotePanel V2
 
 > **Date** : 26 novembre 2025 (mise à jour)
-> **Statut** : Phase 3 terminée - PROJET COMPLET
+> **Statut** : Phase 3 terminée - PROJET COMPLET + OFC: Catégories
 
 ---
 
@@ -14,12 +14,14 @@
 | Composants | 7 | 0 | 0 |
 | Hooks | 8 | 0 | 0 |
 | Pages | 1 | 0 | 0 |
-| GraphQL | 2 | 0 | 0 |
+| GraphQL | 5 (HTTP) + 3 (WS) | 0 | 0 |
 | Styling | 1 | 0 | 0 |
+| **OFC: Categories** | 5 | 0 | 1 (test on-chain) |
 
 > **Phase 1** : WebSocket Subscriptions ✅ TERMINÉE
 > **Phase 2** : UX Claim vs Vote ✅ TERMINÉE
 > **Phase 3** : Améliorations ✅ TERMINÉE
+> **Phase OFC:** : Catégories via Triples ✅ CODE TERMINÉ (test on-chain pending)
 
 ---
 
@@ -56,7 +58,7 @@
 
 | Hook | Fichier | Fonctionnalités |
 |------|---------|-----------------|
-| `useIntuition` | [useIntuition.ts](../../../apps/web/src/hooks/useIntuition.ts) | `createClaim`, `createClaimWithDescription`, `findTriple`, `ClaimExistsError` |
+| `useIntuition` | [useIntuition.ts](../../../apps/web/src/hooks/useIntuition.ts) | `createClaim`, `createClaimWithDescription`, **`createClaimWithCategory`** (OFC:), `findTriple`, `ClaimExistsError` |
 | `useFounderProposals` | [useFounderProposals.ts](../../../apps/web/src/hooks/useFounderProposals.ts) | Fetch proposals d'un fondateur, calcul scores FOR/AGAINST |
 | `useProtocolConfig` | [useProtocolConfig.ts](../../../apps/web/src/hooks/useProtocolConfig.ts) | Config protocole (costs, fees), validation dépôt minimum |
 | `useFoundersForHomePage` | [useFoundersForHomePage.ts](../../../apps/web/src/hooks/useFoundersForHomePage.ts) | Liste des 42 fondateurs avec stats |
@@ -148,9 +150,9 @@ estimateWithdrawAmount(shares, totalShares, totalAssets, exitFeePercent = 7)
 
 ---
 
-## 5. GraphQL Queries
+## 5. GraphQL Queries & Subscriptions
 
-### Terminées
+### Queries HTTP - Terminées
 
 | Query | Fichier | Usage |
 |-------|---------|-------|
@@ -158,18 +160,28 @@ estimateWithdrawAmount(shares, totalShares, totalAssets, exitFeePercent = 7)
 | `GET_TRIPLES_BY_PREDICATES` | [queries.ts:308](../../../apps/web/src/lib/graphql/queries.ts#L308) | Tous les triples avec nos prédicats |
 | `GET_ATOMS_BY_LABELS` | [queries.ts:544](../../../apps/web/src/lib/graphql/queries.ts#L544) | Recherche atoms par label |
 | `GET_TRIPLE_BY_ATOMS` | [queries.ts:579](../../../apps/web/src/lib/graphql/queries.ts#L579) | Vérifie si triple existe |
+| `GET_TOTEM_CATEGORY` | [queries.ts:658](../../../apps/web/src/lib/graphql/queries.ts#L658) | **OFC:** Catégorie d'un totem |
+| `GET_CATEGORIES_BY_TOTEMS` | [queries.ts:683](../../../apps/web/src/lib/graphql/queries.ts#L683) | **OFC:** Batch query catégories |
+| `GET_ALL_TOTEM_CATEGORIES` | [queries.ts:711](../../../apps/web/src/lib/graphql/queries.ts#L711) | **OFC:** Toutes les catégories |
+| `GET_TOTEMS_BY_CATEGORY` | [queries.ts:740](../../../apps/web/src/lib/graphql/queries.ts#L740) | **OFC:** Totems par catégorie |
+
+### Subscriptions WebSocket - Terminées
+
+| Subscription | Fichier | Usage |
+|--------------|---------|-------|
+| `SUBSCRIBE_FOUNDER_PROPOSALS` | [subscriptions.ts:18](../../../apps/web/src/lib/graphql/subscriptions.ts#L18) | Temps réel proposals fondateur |
+| `SUBSCRIBE_TOTEM_CATEGORIES` | [subscriptions.ts:184](../../../apps/web/src/lib/graphql/subscriptions.ts#L184) | **OFC:** Catégories temps réel |
+| `SUBSCRIBE_CATEGORIES_BY_TOTEMS` | [subscriptions.ts:214](../../../apps/web/src/lib/graphql/subscriptions.ts#L214) | **OFC:** Batch subscription |
 
 ### À créer
 
-| Query/Subscription | Description | Priorité |
-|--------------------|-------------|----------|
-| `SUBSCRIBE_FOUNDER_PROPOSALS` | Subscription WebSocket pour temps réel | Haute |
+*Toutes les queries/subscriptions nécessaires ont été implémentées.*
 
 ---
 
 ## 6. Détails des Composants Existants
 
-### VotePanel.tsx (800 lignes)
+### VotePanel.tsx (~1000 lignes)
 
 **Fonctionnalités implémentées :**
 
@@ -177,22 +189,26 @@ estimateWithdrawAmount(shares, totalShares, totalAssets, exitFeePercent = 7)
 - [x] Accordéon pour totems (existants + création)
 - [x] Mode "existant" : sélection depuis totems du fondateur ou globaux
 - [x] Mode "nouveau" : création avec nom + catégorie
-- [x] Catégorie stockée dans description (`Categorie : X`)
+- [x] ✅ **Catégorie via triples OFC:** (remplace description)
 - [x] Recherche dans totems existants
-- [x] Suggestions par catégorie (Animaux, Objets, Traits, Superpowers)
+- [x] Suggestions par catégorie (6 catégories OFC:)
 - [x] Input montant TRUST avec validation minimum
 - [x] Preview du claim ("Fondateur prédicat totem")
+- [x] ✅ Preview du triple catégorie (`[Totem] [has_category] [OFC:*]`)
 - [x] Affichage balance wallet
 - [x] Affichage coûts protocole (triple_cost, entry_fee)
 - [x] Gestion erreur `ClaimExistsError`
 - [x] Notifications succès/erreur
+- [x] ✅ WebSocket subscription catégories temps réel
+- [x] ✅ Utilise `createClaimWithCategory()` (2 triples)
+- [x] ✅ Fallback rétrocompatibilité (description field en HTTP)
 
 **Manques :**
 
 - [ ] Vérification proactive si claim existe (avant soumission)
 - [ ] Intégration de `useVote` pour voter sur existant
-- [ ] Indicateur "Actualisé"
-- [ ] Subscription temps réel
+- [x] ✅ Indicateur "Actualisé" (via RefreshIndicator)
+- [x] ✅ Subscription temps réel catégories
 
 ### VoteModal.tsx (298 lignes) - EXISTANT
 
@@ -274,6 +290,28 @@ estimateWithdrawAmount(shares, totalShares, totalAssets, exitFeePercent = 7)
 2. ✅ Tendances hausse/baisse des scores (`TrendDirection` + flèches ↑↓)
 3. ✅ Animation quand nouvelles données (flash violet sur stats)
 4. ✅ Retrait TRUST (intégrer `useWithdraw` + `WithdrawModal`)
+5. ✅ **Fix actualisation vote** : useEffect cleanup bug (callbacks dans deps)
+
+### Phase 3.1 : Fix critique actualisation des votes ✅ TERMINÉE
+
+**Problème identifié** : Les votes ne s'actualisaient pas après succès car `onVoteSuccess` n'était jamais appelé.
+
+**Cause** : Dans `ClaimExistsModal`, le useEffect avait `onVoteSuccess` et `onClose` dans ses dépendances. Ces callbacks changeaient de référence à chaque render, déclenchant le cleanup du useEffect qui annulait le timeout avant qu'il ne s'exécute.
+
+**Solution appliquée** :
+- Utilisation de `useRef` pour stocker les callbacks (`onVoteSuccessRef`, `onCloseRef`)
+- Création d'un useEffect séparé pour mettre à jour les refs quand les props changent
+- Retrait des callbacks des dépendances du useEffect du timeout (seulement `[status]`)
+- Les refs permettent d'accéder à la version à jour des callbacks sans déclencher le cleanup
+
+**Fichiers modifiés** :
+- [ClaimExistsModal.tsx:52-60](../../../apps/web/src/components/ClaimExistsModal.tsx#L52-L60) - Refs pour callbacks
+- [ClaimExistsModal.tsx:81-108](../../../apps/web/src/components/ClaimExistsModal.tsx#L81-L108) - useEffect avec deps fixes
+
+**Impact** :
+- ✅ Les votes s'actualisent maintenant automatiquement sans quitter la page
+- ✅ Le polling dans `onVoteSuccess` (VotePanel) s'exécute correctement
+- ✅ Les données sont rafraîchies après 2 secondes de délai (timeout)
 
 ---
 

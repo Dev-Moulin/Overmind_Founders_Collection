@@ -143,30 +143,55 @@ const checkClaimExists = useCallback(async () => {
 
 ## 5. Tâches restantes
 
-### Phase 1 : WebSocket Subscriptions (Priorité HAUTE)
+### Phase 1 : WebSocket Subscriptions ✅ TERMINÉE
 
-- [ ] Installer `graphql-ws`
-- [ ] Configurer WebSocket link dans Apollo Client
-- [ ] Créer fichier `subscriptions.ts` avec les subscriptions GraphQL
-- [ ] Créer hook `useFounderSubscription`
-- [ ] Créer hook `useWindowFocus`
-- [ ] Intégrer subscriptions dans VotePanel
-- [ ] Ajouter indicateur "Actualisé"
+- [x] Installer `graphql-ws`
+- [x] Configurer WebSocket link dans Apollo Client
+- [x] Créer fichier `subscriptions.ts` avec les subscriptions GraphQL
+- [x] Créer hook `useFounderSubscription`
+- [x] Créer hook `useWindowFocus`
+- [x] Intégrer subscriptions dans VotePanel
+- [x] Ajouter indicateur "Actualisé"
 
-### Phase 2 : UX Claim vs Vote (Priorité HAUTE)
+### Phase 2 : UX Claim vs Vote ✅ TERMINÉE
 
-- [ ] Renommer titre "Voter pour un Totem" → "Créer un vote totem"
-- [ ] Ajouter vérification proactive si claim existe
-- [ ] Créer composant `ClaimExistsModal`
-- [ ] Créer composant `VoteOnExisting`
-- [ ] Créer hook `useVoteOnExisting`
+- [x] Renommer titre "Voter pour un Totem" → "Créer un vote totem"
+- [x] Ajouter vérification proactive si claim existe
+- [x] Créer composant `ClaimExistsModal`
+- [x] Intégrer `useVote` dans ClaimExistsModal (vote FOR/AGAINST)
+- [x] Intégrer ClaimExistsModal dans VotePanel (ouverture automatique)
 
-### Phase 3 : Améliorations (Priorité MOYENNE)
+### Phase 3 : Améliorations ✅ TERMINÉE
 
-- [ ] Badge "X nouveaux totems"
-- [ ] Animation subtile quand nouvelles données
-- [ ] Historique des votes récents
-- [ ] Afficher tendance (hausse/baisse) des scores
+- [x] Badge "X nouveaux totems"
+- [x] Animation subtile quand nouvelles données
+- [x] Afficher tendance (hausse/baisse) des scores
+- [x] Retrait TRUST (`useWithdraw` + `WithdrawModal`)
+
+### Phase 3.1 : Fix actualisation votes ✅ TERMINÉE (26 nov 2025)
+
+**Problème** : Les votes ne s'actualisaient pas automatiquement après succès.
+
+**Cause identifiée** :
+- Le useEffect dans `ClaimExistsModal` avait `onVoteSuccess` et `onClose` dans ses dépendances
+- Ces callbacks (fonctions inline) changeaient de référence à chaque render
+- Le cleanup du useEffect s'exécutait et annulait le timeout avant qu'il ne fire
+- Résultat : `onVoteSuccess` n'était jamais appelé
+
+**Solution appliquée** :
+- [x] Utiliser `useRef` pour stocker les callbacks au lieu de les mettre dans les deps
+- [x] Créer un useEffect séparé pour mettre à jour les refs quand les props changent
+- [x] Retirer les callbacks des dépendances du useEffect du timeout (seulement `[status]`)
+- [x] Mettre à jour la documentation
+
+**Résultat** :
+- ✅ Les votes s'actualisent automatiquement sans quitter la page
+- ✅ Le polling dans `onVoteSuccess` (VotePanel) s'exécute correctement
+- ✅ UX fluide et immédiate
+
+### Phase 4 : Cleanup (En cours)
+
+- [ ] Retirer les console.logs de debug après vérification du fix
 
 ---
 

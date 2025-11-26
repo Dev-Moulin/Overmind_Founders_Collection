@@ -1,6 +1,6 @@
 # Modifications en Cours - Tracker Central
 
-**Dernière mise à jour** : 21 novembre 2025
+**Dernière mise à jour** : 26 novembre 2025
 **Objectif** : Centraliser toutes les modifications identifiées qui nécessitent une action ou une discussion
 
 ---
@@ -12,6 +12,7 @@
 | Agrégation des votes | 🔴 P0 | ✅ Fonction existe | 21/11/2025 | [CORRECTION_ISSUES_AGGREGATION.md](../corrections/CORRECTION_ISSUES_AGGREGATION.md) |
 | Architecture simplifiée (pas de backend) | 🔴 P0 | ✅ Fait | 21/11/2025 | [ARCHITECTURE_NO_BACKEND.md](./ARCHITECTURE_NO_BACKEND.md) |
 | Hook useVote (Issue #38) | 🔴 P0 | ✅ Fait (PR #118) | 21/11/2025 | Mergé dans main |
+| **Catégories via Triples OFC:** | 🟡 P1 | ✅ Code fait | 26/11/2025 | [Categories_Triples_OFC.md](../../documentation/technologies/Categories_Triples_OFC.md) |
 | Autres modifications | ⚪ À définir | ⏳ À discuter | 21/11/2025 | Ce fichier |
 
 ---
@@ -143,7 +144,60 @@ Lors de l'implémentation, découverte d'une **erreur critique** :
 
 ---
 
-## 4️⃣ Autres Modifications À Discuter
+## 4️⃣ Catégories via Triples OFC: (P1)
+
+**Date de découverte** : 26 novembre 2025
+**Priorité** : 🟡 P1
+**Status** : ✅ Code implémenté - ⏳ Test on-chain à faire
+
+### Contexte
+Le champ `description` des atoms n'est **pas disponible dans les subscriptions WebSocket** d'INTUITION. L'ancienne méthode (stocker la catégorie dans `description`) ne fonctionne qu'en HTTP.
+
+### Problème actuel
+- ❌ WebSocket subscription échoue : `field 'description' not found in type: 'atoms'`
+- ❌ Pas de mise à jour temps réel des catégories
+- ✅ HTTP fonctionne mais pas de real-time
+
+### Solution adoptée
+Utiliser des **triples** pour stocker la catégorie :
+```
+Triple 1: [Founder] [represented_by] [Totem]     → Vote principal
+Triple 2: [Totem] [has_category] [OFC:Animal]    → Catégorie
+```
+
+Nomenclature : **OFC:** = Overmind Founders Collection
+
+### Impact
+- **Code** : `useIntuition.ts`, `VotePanel.tsx`, `subscriptions.ts`, `queries.ts`
+- **Coût** : 2x triple_cost par nouveau totem (au lieu de 1)
+- **Avantage** : WebSocket compatible, filtrage temps réel
+
+### Actions concrètes
+- [x] ✅ Documenter l'architecture (Categories_Triples_OFC.md)
+- [x] ✅ Créer `categories.json` avec la config des atoms OFC:
+- [ ] ⏳ Créer les atoms on-chain (has_category + OFC:*) - À FAIRE AU PREMIER USAGE
+- [x] ✅ Modifier `useIntuition.ts` - `createClaimWithCategory()` créé
+- [x] ✅ Ajouter subscription `SUBSCRIBE_TOTEM_CATEGORIES`
+- [x] ✅ Ajouter queries HTTP (`GET_TOTEM_CATEGORY`, `GET_CATEGORIES_BY_TOTEMS`, etc.)
+- [x] ✅ Mettre à jour `VotePanel.tsx` - utilise `createClaimWithCategory`
+- [x] ✅ Fallback rétrocompatibilité (description field en HTTP)
+- [ ] ⏳ Tester le flow complet on-chain
+
+### Fichiers implémentés
+| Fichier | Description |
+|---------|-------------|
+| `packages/shared/src/data/categories.json` | Config 6 catégories OFC: + prédicat has_category |
+| `apps/web/src/hooks/useIntuition.ts` | `createClaimWithCategory()` - crée 2 triples |
+| `apps/web/src/lib/graphql/subscriptions.ts` | `SUBSCRIBE_TOTEM_CATEGORIES`, `SUBSCRIBE_CATEGORIES_BY_TOTEMS` |
+| `apps/web/src/lib/graphql/queries.ts` | `GET_TOTEM_CATEGORY`, `GET_CATEGORIES_BY_TOTEMS`, `GET_ALL_TOTEM_CATEGORIES`, `GET_TOTEMS_BY_CATEGORY` |
+| `apps/web/src/components/VotePanel.tsx` | Sélecteur catégories depuis config, preview triple |
+
+### Documentation complète
+👉 Voir [Categories_Triples_OFC.md](../../documentation/technologies/Categories_Triples_OFC.md)
+
+---
+
+## 5️⃣ Autres Modifications À Discuter
 
 **Status** : ⏳ À définir
 
