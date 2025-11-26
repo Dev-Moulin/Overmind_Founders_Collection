@@ -7,6 +7,11 @@ import type { Triple } from '../lib/graphql/types';
 import { aggregateTriplesByObject } from '../utils/aggregateVotes';
 
 /**
+ * Trend direction for score changes
+ */
+export type TrendDirection = 'up' | 'down' | 'neutral';
+
+/**
  * Winning totem data for a founder
  */
 export interface WinningTotem {
@@ -17,6 +22,8 @@ export interface WinningTotem {
   totalFor: bigint;
   totalAgainst: bigint;
   claimCount: number;
+  /** Trend based on FOR/AGAINST ratio: up if > 60% FOR, down if < 40% FOR, neutral otherwise */
+  trend: TrendDirection;
 }
 
 /**
@@ -145,6 +152,19 @@ export function useFoundersForHomePage() {
         // Winning totem is the one with highest NET score (already sorted)
         if (aggregatedTotems.length > 0) {
           const winner = aggregatedTotems[0];
+
+          // Calculate trend based on FOR/AGAINST ratio
+          const total = winner.totalFor + winner.totalAgainst;
+          let trend: TrendDirection = 'neutral';
+          if (total > 0n) {
+            const forPercentage = Number((winner.totalFor * 100n) / total);
+            if (forPercentage > 60) {
+              trend = 'up';
+            } else if (forPercentage < 40) {
+              trend = 'down';
+            }
+          }
+
           winningTotemMap.set(founderName, {
             objectId: winner.objectId,
             label: winner.object.label,
@@ -153,6 +173,7 @@ export function useFoundersForHomePage() {
             totalFor: winner.totalFor,
             totalAgainst: winner.totalAgainst,
             claimCount: winner.claimCount,
+            trend,
           });
         }
       });
