@@ -53,6 +53,25 @@ import { toast } from 'sonner';
 describe('useVote', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Reconfigure wagmi hooks after clearAllMocks
+    vi.mocked(wagmi.useAccount).mockReturnValue({
+      address: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+    } as any);
+    vi.mocked(wagmi.usePublicClient).mockReturnValue({
+      waitForTransactionReceipt: mockWaitForTransactionReceipt,
+      getBalance: vi.fn().mockResolvedValue(100000000000000000000n), // 100 TRUST
+      simulateContract: mockSimulateContract,
+    } as any);
+    vi.mocked(wagmi.useWalletClient).mockReturnValue({
+      data: { writeContract: mockWriteContract },
+    } as any);
+    vi.mocked(wagmi.useReadContract).mockReturnValue({
+      data: 0n,
+      refetch: mockRefetchAllowance,
+    } as any);
+
+    // Configure mock return values
     mockWriteContract.mockResolvedValue('0xmocktxhash');
     mockWaitForTransactionReceipt.mockResolvedValue({ status: 'success' });
     mockRefetchAllowance.mockResolvedValue({ data: 0n });
