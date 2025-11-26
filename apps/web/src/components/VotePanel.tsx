@@ -1,18 +1,37 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useAccount, useBalance } from 'wagmi';
-import { useQuery } from '@apollo/client';
+import { useQuery, useLazyQuery } from '@apollo/client';
 import { formatEther, type Hex } from 'viem';
 import type { FounderForHomePage } from '../hooks/useFoundersForHomePage';
-import { useFounderProposals } from '../hooks/useFounderProposals';
+import { useFounderProposals, formatVoteAmount } from '../hooks/useFounderProposals';
 import { useProtocolConfig } from '../hooks/useProtocolConfig';
 import { useIntuition, ClaimExistsError } from '../hooks/useIntuition';
 import { WalletConnectButton } from './ConnectButton';
 import { ClaimExistsModal, type ExistingClaimInfo } from './ClaimExistsModal';
-import { GET_TRIPLES_BY_PREDICATES, GET_ATOMS_BY_LABELS } from '../lib/graphql/queries';
+import { GET_TRIPLES_BY_PREDICATES, GET_ATOMS_BY_LABELS, GET_TRIPLE_BY_ATOMS, GET_FOUNDER_RECENT_VOTES } from '../lib/graphql/queries';
 import predicatesData from '../../../../packages/shared/src/data/predicates.json';
 
 // Préfixe utilisé dans la description des atoms pour identifier la catégorie
 const CATEGORY_PREFIX = 'Categorie : ';
+
+/**
+ * Format timestamp to relative time string (e.g., "2m ago", "1h ago")
+ */
+function getTimeAgo(timestamp: string): string {
+  const now = Date.now();
+  const then = new Date(timestamp).getTime();
+  const diffMs = now - then;
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+
+  if (diffSec < 60) return 'à l\'instant';
+  if (diffMin < 60) return `${diffMin}m`;
+  if (diffHour < 24) return `${diffHour}h`;
+  if (diffDay < 7) return `${diffDay}j`;
+  return new Date(timestamp).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+}
 
 // Catégories de totems suggérés (mêmes que ProposalModal)
 const TOTEM_CATEGORIES = [
@@ -96,6 +115,38 @@ export function VotePanel({ founder }: VotePanelProps) {
     fetchPolicy: 'cache-first',
   });
 
+  // Lazy query for proactive claim existence check
+  const [checkClaimExists, { data: claimCheckData, loading: claimCheckLoading }] = useLazyQuery<{
+    triples: Array<{
+      term_id: string;
+      subject: { term_id: string; label: string };
+      predicate: { term_id: string; label: string };
+      object: { term_id: string; label: string };
+      triple_vault: { total_shares: string; total_assets: string } | null;
+    }>;
+  }>(GET_TRIPLE_BY_ATOMS, {
+    fetchPolicy: 'network-only',
+  });
+
+  // Fetch recent votes for this founder
+  const { data: recentVotesData } = useQuery<{
+    deposits: Array<{
+      id: string;
+      sender_id: string;
+      vault_type: 'triple_positive' | 'triple_negative';
+      assets_after_fees: string;
+      created_at: string;
+      term: {
+        term_id: string;
+        object: { label: string };
+      };
+    }>;
+  }>(GET_FOUNDER_RECENT_VOTES, {
+    variables: { founderName: founder.name, limit: 5 },
+    skip: !founder.name,
+    fetchPolicy: 'cache-and-network',
+  });
+
   // Build predicates with their on-chain atomIds
   const predicatesWithAtomIds = useMemo(() => {
     if (!predicatesAtomData?.atoms) return predicates.map(p => ({ ...p, atomId: null, isOnChain: false }));
@@ -153,6 +204,9 @@ export function VotePanel({ founder }: VotePanelProps) {
   const [showClaimExistsModal, setShowClaimExistsModal] = useState(false);
   const [existingClaimInfo, setExistingClaimInfo] = useState<ExistingClaimInfo | null>(null);
 
+  // Proactive claim check result
+  const [proactiveClaimInfo, setProactiveClaimInfo] = useState<ExistingClaimInfo | null>(null);
+
   // Toggle accordion section (close others when opening one)
   const toggleSection = (section: 'predicate' | 'totem') => {
     setOpenSection(openSection === section ? null : section);
@@ -164,6 +218,54 @@ export function VotePanel({ founder }: VotePanelProps) {
       setTrustAmount(protocolConfig.formattedMinDeposit);
     }
   }, [protocolConfig?.formattedMinDeposit, trustAmount]);
+
+  // Get selected predicate with atomId (for proactive check)
+  const selectedPredicateWithAtom = useMemo(
+    () => predicatesWithAtomIds.find((p) => p.id === selectedPredicateId),
+    [predicatesWithAtomIds, selectedPredicateId]
+  );
+
+  // Proactive claim existence check when predicate AND totem are selected
+  useEffect(() => {
+    // Only check for existing totems (we can't check for new ones)
+    if (totemMode !== 'existing' || !selectedTotemId) {
+      setProactiveClaimInfo(null);
+      return;
+    }
+
+    // Need founder atomId, predicate atomId, and totem atomId
+    if (!founder.atomId || !selectedPredicateWithAtom?.atomId) {
+      setProactiveClaimInfo(null);
+      return;
+    }
+
+    // Trigger the check
+    checkClaimExists({
+      variables: {
+        subjectId: founder.atomId,
+        predicateId: selectedPredicateWithAtom.atomId,
+        objectId: selectedTotemId,
+      },
+    });
+  }, [founder.atomId, selectedPredicateWithAtom?.atomId, selectedTotemId, totemMode, checkClaimExists]);
+
+  // Process claim check results
+  useEffect(() => {
+    if (claimCheckData?.triples && claimCheckData.triples.length > 0) {
+      const triple = claimCheckData.triples[0];
+      const vault = triple.triple_vault;
+      setProactiveClaimInfo({
+        termId: triple.term_id,
+        subjectLabel: triple.subject.label,
+        predicateLabel: triple.predicate.label,
+        objectLabel: triple.object.label,
+        forVotes: vault?.total_shares || '0',
+        againstVotes: '0', // La query ne récupère pas les votes AGAINST séparément
+      });
+    } else if (claimCheckData?.triples?.length === 0) {
+      setProactiveClaimInfo(null);
+    }
+  }, [claimCheckData]);
 
   // Get selected predicate
   const selectedPredicate = useMemo(
@@ -247,12 +349,6 @@ export function VotePanel({ founder }: VotePanelProps) {
   const totalCost = useMemo(() => {
     return getTotalTripleCost(trustAmount);
   }, [trustAmount, getTotalTripleCost]);
-
-  // Get selected predicate with atomId
-  const selectedPredicateWithAtom = useMemo(
-    () => predicatesWithAtomIds.find((p) => p.id === selectedPredicateId),
-    [predicatesWithAtomIds, selectedPredicateId]
-  );
 
   // Build description with category for new totem
   const newTotemDescription = useMemo(() => {
@@ -447,6 +543,38 @@ export function VotePanel({ founder }: VotePanelProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Recent Activity - Historique des votes récents */}
+      {recentVotesData?.deposits && recentVotesData.deposits.length > 0 && (
+        <div className="mb-6 p-4 bg-white/5 border border-white/10 rounded-lg">
+          <h4 className="text-xs font-semibold text-white/50 mb-3 flex items-center gap-2">
+            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            Activité récente
+          </h4>
+          <div className="space-y-2">
+            {recentVotesData.deposits.slice(0, 5).map((vote) => {
+              const isFor = vote.vault_type === 'triple_positive';
+              const amount = formatVoteAmount(vote.assets_after_fees);
+              const timeAgo = getTimeAgo(vote.created_at);
+              const voterShort = `${vote.sender_id.slice(0, 6)}...${vote.sender_id.slice(-4)}`;
+
+              return (
+                <div key={vote.id} className="flex items-center gap-2 text-xs">
+                  <span className={`w-1.5 h-1.5 rounded-full ${isFor ? 'bg-green-500' : 'bg-red-500'}`} />
+                  <span className="text-white/40 font-mono">{voterShort}</span>
+                  <span className={isFor ? 'text-green-400' : 'text-red-400'}>
+                    {isFor ? '+' : '-'}{amount}
+                  </span>
+                  <span className="text-white/60 truncate flex-1">
+                    sur {vote.term.object.label}
+                  </span>
+                  <span className="text-white/30">{timeAgo}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -789,18 +917,55 @@ export function VotePanel({ founder }: VotePanelProps) {
         )}
       </div>
 
+      {/* Proactive claim exists warning */}
+      {proactiveClaimInfo && (
+        <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+          <div className="flex items-start gap-3">
+            <span className="text-amber-400 text-xl">!</span>
+            <div className="flex-1">
+              <p className="text-amber-400 font-medium mb-1">Ce claim existe déjà</p>
+              <p className="text-sm text-white/70 mb-2">
+                "{proactiveClaimInfo.subjectLabel} {proactiveClaimInfo.predicateLabel} {proactiveClaimInfo.objectLabel}"
+              </p>
+              <p className="text-xs text-white/50 mb-3">
+                Votes actuels: {formatVoteAmount(proactiveClaimInfo.forVotes || '0')} TRUST
+              </p>
+              <button
+                onClick={() => {
+                  setExistingClaimInfo(proactiveClaimInfo);
+                  setShowClaimExistsModal(true);
+                }}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Voter sur ce claim
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading indicator for claim check */}
+      {claimCheckLoading && (
+        <div className="mb-4 p-3 bg-white/5 border border-white/10 rounded-lg">
+          <div className="flex items-center gap-2 text-white/60 text-sm">
+            <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+            Vérification si ce claim existe...
+          </div>
+        </div>
+      )}
+
       {/* Submit button */}
       <button
         onClick={handleSubmit}
-        disabled={!isFormValid || isSubmitting}
+        disabled={!isFormValid || isSubmitting || !!proactiveClaimInfo}
         className={`w-full py-3 rounded-lg font-semibold transition-colors
           ${
-            isFormValid && !isSubmitting
+            isFormValid && !isSubmitting && !proactiveClaimInfo
               ? 'bg-purple-500 hover:bg-purple-600 text-white'
               : 'bg-white/10 text-white/30 cursor-not-allowed'
           }`}
       >
-        {isSubmitting ? 'Création en cours...' : 'Créer le vote'}
+        {isSubmitting ? 'Création en cours...' : proactiveClaimInfo ? 'Claim déjà existant' : 'Créer le vote'}
       </button>
 
       {/* ClaimExistsModal - appears when trying to create a claim that already exists */}

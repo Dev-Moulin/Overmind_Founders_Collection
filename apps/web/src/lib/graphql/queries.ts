@@ -607,3 +607,45 @@ export const GET_TRIPLE_BY_ATOMS = gql`
     }
   }
 `;
+
+/**
+ * Get recent votes (deposits) for a specific founder
+ *
+ * Fetches deposits made on triples where the subject is the founder.
+ * Used for activity feed in the VotePanel.
+ */
+export const GET_FOUNDER_RECENT_VOTES = gql`
+  query GetFounderRecentVotes($founderName: String!, $limit: Int = 10) {
+    deposits(
+      where: {
+        term: {
+          subject: { label: { _eq: $founderName } }
+        }
+        vault_type: { _in: ["triple_positive", "triple_negative"] }
+      }
+      order_by: { created_at: desc }
+      limit: $limit
+    ) {
+      id
+      sender_id
+      term_id
+      vault_type
+      shares
+      assets_after_fees
+      created_at
+      transaction_hash
+      term {
+        term_id
+        subject {
+          label
+        }
+        predicate {
+          label
+        }
+        object {
+          label
+        }
+      }
+    }
+  }
+`;
