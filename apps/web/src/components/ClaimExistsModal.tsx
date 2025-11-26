@@ -1,8 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
-import type { Hex } from 'viem';
+import { useQuery } from '@apollo/client';
+import { formatEther, type Hex } from 'viem';
 import { useVote } from '../hooks/useVote';
 import { formatVoteAmount } from '../hooks/useFounderProposals';
+import { GET_USER_POSITION } from '../lib/graphql/queries';
+import { WithdrawModal } from './WithdrawModal';
+
+interface UserPosition {
+  id: string;
+  shares: string;
+}
 
 export interface ExistingClaimInfo {
   termId: string;
@@ -38,6 +46,24 @@ export function ClaimExistsModal({
   const [amount, setAmount] = useState(initialAmount);
   const [direction, setDirection] = useState<'for' | 'against'>('for');
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+
+  // Query user's position on this claim
+  const { data: positionData } = useQuery<{ positions: UserPosition[] }>(
+    GET_USER_POSITION,
+    {
+      variables: {
+        walletAddress: address?.toLowerCase(),
+        termId: claim?.termId,
+      },
+      skip: !address || !claim?.termId || !isOpen,
+      fetchPolicy: 'cache-and-network',
+    }
+  );
+
+  const userPosition = positionData?.positions?.[0];
+  const userShares = userPosition ? BigInt(userPosition.shares) : 0n;
+  const hasUserPosition = userShares > 0n;
 
   // Reset when modal opens
   useEffect(() => {
@@ -149,6 +175,27 @@ export function ClaimExistsModal({
               </div>
             )}
           </div>
+
+          {/* User's existing position */}
+          {hasUserPosition && (
+            <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-white/60">Votre position actuelle</p>
+                  <p className="text-green-400 font-bold">
+                    {formatEther(userShares)} shares
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowWithdrawModal(true)}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                >
+                  Retirer
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Vote Direction Selection */}
           <div>
@@ -264,6 +311,23 @@ export function ClaimExistsModal({
           </button>
         </div>
       </div>
+
+      {/* Withdraw Modal */}
+      {claim && (
+        <WithdrawModal
+          isOpen={showWithdrawModal}
+          termId={claim.termId}
+          claimLabel={`${claim.subjectLabel} ${claim.predicateLabel} ${claim.objectLabel}`}
+          isPositive={true}
+          vaultTotalShares={claim.forVotes}
+          vaultTotalAssets={claim.forVotes}
+          onClose={() => setShowWithdrawModal(false)}
+          onSuccess={() => {
+            setShowWithdrawModal(false);
+            onVoteSuccess?.();
+          }}
+        />
+      )}
     </div>
   );
 }
