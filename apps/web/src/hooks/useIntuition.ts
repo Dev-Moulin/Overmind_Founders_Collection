@@ -221,6 +221,66 @@ export function useIntuition() {
   );
 
   /**
+   * Create an atom with metadata (for totems with description)
+   * Uses createAtomFromThing to include name and description
+   */
+  const createAtomWithDescription = useCallback(
+    async (name: string, description: string, depositAmount?: string): Promise<CreateAtomResult> => {
+      if (!walletClient || !publicClient) {
+        throw new Error('Wallet not connected');
+      }
+
+      const config = {
+        walletClient,
+        publicClient,
+        address: multiVaultAddress,
+      };
+
+      const deposit = depositAmount ? parseEther(depositAmount) : undefined;
+
+      const result = await createAtomFromThing(
+        config,
+        {
+          name,
+          description,
+        },
+        deposit
+      );
+
+      return {
+        uri: result.uri,
+        transactionHash: result.transactionHash,
+        termId: result.state.termId,
+      };
+    },
+    [walletClient, publicClient, multiVaultAddress]
+  );
+
+  /**
+   * Get or create an atom with description - creates with metadata if new
+   */
+  const getOrCreateAtomWithDescription = useCallback(
+    async (
+      name: string,
+      description: string,
+      depositAmount?: string
+    ): Promise<{ termId: Hex; created: boolean }> => {
+      // First, check if atom already exists by name
+      const existingId = await findAtomByLabel(name);
+      if (existingId) {
+        console.log('[useIntuition] Atom already exists:', name, existingId);
+        return { termId: existingId, created: false };
+      }
+
+      // Create new atom with description
+      console.log('[useIntuition] Creating new atom with description:', name, description);
+      const result = await createAtomWithDescription(name, description, depositAmount);
+      return { termId: result.termId, created: true };
+    },
+    [findAtomByLabel, createAtomWithDescription]
+  );
+
+  /**
    * Create an Atom with full metadata (for founders)
    * Uses createAtomFromThing to include name, description, image, url
    */
@@ -453,11 +513,85 @@ export function useIntuition() {
     [getOrCreateAtom, createTriple, findTriple]
   );
 
+  /**
+   * Create a complete claim with object having a description
+   * Used for creating totems with category metadata
+   */
+  const createClaimWithDescription = useCallback(
+    async (params: {
+      subjectId: Hex; // Founder atom ID (pre-existing)
+      predicate: string | Hex; // String = get or create atom, Hex = use existing
+      objectName: string; // Object name (totem name)
+      objectDescription: string; // Description to include (e.g. "Categorie : Animaux")
+      depositAmount: string;
+    }): Promise<{
+      triple: CreateTripleResult;
+      predicateCreated: boolean;
+      objectCreated: boolean;
+    }> => {
+      let predicateId: Hex;
+      let objectId: Hex;
+      let predicateCreated = false;
+      let objectCreated = false;
+
+      // Helper to check if a value is a Hex atomId (starts with 0x and is 66 chars long)
+      const isHexAtomId = (value: string): boolean => {
+        return value.startsWith('0x') && value.length === 66;
+      };
+
+      // Get or create predicate atom if it's NOT already a Hex atomId
+      if (typeof params.predicate === 'string' && !isHexAtomId(params.predicate)) {
+        const result = await getOrCreateAtom(params.predicate);
+        predicateId = result.termId;
+        predicateCreated = result.created;
+      } else {
+        predicateId = params.predicate as Hex;
+      }
+
+      // Get or create object atom with description
+      const objectResult = await getOrCreateAtomWithDescription(
+        params.objectName,
+        params.objectDescription
+      );
+      objectId = objectResult.termId;
+      objectCreated = objectResult.created;
+
+      // Vérifier si le triple existe déjà AVANT de tenter la création
+      console.log('[useIntuition] Vérification si le triple existe déjà...');
+      const existingTriple = await findTriple(params.subjectId, predicateId, objectId);
+      if (existingTriple) {
+        console.log('[useIntuition] Triple existe déjà:', existingTriple);
+        throw new ClaimExistsError({
+          termId: existingTriple.termId,
+          subjectLabel: existingTriple.subjectLabel,
+          predicateLabel: existingTriple.predicateLabel,
+          objectLabel: existingTriple.objectLabel,
+        });
+      }
+
+      // Create the triple
+      const triple = await createTriple(
+        params.subjectId,
+        predicateId,
+        objectId,
+        params.depositAmount
+      );
+
+      return {
+        triple,
+        predicateCreated,
+        objectCreated,
+      };
+    },
+    [getOrCreateAtom, getOrCreateAtomWithDescription, createTriple, findTriple]
+  );
+
   return {
     createAtom,
     createFounderAtom,
     createTriple,
     createClaim,
+    createClaimWithDescription,
     isReady: !!walletClient && !!publicClient,
   };
 }

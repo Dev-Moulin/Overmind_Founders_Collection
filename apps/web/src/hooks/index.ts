@@ -5,7 +5,7 @@
 // GraphQL hooks for proposals
 export {
   useFounderProposals,
-  useUserProposals,
+  // useUserProposals,  // COMMENTED - not used
   useProposalLimit,
   sortProposalsByVotes,
   getWinningProposal,
@@ -42,11 +42,11 @@ export { useVote, type UseVoteResult, type VoteStatus, type VoteError } from './
 export {
   useTripleVotes,
   useRecentVotes,
-  useGlobalVoteStats,
+  // useGlobalVoteStats,  // COMMENTED - doublon avec usePlatformStats
   useTopVoters,
   useVotesTimeline,
   useVotesDistribution,
-  useFounderStats,
+  // useFounderStats,  // COMMENTED - not used
 } from './useVoteStats';
 
 // Hook for platform-wide statistics (includes top totem globally)
@@ -66,8 +66,12 @@ export {
 } from './useWithdraw';
 
 // Hook for wallet authentication with signature
+// COMMENTED - useWalletAuth not used, auth handled by wagmi/Privy
 export {
-  useWalletAuth,
+  // useWalletAuth,
   type UseWalletAuthResult,
   type AuthStatus,
 } from './useWalletAuth';
+
+// Hook for INTUITION protocol configuration (costs, fees)
+export { useProtocolConfig, type ProtocolConfig } from './useProtocolConfig';

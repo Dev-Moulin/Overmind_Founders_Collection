@@ -3,25 +3,25 @@ import { formatEther, parseEther } from 'viem';
 import {
   GET_TRIPLE_VOTES,
   GET_RECENT_VOTES,
-  GET_VOTE_STATS,
+  // GET_VOTE_STATS,  // COMMENTED - useGlobalVoteStats disabled
   GET_TOP_VOTERS,
   GET_VOTES_TIMELINE,
   GET_VOTES_DISTRIBUTION,
-  GET_FOUNDER_STATS,
+  // GET_FOUNDER_STATS,  // COMMENTED - useFounderStats disabled
 } from '../lib/graphql/queries';
 import type {
   GetTripleVotesResult,
   GetRecentVotesResult,
-  GetVoteStatsResult,
+  // GetVoteStatsResult,  // COMMENTED - useGlobalVoteStats disabled
   GetTopVotersResult,
   GetVotesTimelineResult,
   GetVotesDistributionResult,
-  GetFounderStatsResult,
+  // GetFounderStatsResult,  // COMMENTED - useFounderStats disabled
   AggregatedVoter,
-  VoteStats,
+  // VoteStats,  // COMMENTED - useGlobalVoteStats disabled
   TimelineDataPoint,
   DistributionBucket,
-  FounderStats,
+  // FounderStats,  // COMMENTED - useFounderStats disabled
 } from '../lib/graphql/types';
 
 /**
@@ -112,6 +112,9 @@ export function useRecentVotes(limit: number = 20) {
 }
 
 /**
+ * COMMENTED OUT - NOT USED
+ * Doublon avec usePlatformStats qui fait la même chose + plus
+ *
  * Hook to fetch global vote statistics
  *
  * @returns Platform-wide vote stats
@@ -122,46 +125,46 @@ export function useRecentVotes(limit: number = 20) {
  * console.log(stats.totalVotes, stats.uniqueVoters);
  * ```
  */
-export function useGlobalVoteStats() {
-  const { data, loading, error, refetch } = useQuery<GetVoteStatsResult>(
-    GET_VOTE_STATS
-  );
-
-  let stats: VoteStats = {
-    totalVotes: 0,
-    totalTrustDeposited: '0',
-    uniqueVoters: 0,
-    averageVoteAmount: '0',
-    formattedTotal: '0',
-    formattedAverage: '0',
-  };
-
-  if (data?.deposits_aggregate) {
-    const { aggregate, nodes } = data.deposits_aggregate;
-    const totalVotes = aggregate.count;
-    const totalTrust = aggregate.sum?.assets_after_fees || '0';
-    const uniqueVoters = new Set(nodes.map((n) => n.sender_id)).size;
-
-    const totalBigInt = BigInt(totalTrust);
-    const averageBigInt = totalVotes > 0 ? totalBigInt / BigInt(totalVotes) : 0n;
-
-    stats = {
-      totalVotes,
-      totalTrustDeposited: totalTrust,
-      uniqueVoters,
-      averageVoteAmount: averageBigInt.toString(),
-      formattedTotal: formatEther(totalBigInt),
-      formattedAverage: formatEther(averageBigInt),
-    };
-  }
-
-  return {
-    stats,
-    loading,
-    error,
-    refetch,
-  };
-}
+// export function useGlobalVoteStats() {
+//   const { data, loading, error, refetch } = useQuery<GetVoteStatsResult>(
+//     GET_VOTE_STATS
+//   );
+//
+//   let stats: VoteStats = {
+//     totalVotes: 0,
+//     totalTrustDeposited: '0',
+//     uniqueVoters: 0,
+//     averageVoteAmount: '0',
+//     formattedTotal: '0',
+//     formattedAverage: '0',
+//   };
+//
+//   if (data?.deposits_aggregate) {
+//     const { aggregate, nodes } = data.deposits_aggregate;
+//     const totalVotes = aggregate.count;
+//     const totalTrust = aggregate.sum?.assets_after_fees || '0';
+//     const uniqueVoters = new Set(nodes.map((n) => n.sender_id)).size;
+//
+//     const totalBigInt = BigInt(totalTrust);
+//     const averageBigInt = totalVotes > 0 ? totalBigInt / BigInt(totalVotes) : 0n;
+//
+//     stats = {
+//       totalVotes,
+//       totalTrustDeposited: totalTrust,
+//       uniqueVoters,
+//       averageVoteAmount: averageBigInt.toString(),
+//       formattedTotal: formatEther(totalBigInt),
+//       formattedAverage: formatEther(averageBigInt),
+//     };
+//   }
+//
+//   return {
+//     stats,
+//     loading,
+//     error,
+//     refetch,
+//   };
+// }
 
 /**
  * Hook to fetch top voters leaderboard
@@ -376,6 +379,9 @@ export function useVotesDistribution(termId: string | undefined) {
 }
 
 /**
+ * COMMENTED OUT - NOT USED
+ * Hook non utilisé dans le codebase actuel
+ *
  * Hook to fetch statistics for a specific founder
  *
  * @param founderName - Name of the founder
@@ -386,80 +392,80 @@ export function useVotesDistribution(termId: string | undefined) {
  * const { stats, loading } = useFounderStats('Vitalik Buterin');
  * ```
  */
-export function useFounderStats(founderName: string | undefined) {
-  const { data, loading, error, refetch } = useQuery<GetFounderStatsResult>(
-    GET_FOUNDER_STATS,
-    {
-      variables: { founderName },
-      skip: !founderName,
-    }
-  );
-
-  let stats: FounderStats | null = null;
-
-  if (data?.triples && founderName) {
-    // Calculate total trust and totem distribution
-    const totemMap = new Map<string, {
-      label: string;
-      trustFor: bigint;
-      trustAgainst: bigint;
-    }>();
-
-    let totalTrust = 0n;
-    let mostRecentProposal: string | null = null;
-
-    data.triples.forEach((triple) => {
-      const forAmount = BigInt(triple.triple_vault?.total_assets || '0');
-      const againstAmount = BigInt(triple.counter_term?.total_assets || '0');
-      totalTrust += forAmount + againstAmount;
-
-      // Track most recent proposal
-      if (!mostRecentProposal || triple.created_at > mostRecentProposal) {
-        mostRecentProposal = triple.created_at;
-      }
-
-      // Aggregate by totem
-      const existing = totemMap.get(triple.object.term_id) || {
-        label: triple.object.label,
-        trustFor: 0n,
-        trustAgainst: 0n,
-      };
-      totemMap.set(triple.object.term_id, {
-        label: triple.object.label,
-        trustFor: existing.trustFor + forAmount,
-        trustAgainst: existing.trustAgainst + againstAmount,
-      });
-    });
-
-    const totemDistribution = Array.from(totemMap.entries())
-      .map(([totemId, { label, trustFor, trustAgainst }]) => ({
-        totemId,
-        totemLabel: label,
-        trustFor: trustFor.toString(),
-        trustAgainst: trustAgainst.toString(),
-        netScore: (trustFor - trustAgainst).toString(),
-      }))
-      .sort((a, b) => {
-        const diff = BigInt(b.netScore) - BigInt(a.netScore);
-        return diff > 0n ? 1 : diff < 0n ? -1 : 0;
-      });
-
-    stats = {
-      founderName,
-      totalTrust: totalTrust.toString(),
-      formattedTrust: formatEther(totalTrust),
-      proposalCount: data.triples.length,
-      uniqueVoters: 0, // Would need separate query to calculate
-      mostRecentProposal,
-      mostRecentVote: data.deposits[0]?.created_at || null,
-      totemDistribution,
-    };
-  }
-
-  return {
-    stats,
-    loading,
-    error,
-    refetch,
-  };
-}
+// export function useFounderStats(founderName: string | undefined) {
+//   const { data, loading, error, refetch } = useQuery<GetFounderStatsResult>(
+//     GET_FOUNDER_STATS,
+//     {
+//       variables: { founderName },
+//       skip: !founderName,
+//     }
+//   );
+//
+//   let stats: FounderStats | null = null;
+//
+//   if (data?.triples && founderName) {
+//     // Calculate total trust and totem distribution
+//     const totemMap = new Map<string, {
+//       label: string;
+//       trustFor: bigint;
+//       trustAgainst: bigint;
+//     }>();
+//
+//     let totalTrust = 0n;
+//     let mostRecentProposal: string | null = null;
+//
+//     data.triples.forEach((triple) => {
+//       const forAmount = BigInt(triple.triple_vault?.total_assets || '0');
+//       const againstAmount = BigInt(triple.counter_term?.total_assets || '0');
+//       totalTrust += forAmount + againstAmount;
+//
+//       // Track most recent proposal
+//       if (!mostRecentProposal || triple.created_at > mostRecentProposal) {
+//         mostRecentProposal = triple.created_at;
+//       }
+//
+//       // Aggregate by totem
+//       const existing = totemMap.get(triple.object.term_id) || {
+//         label: triple.object.label,
+//         trustFor: 0n,
+//         trustAgainst: 0n,
+//       };
+//       totemMap.set(triple.object.term_id, {
+//         label: triple.object.label,
+//         trustFor: existing.trustFor + forAmount,
+//         trustAgainst: existing.trustAgainst + againstAmount,
+//       });
+//     });
+//
+//     const totemDistribution = Array.from(totemMap.entries())
+//       .map(([totemId, { label, trustFor, trustAgainst }]) => ({
+//         totemId,
+//         totemLabel: label,
+//         trustFor: trustFor.toString(),
+//         trustAgainst: trustAgainst.toString(),
+//         netScore: (trustFor - trustAgainst).toString(),
+//       }))
+//       .sort((a, b) => {
+//         const diff = BigInt(b.netScore) - BigInt(a.netScore);
+//         return diff > 0n ? 1 : diff < 0n ? -1 : 0;
+//       });
+//
+//     stats = {
+//       founderName,
+//       totalTrust: totalTrust.toString(),
+//       formattedTrust: formatEther(totalTrust),
+//       proposalCount: data.triples.length,
+//       uniqueVoters: 0, // Would need separate query to calculate
+//       mostRecentProposal,
+//       mostRecentVote: data.deposits[0]?.created_at || null,
+//       totemDistribution,
+//     };
+//   }
+//
+//   return {
+//     stats,
+//     loading,
+//     error,
+//     refetch,
+//   };
+// }

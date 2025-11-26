@@ -302,6 +302,46 @@ export const GET_ALL_PROPOSALS = gql`
 `;
 
 /**
+ * Get all triples with our specific predicates (for VotePanel)
+ * Includes object description to filter by category
+ */
+export const GET_TRIPLES_BY_PREDICATES = gql`
+  query GetTriplesByPredicates($predicateLabels: [String!]!) {
+    triples(
+      where: { predicate: { label: { _in: $predicateLabels } } }
+      order_by: { created_at: desc }
+    ) {
+      term_id
+      subject {
+        term_id
+        label
+        image
+      }
+      predicate {
+        term_id
+        label
+      }
+      object {
+        term_id
+        label
+        image
+        emoji
+        description
+      }
+      triple_vault {
+        total_shares
+        total_assets
+      }
+      counter_term {
+        id
+        total_assets
+      }
+      created_at
+    }
+  }
+`;
+
+/**
  * Get user's position on a specific triple
  */
 export const GET_USER_POSITION = gql`

@@ -2,12 +2,12 @@ import { useQuery } from '@apollo/client';
 import { formatEther } from 'viem';
 import {
   GET_FOUNDER_PROPOSALS,
-  GET_USER_PROPOSALS,
+  // GET_USER_PROPOSALS,  // COMMENTED - useUserProposals disabled
   COUNT_USER_PROPOSALS_FOR_FOUNDER,
 } from '../lib/graphql/queries';
 import type {
   GetFounderProposalsResult,
-  GetUserProposalsResult,
+  // GetUserProposalsResult,  // COMMENTED - useUserProposals disabled
   CountUserProposalsForFounderResult,
   ProposalWithVotes,
   Triple,
@@ -97,6 +97,9 @@ export function useFounderProposals(founderName: string) {
 }
 
 /**
+ * COMMENTED OUT - NOT USED
+ * Hook non utilisé dans le codebase actuel (seulement dans les tests)
+ *
  * Hook to fetch all proposals created by a specific user
  *
  * @param walletAddress - The user's wallet address (0x...)
@@ -107,25 +110,25 @@ export function useFounderProposals(founderName: string) {
  * const { proposals, loading, error } = useUserProposals('0x123...');
  * ```
  */
-export function useUserProposals(walletAddress: string | undefined) {
-  const { data, loading, error, refetch } = useQuery<GetUserProposalsResult>(
-    GET_USER_PROPOSALS,
-    {
-      variables: { walletAddress },
-      skip: !walletAddress,
-    }
-  );
-
-  const proposals: ProposalWithVotes[] =
-    data?.triples.map(enrichTripleWithVotes) || [];
-
-  return {
-    proposals,
-    loading,
-    error,
-    refetch,
-  };
-}
+// export function useUserProposals(walletAddress: string | undefined) {
+//   const { data, loading, error, refetch } = useQuery<GetUserProposalsResult>(
+//     GET_USER_PROPOSALS,
+//     {
+//       variables: { walletAddress },
+//       skip: !walletAddress,
+//     }
+//   );
+//
+//   const proposals: ProposalWithVotes[] =
+//     data?.triples.map(enrichTripleWithVotes) || [];
+//
+//   return {
+//     proposals,
+//     loading,
+//     error,
+//     refetch,
+//   };
+// }
 
 /**
  * Hook to check if a user can create a new proposal for a founder
