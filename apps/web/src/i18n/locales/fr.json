@@ -1,0 +1,255 @@
+{
+  "header": {
+    "title": "INTUITION Founders Totem",
+    "nav": {
+      "propose": "Proposer",
+      "vote": "Voter",
+      "results": "Résultats",
+      "myVotes": "Mes Votes",
+      "admin": "Admin"
+    }
+  },
+  "common": {
+    "close": "Fermer",
+    "cancel": "Annuler",
+    "loading": "Chargement...",
+    "shares": "shares",
+    "back": "Retour à l'accueil",
+    "reset": "Réinitialiser",
+    "search": "Rechercher",
+    "sortBy": "Trier par",
+    "filterBy": "Filtrer par",
+    "all": "Tous",
+    "name": "Nom",
+    "votes": "Votes",
+    "proposals": "Propositions"
+  },
+  "vote": {
+    "for": "FOR",
+    "against": "AGAINST",
+    "step": "Étape",
+    "checking": "Vérification balance...",
+    "depositing": "Envoi du vote...",
+    "success": "Vote enregistré avec succès ! Fermeture...",
+    "amount": "Montant (TRUST)",
+    "amountPlaceholder": "0.0",
+    "amountHelper": "Montant de TRUST à déposer pour ce vote",
+    "direction": "Direction du vote :",
+    "voteButton": "Voter"
+  },
+  "claimExists": {
+    "title": "Ce claim existe déjà",
+    "subtitle": "Voulez-vous voter sur ce claim existant ?",
+    "currentPosition": "Votre position actuelle",
+    "withdrawButton": "Retirer"
+  },
+  "withdraw": {
+    "title": "Retirer vos tokens",
+    "yourPosition": "Votre position",
+    "availableShares": "Shares disponibles",
+    "amount": "Montant à retirer",
+    "amountPlaceholder": "0.0",
+    "max": "MAX",
+    "processing": "Traitement du retrait...",
+    "success": "Retrait effectué avec succès !"
+  },
+  "errors": {
+    "claimIdMissing": "Claim ID manquant",
+    "invalidAmount": "Veuillez entrer un montant valide",
+    "connectWallet": "Veuillez connecter votre wallet",
+    "switchNetwork": "Veuillez passer sur INTUITION L3 Testnet (Chain ID: 13579) pour utiliser cette application.",
+    "error": "Erreur",
+    "loadingError": "Erreur lors du chargement",
+    "seeConsole": "Voir la console (F12) pour plus de détails"
+  },
+  "transaction": {
+    "pleaseSign": "Veuillez signer la transaction dans votre wallet"
+  },
+  "founderCard": {
+    "newBadge": "NOUVEAU",
+    "viewProfile": "Voir le profil"
+  },
+  "founderExpanded": {
+    "biography": "Biographie",
+    "stats": "Statistiques",
+    "totalVotes": "Total votes",
+    "proposals": "Propositions",
+    "recentActivity": "Activité récente"
+  },
+  "homePage": {
+    "title": "INTUITION",
+    "subtitle": "Founders Totem",
+    "description": "Proposez et votez pour les totems qui représentent les 42 fondateurs de la collection INTUITION. Créez des identités on-chain uniques.",
+    "viewAllTotems": "Voir tous les Totems",
+    "results": "Résultats",
+    "stats": {
+      "founders": "Fondateurs",
+      "onChain": "On-chain",
+      "proposals": "Propositions",
+      "withTotem": "Avec Totem"
+    },
+    "foundersTitle": "Les 42 Fondateurs",
+    "proposeTotem": "Proposer un totem",
+    "loadingError": "Erreur de chargement",
+    "howItWorks": {
+      "title": "Comment ça marche ?",
+      "step1": {
+        "title": "Connectez",
+        "description": "Connectez votre wallet"
+      },
+      "step2": {
+        "title": "Proposez",
+        "description": "Créez un totem"
+      },
+      "step3": {
+        "title": "Votez",
+        "description": "Stakez du TRUST"
+      },
+      "step4": {
+        "title": "Gagnez",
+        "description": "Le meilleur totem gagne"
+      }
+    }
+  },
+  "proposePage": {
+    "title": "Proposer un Totem",
+    "description": "Choisissez un fondateur et proposez un totem qui le représente. Votre proposition sera soumise on-chain via le protocole INTUITION.",
+    "statsText": "{withAtoms}/{total} fondateurs enregistrés sur INTUITION",
+    "searchPlaceholder": "Rechercher un fondateur...",
+    "foundersCount": "{count} fondateur",
+    "foundersCountPlural": "{count} fondateurs",
+    "foundersFound": "trouvé",
+    "foundersFoundPlural": "trouvés",
+    "noResults": "Aucun fondateur ne correspond à votre recherche.",
+    "success": {
+      "title": "Succès!",
+      "claimCreated": "Claim créé avec succès pour {founder}! Transaction: {txHash}...",
+      "claimExists": "Ce claim existe déjà! Redirection vers la page de vote pour \"{totem}\"..."
+    },
+    "errors": {
+      "walletNotConnected": "Wallet non connecté",
+      "founderNoAtomId": "Le fondateur \"{founder}\" n'a pas d'Atom ID sur INTUITION. Vérifiez que son atom a bien été créé sur la blockchain.",
+      "insufficientBalance": "Balance tTRUST insuffisante pour créer ce claim. Assurez-vous d'avoir assez de tTRUST sur le réseau INTUITION Testnet.",
+      "tripleExists": "Ce claim existe déjà sur INTUITION. Vous pouvez voter dessus au lieu de le recréer.",
+      "atomExists": "Un des atomes existe déjà. Cela ne devrait pas arriver - contactez le support.",
+      "createClaimFailed": "Erreur lors de la création du claim",
+      "loadingError": "Erreur lors du chargement : {message}",
+      "seeConsole": "Voir la console (F12) pour plus de détails"
+    },
+    "loading": "Chargement des fondateurs..."
+  },
+  "votePage": {
+    "title": "Vote for Totems",
+    "description": "Support your favorite totem proposals by voting FOR or AGAINST",
+    "stats": {
+      "totalTotems": "Total Totems",
+      "founders": "Founders",
+      "totalClaims": "Total Claims"
+    },
+    "filters": {
+      "filterByFounder": "Filter by Founder",
+      "allFounders": "All Founders",
+      "sortBy": "Sort by",
+      "netScore": "Net Score (Highest)",
+      "mostFor": "Most FOR Votes",
+      "mostAgainst": "Most AGAINST Votes",
+      "mostClaims": "Most Claims",
+      "search": "Search",
+      "searchPlaceholder": "Search totems, founders, predicates..."
+    },
+    "showing": "Showing {count} of {total} totems",
+    "noResults": "No totems found matching your filters.",
+    "loading": "Loading totems..."
+  },
+  "resultsPage": {
+    "title": "Résultats INTUITION",
+    "subtitle": "Founders Totem",
+    "description": "Découvrez les totems gagnants pour chaque fondateur de la collection",
+    "stats": {
+      "founders": "Fondateurs",
+      "proposals": "Propositions",
+      "winningTotems": "Totems gagnants",
+      "totalClaims": "Claims totaux"
+    },
+    "searchPlaceholder": "Rechercher un fondateur ou un totem...",
+    "sortBy": "Trier par:",
+    "sortOptions": {
+      "name": "Nom",
+      "votes": "Votes",
+      "proposals": "Propositions"
+    },
+    "resultsCount": "{count} résultat",
+    "resultsCountPlural": "{count} résultats",
+    "reset": "Réinitialiser",
+    "noResults": {
+      "title": "Aucun résultat trouvé",
+      "description": "Aucun fondateur ne correspond à votre recherche",
+      "button": "Réinitialiser les filtres"
+    },
+    "statusNotice": "Résultats en temps réel - Vote en cours",
+    "loading": {
+      "title": "Chargement...",
+      "description": "Récupération des résultats depuis la blockchain"
+    },
+    "error": {
+      "title": "Erreur",
+      "description": "Erreur lors du chargement des résultats: {message}",
+      "button": "← Retour à l'accueil"
+    }
+  },
+  "myVotesPage": {
+    "title": "Mes Votes",
+    "subtitle": "Historique INTUITION",
+    "description": "Retrouvez l'historique complet de vos votes sur les propositions de totems",
+    "stats": {
+      "totalVotes": "Votes totaux",
+      "forVotes": "Votes FOR",
+      "againstVotes": "Votes AGAINST",
+      "totalTrust": "TRUST total"
+    },
+    "filters": {
+      "all": "Tous ({count})",
+      "for": "FOR ({count})",
+      "against": "AGAINST ({count})",
+      "totalAll": "Total:",
+      "totalFor": "Total FOR:",
+      "totalAgainst": "Total AGAINST:"
+    },
+    "votesList": {
+      "title": "Historique des votes ({count})",
+      "forBadge": "👍 FOR",
+      "againstBadge": "👎 AGAINST",
+      "termId": "Term ID:",
+      "explorerButton": "Explorer ↗",
+      "portalButton": "Portal ↗"
+    },
+    "termsAggregation": {
+      "title": "Propositions votées ({count})",
+      "term": "Term",
+      "votes": "Votes:",
+      "forAgainst": "FOR / AGAINST:",
+      "total": "Total:"
+    },
+    "noVotes": {
+      "title": "Aucun vote trouvé",
+      "allDescription": "Vous n'avez pas encore voté sur de propositions",
+      "forDescription": "Vous n'avez pas encore voté FOR sur de propositions",
+      "againstDescription": "Vous n'avez pas encore voté AGAINST sur de propositions",
+      "button": "Voir les propositions →"
+    },
+    "statusNotice": "Données en temps réel depuis INTUITION L3 Testnet",
+    "notConnected": {
+      "title": "Wallet non connecté",
+      "description": "Connectez votre wallet pour voir votre historique de votes"
+    },
+    "loading": {
+      "title": "Chargement...",
+      "description": "Récupération de votre historique de votes"
+    },
+    "error": {
+      "title": "Erreur",
+      "description": "Erreur lors du chargement de vos votes: {message}",
+      "button": "← Retour à l'accueil"
+    }
+  }
+}
