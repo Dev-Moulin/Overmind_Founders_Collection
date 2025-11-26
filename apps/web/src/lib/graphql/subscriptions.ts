@@ -171,3 +171,65 @@ export const SUBSCRIBE_USER_POSITIONS = gql`
     }
   }
 `;
+
+/**
+ * Subscribe to totem categories (OFC: system)
+ *
+ * Real-time updates when:
+ * - New totem is categorized
+ * - Category triple is created
+ *
+ * Uses the has_category predicate and OFC: prefix for filtering
+ */
+export const SUBSCRIBE_TOTEM_CATEGORIES = gql`
+  subscription SubscribeTotemCategories {
+    triples(
+      where: {
+        predicate: { label: { _eq: "has_category" } }
+        object: { label: { _like: "OFC:%" } }
+      }
+      order_by: { created_at: desc }
+    ) {
+      term_id
+      subject {
+        term_id
+        label
+        image
+      }
+      object {
+        term_id
+        label
+      }
+      created_at
+    }
+  }
+`;
+
+/**
+ * Get totem categories by totem IDs (batch query)
+ *
+ * Fetches categories for multiple totems at once
+ * Used to enrich proposals with category info
+ */
+export const SUBSCRIBE_CATEGORIES_BY_TOTEMS = gql`
+  subscription SubscribeCategoriesByTotems($totemIds: [String!]!) {
+    triples(
+      where: {
+        subject_id: { _in: $totemIds }
+        predicate: { label: { _eq: "has_category" } }
+        object: { label: { _like: "OFC:%" } }
+      }
+    ) {
+      term_id
+      subject_id
+      subject {
+        term_id
+        label
+      }
+      object {
+        term_id
+        label
+      }
+    }
+  }
+`;

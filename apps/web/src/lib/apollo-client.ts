@@ -31,10 +31,8 @@ const wsLink = new GraphQLWsLink(
     shouldRetry: () => true,
     // Lazy connection - only connect when subscription is active
     lazy: true,
-    // Connection callbacks for debugging
+    // Connection callbacks - errors only
     on: {
-      connected: () => console.log('[Apollo] WebSocket connected'),
-      closed: () => console.log('[Apollo] WebSocket closed'),
       error: (err) => console.error('[Apollo] WebSocket error:', err),
     },
   })

@@ -649,3 +649,112 @@ export const GET_FOUNDER_RECENT_VOTES = gql`
     }
   }
 `;
+
+/**
+ * Get category for a specific totem via OFC: triple system
+ *
+ * Looks for triple: [Totem] [has_category] [OFC:*]
+ */
+export const GET_TOTEM_CATEGORY = gql`
+  query GetTotemCategory($totemId: String!) {
+    triples(
+      where: {
+        subject_id: { _eq: $totemId }
+        predicate: { label: { _eq: "has_category" } }
+        object: { label: { _like: "OFC:%" } }
+      }
+      limit: 1
+    ) {
+      term_id
+      object {
+        term_id
+        label
+      }
+    }
+  }
+`;
+
+/**
+ * Get categories for multiple totems (batch query)
+ *
+ * Fetches categories for a list of totem IDs at once
+ * Used to enrich proposals with category info
+ */
+export const GET_CATEGORIES_BY_TOTEMS = gql`
+  query GetCategoriesByTotems($totemIds: [String!]!) {
+    triples(
+      where: {
+        subject_id: { _in: $totemIds }
+        predicate: { label: { _eq: "has_category" } }
+        object: { label: { _like: "OFC:%" } }
+      }
+    ) {
+      term_id
+      subject_id
+      subject {
+        term_id
+        label
+      }
+      object {
+        term_id
+        label
+      }
+    }
+  }
+`;
+
+/**
+ * Get all totem categories (for statistics/debugging)
+ *
+ * Returns all OFC: category triples
+ */
+export const GET_ALL_TOTEM_CATEGORIES = gql`
+  query GetAllTotemCategories {
+    triples(
+      where: {
+        predicate: { label: { _eq: "has_category" } }
+        object: { label: { _like: "OFC:%" } }
+      }
+      order_by: { created_at: desc }
+    ) {
+      term_id
+      subject {
+        term_id
+        label
+        image
+      }
+      object {
+        term_id
+        label
+      }
+      created_at
+    }
+  }
+`;
+
+/**
+ * Get all totems of a specific category
+ *
+ * Returns all totems with a specific OFC: category
+ */
+export const GET_TOTEMS_BY_CATEGORY = gql`
+  query GetTotemsByCategory($categoryLabel: String!) {
+    triples(
+      where: {
+        predicate: { label: { _eq: "has_category" } }
+        object: { label: { _eq: $categoryLabel } }
+      }
+    ) {
+      term_id
+      subject {
+        term_id
+        label
+        image
+      }
+      object {
+        term_id
+        label
+      }
+    }
+  }
+`;
