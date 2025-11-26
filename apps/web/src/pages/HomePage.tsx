@@ -1,12 +1,46 @@
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAccount } from 'wagmi';
 import { WalletConnectButton } from '../components/ConnectButton';
 import { FounderHomeCard, FounderHomeCardSkeleton } from '../components/FounderHomeCard';
-import { useFoundersForHomePage } from '../hooks/useFoundersForHomePage';
+import { FounderExpandedView } from '../components/FounderExpandedView';
+import { useFoundersForHomePage, type FounderForHomePage } from '../hooks/useFoundersForHomePage';
 
 export function HomePage() {
   const { isConnected } = useAccount();
   const { founders, loading, error, stats } = useFoundersForHomePage();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Get selected founder from URL param
+  const selectedFounderId = searchParams.get('founder');
+
+  // Find the selected founder object
+  const selectedFounder = useMemo<FounderForHomePage | null>(() => {
+    if (!selectedFounderId || founders.length === 0) return null;
+    return founders.find(f => f.id === selectedFounderId) || null;
+  }, [selectedFounderId, founders]);
+
+  // Select a founder (updates URL)
+  const selectFounder = useCallback((founderId: string) => {
+    setSearchParams({ founder: founderId });
+  }, [setSearchParams]);
+
+  // Close the expanded view (removes URL param)
+  const closeExpandedView = useCallback(() => {
+    searchParams.delete('founder');
+    setSearchParams(searchParams);
+  }, [searchParams, setSearchParams]);
+
+  // Handle Escape key to close
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedFounder) {
+        closeExpandedView();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedFounder, closeExpandedView]);
 
   return (
     <div className="space-y-12 max-w-7xl mx-auto">
@@ -81,11 +115,24 @@ export function HomePage() {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
             {founders.map((founder) => (
-              <FounderHomeCard key={founder.id} founder={founder} />
+              <FounderHomeCard
+                key={founder.id}
+                founder={founder}
+                onSelect={selectFounder}
+                isSelected={founder.id === selectedFounderId}
+              />
             ))}
           </div>
         )}
       </section>
+
+      {/* Expanded Founder View (when a founder is selected) */}
+      {selectedFounder && (
+        <FounderExpandedView
+          founder={selectedFounder}
+          onClose={closeExpandedView}
+        />
+      )}
 
       {/* How It Works Section */}
       <section className="glass-card p-6">

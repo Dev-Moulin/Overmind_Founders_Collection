@@ -1,18 +1,25 @@
-import { Link } from 'react-router-dom';
 import { formatEther } from 'viem';
 import type { FounderForHomePage } from '../hooks/useFoundersForHomePage';
 import { getFounderImageUrl } from './FounderCard';
 
 interface FounderHomeCardProps {
   founder: FounderForHomePage;
+  onSelect?: (founderId: string) => void;
+  isSelected?: boolean;
 }
 
 /**
  * Compact founder card for HomePage grid
  * Shows photo, name, winning totem (if any), and action buttons
  */
-export function FounderHomeCard({ founder }: FounderHomeCardProps) {
+export function FounderHomeCard({ founder, onSelect, isSelected }: FounderHomeCardProps) {
   const imageUrl = getFounderImageUrl(founder);
+
+  const handleCardClick = () => {
+    if (onSelect) {
+      onSelect(founder.id);
+    }
+  };
 
   // Format net score for display
   const formatScore = (score: bigint): string => {
@@ -27,7 +34,11 @@ export function FounderHomeCard({ founder }: FounderHomeCardProps) {
   };
 
   return (
-    <div className="glass-card p-2 flex flex-col h-full w-full min-w-0 hover:border-purple-500/50 transition-all duration-200">
+    <div
+      onClick={handleCardClick}
+      className={`glass-card p-2 flex flex-col h-full w-full min-w-0 transition-all duration-200 cursor-pointer
+        ${isSelected ? 'border-purple-500 ring-2 ring-purple-500/50' : 'hover:border-purple-500/50'}`}
+    >
       {/* Header: Photo + Name */}
       <div className="flex items-center gap-4 mb-10">
         <img
@@ -67,20 +78,9 @@ export function FounderHomeCard({ founder }: FounderHomeCardProps) {
         )}
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-3">
-        <Link
-          to={`/vote?founder=${encodeURIComponent(founder.name)}`}
-          className="flex-1 text-center text-sm py-2 px-3 rounded-lg bg-white/5 text-white/70 hover:bg-white/10 hover:text-white transition-colors border border-white/10"
-        >
-          Voter
-        </Link>
-        <Link
-          to={`/propose?founder=${encodeURIComponent(founder.id)}`}
-          className="flex-1 text-center text-sm py-2 px-3 rounded-lg bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 transition-colors border border-purple-500/30"
-        >
-          Proposer
-        </Link>
+      {/* Click indicator */}
+      <div className="text-center text-xs text-white/30 mt-auto pt-2">
+        Cliquez pour voter
       </div>
     </div>
   );
