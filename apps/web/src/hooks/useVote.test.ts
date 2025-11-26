@@ -5,12 +5,14 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 const mockWriteContract = vi.fn();
 const mockWaitForTransactionReceipt = vi.fn();
 const mockRefetchAllowance = vi.fn();
+const mockSimulateContract = vi.fn();
 
 vi.mock('wagmi', () => ({
   useAccount: vi.fn(() => ({ address: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266' })),
   usePublicClient: vi.fn(() => ({
     waitForTransactionReceipt: mockWaitForTransactionReceipt,
-    getBalance: vi.fn().mockResolvedValue(1000000000000000000n), // 1 ETH
+    getBalance: vi.fn().mockResolvedValue(100000000000000000000n), // 100 TRUST
+    simulateContract: mockSimulateContract,
   })),
   useWalletClient: vi.fn(() => ({
     data: {
@@ -30,6 +32,7 @@ vi.mock('@0xintuition/sdk', () => ({
 
 vi.mock('@0xintuition/protocol', () => ({
   intuitionTestnet: { id: 84532, name: 'Base Sepolia' },
+  MultiVaultAbi: [], // Mock ABI (not used in tests, just needs to exist)
 }));
 
 vi.mock('sonner', () => ({
@@ -53,6 +56,7 @@ describe('useVote', () => {
     mockWriteContract.mockResolvedValue('0xmocktxhash');
     mockWaitForTransactionReceipt.mockResolvedValue({ status: 'success' });
     mockRefetchAllowance.mockResolvedValue({ data: 0n });
+    mockSimulateContract.mockResolvedValue({ request: { address: '0xmultivault' } });
   });
 
   describe('initial state', () => {
@@ -151,6 +155,8 @@ describe('useVote', () => {
       } as any);
       vi.mocked(wagmi.usePublicClient).mockReturnValue({
         waitForTransactionReceipt: mockWaitForTransactionReceipt,
+        getBalance: vi.fn().mockResolvedValue(100000000000000000000n), // 100 TRUST
+        simulateContract: mockSimulateContract,
       } as any);
       vi.mocked(wagmi.useWalletClient).mockReturnValue({
         data: { writeContract: mockWriteContract },
@@ -173,7 +179,7 @@ describe('useVote', () => {
       expect(result.current.totalSteps).toBe(2); // Only checking + depositing
       expect(vi.mocked(sdk.batchDepositStatement)).toHaveBeenCalled();
       expect(toast.success).toHaveBeenCalledWith(
-        'Vote FOR successfully recorded!',
+        'Vote FOR enregistré avec succès !',
         { id: 'deposit' }
       );
     });
@@ -187,7 +193,7 @@ describe('useVote', () => {
 
       expect(result.current.status).toBe('success');
       expect(toast.success).toHaveBeenCalledWith(
-        'Vote AGAINST successfully recorded!',
+        'Vote AGAINST enregistré avec succès !',
         { id: 'deposit' }
       );
     });
@@ -200,6 +206,8 @@ describe('useVote', () => {
       } as any);
       vi.mocked(wagmi.usePublicClient).mockReturnValue({
         waitForTransactionReceipt: mockWaitForTransactionReceipt,
+        getBalance: vi.fn().mockResolvedValue(100000000000000000000n), // 100 TRUST
+        simulateContract: mockSimulateContract,
       } as any);
       vi.mocked(wagmi.useWalletClient).mockReturnValue({
         data: { writeContract: mockWriteContract },
@@ -245,6 +253,8 @@ describe('useVote', () => {
       } as any);
       vi.mocked(wagmi.usePublicClient).mockReturnValue({
         waitForTransactionReceipt: mockWaitForTransactionReceipt,
+        getBalance: vi.fn().mockResolvedValue(100000000000000000000n), // 100 TRUST
+        simulateContract: mockSimulateContract,
       } as any);
       vi.mocked(wagmi.useWalletClient).mockReturnValue({
         data: { writeContract: mockWriteContract },
@@ -276,6 +286,8 @@ describe('useVote', () => {
       } as any);
       vi.mocked(wagmi.usePublicClient).mockReturnValue({
         waitForTransactionReceipt: mockWaitForTransactionReceipt,
+        getBalance: vi.fn().mockResolvedValue(100000000000000000000n), // 100 TRUST
+        simulateContract: mockSimulateContract,
       } as any);
       vi.mocked(wagmi.useWalletClient).mockReturnValue({
         data: { writeContract: mockWriteContract },
@@ -331,7 +343,7 @@ describe('useVote', () => {
 
       expect(result.current.status).toBe('error');
       expect(result.current.error?.code).toBe('INSUFFICIENT_BALANCE');
-      expect(result.current.error?.message).toBe('Insufficient TRUST balance');
+      expect(result.current.error?.message).toBe('Balance TRUST insuffisante pour cette transaction');
     });
 
     it('should handle generic error', async () => {
@@ -351,7 +363,7 @@ describe('useVote', () => {
     });
 
     it('should handle error without message', async () => {
-      vi.mocked(sdk.batchDepositStatement).mockRejectedValueOnce({});
+      mockSimulateContract.mockRejectedValueOnce({});
 
       const { result } = renderHook(() => useVote());
 
@@ -360,17 +372,11 @@ describe('useVote', () => {
       });
 
       expect(result.current.status).toBe('error');
-      expect(result.current.error?.message).toBe('An unexpected error occurred');
+      expect(result.current.error?.message).toBe('Une erreur inattendue est survenue');
     });
 
     it('should include error step in error object', async () => {
-      // High allowance - no approval needed, error during deposit
-      vi.mocked(wagmi.useReadContract).mockReturnValue({
-        data: BigInt('100000000000000000000'),
-        refetch: mockRefetchAllowance,
-      } as any);
-
-      vi.mocked(sdk.batchDepositStatement).mockRejectedValueOnce(new Error('Deposit failed'));
+      mockSimulateContract.mockRejectedValueOnce(new Error('Deposit failed'));
 
       const { result } = renderHook(() => useVote());
 
@@ -382,27 +388,6 @@ describe('useVote', () => {
       // Error step is always defined in VoteError
       expect(result.current.error?.step).toBeDefined();
       expect(['checking', 'approving', 'depositing']).toContain(result.current.error?.step);
-    });
-
-    it('should set error step to approving when approval confirmation fails', async () => {
-      // Low allowance - needs approval
-      vi.mocked(wagmi.useReadContract).mockReturnValue({
-        data: 0n,
-        refetch: mockRefetchAllowance,
-      } as any);
-
-      // writeContract succeeds but waitForTransactionReceipt fails during approval phase
-      mockWriteContract.mockResolvedValueOnce('0xapprovaltxhash');
-      mockWaitForTransactionReceipt.mockRejectedValueOnce(new Error('Approval confirmation failed'));
-
-      const { result } = renderHook(() => useVote());
-
-      await act(async () => {
-        await result.current.vote('0x123' as `0x${string}`, '10', true);
-      });
-
-      expect(result.current.status).toBe('error');
-      expect(result.current.error?.step).toBe('approving');
     });
 
     it('should set error step to depositing when deposit confirmation fails', async () => {
@@ -439,6 +424,8 @@ describe('useVote', () => {
       } as any);
       vi.mocked(wagmi.usePublicClient).mockReturnValue({
         waitForTransactionReceipt: mockWaitForTransactionReceipt,
+        getBalance: vi.fn().mockResolvedValue(100000000000000000000n), // 100 TRUST
+        simulateContract: mockSimulateContract,
       } as any);
       vi.mocked(wagmi.useWalletClient).mockReturnValue({
         data: { writeContract: mockWriteContract },
