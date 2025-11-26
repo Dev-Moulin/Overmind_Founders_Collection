@@ -42,7 +42,6 @@ export const SUBSCRIBE_FOUNDER_PROPOSALS = gql`
         image
         emoji
         type
-        description
       }
       creator {
         id
@@ -92,7 +91,6 @@ export const SUBSCRIBE_ALL_PROPOSALS = gql`
         term_id
         label
         image
-        description
       }
       triple_vault {
         total_shares
