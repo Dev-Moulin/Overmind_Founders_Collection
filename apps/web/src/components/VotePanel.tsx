@@ -7,6 +7,7 @@ import { useFounderProposals } from '../hooks/useFounderProposals';
 import { useProtocolConfig } from '../hooks/useProtocolConfig';
 import { useIntuition, ClaimExistsError } from '../hooks/useIntuition';
 import { WalletConnectButton } from './ConnectButton';
+import { ClaimExistsModal, type ExistingClaimInfo } from './ClaimExistsModal';
 import { GET_TRIPLES_BY_PREDICATES, GET_ATOMS_BY_LABELS } from '../lib/graphql/queries';
 import predicatesData from '../../../../packages/shared/src/data/predicates.json';
 
@@ -147,6 +148,10 @@ export function VotePanel({ founder }: VotePanelProps) {
 
   // Accordion state: 'predicate' | 'totem' | null
   const [openSection, setOpenSection] = useState<'predicate' | 'totem' | null>('predicate');
+
+  // ClaimExistsModal state
+  const [showClaimExistsModal, setShowClaimExistsModal] = useState(false);
+  const [existingClaimInfo, setExistingClaimInfo] = useState<ExistingClaimInfo | null>(null);
 
   // Toggle accordion section (close others when opening one)
   const toggleSection = (section: 'predicate' | 'totem') => {
@@ -348,14 +353,17 @@ export function VotePanel({ founder }: VotePanelProps) {
       // Clear success after 8 seconds
       setTimeout(() => setSuccess(null), 8000);
     } catch (err) {
-      // Check if claim already exists
+      // Check if claim already exists - open modal to vote on it
       if (err instanceof ClaimExistsError) {
-        console.log('[VotePanel] Claim exists:', err.objectLabel);
-        setError(
-          `Ce claim existe déjà!\n` +
-          `"${err.subjectLabel} ${err.predicateLabel} ${err.objectLabel}"\n` +
-          `Vous pouvez voter dessus directement.`
-        );
+        console.log('[VotePanel] Claim exists, opening modal:', err.objectLabel);
+        setExistingClaimInfo({
+          termId: err.termId,
+          subjectLabel: err.subjectLabel,
+          predicateLabel: err.predicateLabel,
+          objectLabel: err.objectLabel,
+        });
+        setShowClaimExistsModal(true);
+        setIsSubmitting(false);
         return;
       }
 
@@ -396,7 +404,7 @@ export function VotePanel({ founder }: VotePanelProps) {
 
   return (
     <div className="glass-card h-full flex flex-col p-6 overflow-y-auto">
-      <h3 className="text-xl font-bold text-white mb-6">Voter pour un Totem</h3>
+      <h3 className="text-xl font-bold text-white mb-6">Créer un vote totem</h3>
 
       {/* Success notification */}
       {success && (
@@ -792,8 +800,30 @@ export function VotePanel({ founder }: VotePanelProps) {
               : 'bg-white/10 text-white/30 cursor-not-allowed'
           }`}
       >
-        {isSubmitting ? 'Création en cours...' : 'Voter / Créer Claim'}
+        {isSubmitting ? 'Création en cours...' : 'Créer le vote'}
       </button>
+
+      {/* ClaimExistsModal - appears when trying to create a claim that already exists */}
+      <ClaimExistsModal
+        isOpen={showClaimExistsModal}
+        onClose={() => {
+          setShowClaimExistsModal(false);
+          setExistingClaimInfo(null);
+        }}
+        claim={existingClaimInfo}
+        initialAmount={trustAmount}
+        onVoteSuccess={() => {
+          // Reset form and refresh data after successful vote
+          setNewTotemName('');
+          setNewTotemCategory('');
+          setSelectedTotemId('');
+          setTotemMode('existing');
+          setOpenSection('predicate');
+          refetchProposals();
+          setSuccess('Vote enregistré avec succès sur le claim existant !');
+          setTimeout(() => setSuccess(null), 5000);
+        }}
+      />
     </div>
   );
 }

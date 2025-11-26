@@ -1,7 +1,7 @@
 # État de l'Implémentation - VotePanel V2
 
-> **Date** : 27 novembre 2025 (mise à jour)
-> **Statut** : En cours
+> **Date** : 26 novembre 2025 (mise à jour)
+> **Statut** : Phase 2 terminée
 
 ---
 
@@ -11,13 +11,14 @@
 
 | Catégorie | Terminé | En cours | À faire |
 |-----------|---------|----------|---------|
-| Composants | 4 | 0 | 2 |
-| Hooks | 6 | 0 | 2 |
+| Composants | 5 | 0 | 1 |
+| Hooks | 8 | 0 | 0 |
 | Pages | 1 | 0 | 0 |
 | GraphQL | 1 | 0 | 1 (subscription) |
 | Styling | 1 | 0 | 0 |
 
-> **DÉCOUVERTE** : Les hooks `useVote` et `useWithdraw` existent déjà ! Voir section 3.
+> **Phase 1** : WebSocket Subscriptions ✅ TERMINÉE
+> **Phase 2** : UX Claim vs Vote ✅ TERMINÉE
 
 ---
 
@@ -27,17 +28,17 @@
 
 | Composant | Fichier | Fonctionnalités |
 |-----------|---------|-----------------|
-| `VotePanel` | [VotePanel.tsx](../../../apps/web/src/components/VotePanel.tsx) | Sélection prédicat (accordion), sélection/création totem, montant TRUST, preview, création claim |
+| `VotePanel` | [VotePanel.tsx](../../../apps/web/src/components/VotePanel.tsx) | Sélection prédicat (accordion), sélection/création totem, montant TRUST, preview, création claim, **intégration ClaimExistsModal** |
 | `FounderExpandedView` | [FounderExpandedView.tsx](../../../apps/web/src/components/FounderExpandedView.tsx) | Vue détaillée fondateur (photo, bio, stats), layout split, fermeture (backdrop/bouton/Escape) |
 | `FounderHomeCard` | [FounderHomeCard.tsx](../../../apps/web/src/components/FounderHomeCard.tsx) | Card dans la grille, sélection par click |
 | `VoteModal` | [VoteModal.tsx](../../../apps/web/src/components/VoteModal.tsx) | **EXISTANT** - Modal pour voter sur claim existant (FOR/AGAINST) |
+| `ClaimExistsModal` | [ClaimExistsModal.tsx](../../../apps/web/src/components/ClaimExistsModal.tsx) | **NOUVEAU** - Modal quand claim existe, permet de voter FOR/AGAINST avec `useVote` |
 
 ### À créer
 
 | Composant | Description | Priorité | Notes |
 |-----------|-------------|----------|-------|
-| `ClaimExistsModal` | Modal popup quand claim existe déjà | Haute | Peut réutiliser `VoteModal` comme base |
-| `RefreshIndicator` | Indicateur "Actualisé il y a X secondes" | Moyenne | |
+| `RefreshIndicator` | Indicateur "Actualisé il y a X secondes" | Moyenne | Pour Phase 3 |
 
 ### Composants découverts (déjà existants)
 
@@ -259,12 +260,12 @@ estimateWithdrawAmount(shares, totalShares, totalAssets, exitFeePercent = 7)
 5. ✅ Créer hook `useWindowFocus` (pause quand onglet masqué)
 6. ✅ Ajouter indicateur "Actualisé" (`RefreshIndicator`)
 
-### Phase 2 : UX Claim vs Vote (Priorité HAUTE)
+### Phase 2 : UX Claim vs Vote ✅ TERMINÉE
 
-1. Renommer titre "Voter pour un Totem" → "Créer un vote totem"
-2. Ajouter vérification proactive si claim existe
-3. Créer `ClaimExistsModal` (basé sur `VoteModal`)
-4. Intégrer `useVote` dans le flow VotePanel
+1. ✅ Renommer titre "Voter pour un Totem" → "Créer un vote totem"
+2. ✅ Créer `ClaimExistsModal` (modal quand claim existe)
+3. ✅ Intégrer `useVote` dans ClaimExistsModal (vote FOR/AGAINST)
+4. ✅ Intégrer ClaimExistsModal dans VotePanel (ouverture automatique sur `ClaimExistsError`)
 
 ### Phase 3 : Améliorations (Priorité MOYENNE)
 
