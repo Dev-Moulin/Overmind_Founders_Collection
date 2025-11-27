@@ -7,23 +7,7 @@ export {
   type AggregatedTotem,
 } from './aggregateVotes';
 
-export {
-  cacheNewPredicate,
-  cacheNewObject,
-  getCachedPredicates,
-  getCachedObjects,
-  removeCachedPredicate,
-  removeCachedObject,
-  clearCache,
-  getCacheStats,
-} from './localCache';
-
-export {
-  formatError,
-  isUserRejection,
-  isRetryableError,
-  type FormattedError,
-} from './errorFormatter';
+export { getFounderImageUrl } from './founderImage';
 
 // GraphQL types
 export type {

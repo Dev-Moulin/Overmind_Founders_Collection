@@ -64,13 +64,7 @@ export {
   type WithdrawPreview,
 } from './useWithdraw';
 
-// Hook for wallet authentication with signature
-// COMMENTED - useWalletAuth not used, auth handled by wagmi/Privy
-export {
-  // useWalletAuth,
-  type UseWalletAuthResult,
-  type AuthStatus,
-} from './useWalletAuth';
+// useWalletAuth - SUPPRIMÉ (auth handled by wagmi/Privy)
 
 // Hook for INTUITION protocol configuration (costs, fees)
 export { useProtocolConfig, type ProtocolConfig } from './useProtocolConfig';
