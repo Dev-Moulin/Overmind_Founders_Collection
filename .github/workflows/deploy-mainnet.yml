@@ -54,6 +54,7 @@ jobs:
         working-directory: apps/web
         env:
           VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID }}
+          VITE_ADMIN_WALLET_ADDRESS: ${{ secrets.VITE_ADMIN_WALLET_ADDRESS }}
           GITHUB_ACTIONS: true
         run: pnpm build
 
