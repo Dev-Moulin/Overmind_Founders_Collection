@@ -83,29 +83,19 @@ export interface FounderData {
   image?: string;
 }
 
-/**
- * Get the best available image URL for a founder
- * Priority: manual image > Twitter avatar > GitHub avatar > DiceBear fallback
- */
+// DEPRECATED: Fonction déplacée vers utils/founderImage.ts
+// Gardée en commentaire pour rollback si nécessaire
+// Import pour usage interne + re-export pour compatibilité
+import { getFounderImageUrl } from '../utils/founderImage';
+export { getFounderImageUrl };
+/*
 export function getFounderImageUrl(founder: FounderData): string {
-  // 1. Manual image if provided
-  if (founder.image) {
-    return founder.image;
-  }
-
-  // 2. Twitter avatar via unavatar.io
-  if (founder.twitter) {
-    return `https://unavatar.io/twitter/${founder.twitter.replace('@', '')}`;
-  }
-
-  // 3. GitHub avatar (direct from GitHub)
-  if (founder.github) {
-    return `https://github.com/${founder.github}.png`;
-  }
-
-  // 4. DiceBear fallback - generates unique avatar based on name
+  if (founder.image) return founder.image;
+  if (founder.twitter) return `https://unavatar.io/twitter/${founder.twitter.replace('@', '')}`;
+  if (founder.github) return `https://github.com/${founder.github}.png`;
   return `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(founder.name)}`;
 }
+*/
 
 export function useIntuition() {
   const publicClient = usePublicClient();

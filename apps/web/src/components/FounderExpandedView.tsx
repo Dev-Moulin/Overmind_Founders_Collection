@@ -6,7 +6,7 @@ import {
   useFounderSubscription,
   useAutoSubscriptionPause,
 } from '../hooks';
-import { getFounderImageUrl } from './FounderCard';
+import { getFounderImageUrl } from '../utils/founderImage';
 import { VotePanel } from './VotePanel';
 import { RefreshIndicator } from './RefreshIndicator';
 

@@ -1,6 +1,6 @@
 import { formatEther } from 'viem';
 import type { FounderForHomePage } from '../hooks/useFoundersForHomePage';
-import { getFounderImageUrl } from './FounderCard';
+import { getFounderImageUrl } from '../utils/founderImage';
 
 interface FounderHomeCardProps {
   founder: FounderForHomePage;

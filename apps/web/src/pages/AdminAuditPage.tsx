@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useQuery } from '@apollo/client';
 import { useAccount } from 'wagmi';
 import { GET_ATOMS_BY_LABELS, GET_ALL_TOTEM_CATEGORIES } from '../lib/graphql/queries';
-import { useIntuition, getFounderImageUrl } from '../hooks/useIntuition';
+import { useIntuition } from '../hooks/useIntuition';
+import { getFounderImageUrl } from '../utils/founderImage';
 import foundersData from '../../../../packages/shared/src/data/founders.json';
 import categoriesConfig from '../../../../packages/shared/src/data/categories.json';
 

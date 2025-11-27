@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { getFounderImageUrl } from '../utils/founderImage';
 
 export interface FounderData {
   id: string;
@@ -12,29 +13,16 @@ export interface FounderData {
   atomId?: string; // INTUITION Atom ID (Hex) - sera renseigné après création on-chain
 }
 
-/**
- * Get the best available image URL for a founder
- * Priority: manual image > Twitter avatar > GitHub avatar > DiceBear fallback
- */
+// DEPRECATED: Fonction déplacée vers utils/founderImage.ts
+// Gardée en commentaire pour rollback si nécessaire
+/*
 export function getFounderImageUrl(founder: { name: string; image?: string; twitter?: string | null; github?: string | null }): string {
-  // 1. Manual image if provided
-  if (founder.image) {
-    return founder.image;
-  }
-
-  // 2. Twitter avatar via unavatar.io
-  if (founder.twitter) {
-    return `https://unavatar.io/twitter/${founder.twitter.replace('@', '')}`;
-  }
-
-  // 3. GitHub avatar
-  if (founder.github) {
-    return `https://github.com/${founder.github}.png`;
-  }
-
-  // 4. DiceBear fallback - generates unique avatar based on name
+  if (founder.image) return founder.image;
+  if (founder.twitter) return `https://unavatar.io/twitter/${founder.twitter.replace('@', '')}`;
+  if (founder.github) return `https://github.com/${founder.github}.png`;
   return `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(founder.name)}`;
 }
+*/
 
 interface FounderCardProps {
   founder: FounderData;
