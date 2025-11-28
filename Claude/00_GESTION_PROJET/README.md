@@ -101,53 +101,17 @@ Claude/
 │   ├── documentation/                       # Documentation corrigée et à jour
 │   │   ├── AUDIT_DOCUMENTATION.md          # Tracker de l'audit
 │   │   ├── fonctionnement/
-│   │   │   ├── 02_Propositions.md
-│   │   │   ├── 04_Resultats.md
-│   │   │   └── 05_Vote.md
 │   │   ├── technologies/
-│   │   │   ├── INTUITION_SDK.md
-│   │   │   ├── Categories_Triples_OFC.md     # 🆕 Architecture catégories via triples
-│   │   │   ├── Stack_Frontend.md
-│   │   │   ├── Testnet_Configuration.md
-│   │   │   └── Vote_Aggregation_Research.md
 │   │   ├── structure_donnees/
-│   │   │   ├── Bonding_Curves.md
-│   │   │   └── Schema_GraphQL.md
 │   │   ├── ux_flow/
-│   │   │   ├── INDEX_PAGES.md
-│   │   │   ├── V2_FONDATION.md             # 🆕 Architecture V2 - HomePage interactive
-│   │   │   └── pages/
-│   │   │       ├── 00_PATTERNS_COMMUNS.md
-│   │   │       ├── 01_HomePage.md
-│   │   │       ├── 02_ProposePage.md
-│   │   │       ├── 03_VotePage.md
-│   │   │       ├── 04_FounderDetailsPage.md
-│   │   │       ├── 05_TotemDetailsPage.md
-│   │   │       ├── 06_MyVotesPage.md
-│   │   │       ├── 07_ResultsPage.md
-│   │   │       ├── 08_NotFoundPage.md
-│   │   │       └── 09_AdminAuditPage.md
 │   │   ├── securite/
-│   │   │   └── Frontend_Security.md
 │   │   ├── ux_ui/
-│   │   │   └── Design_System.md
 │   │   ├── gestion_erreurs/
-│   │   │   └── Frontend_Error_Handling.md
 │   │   ├── objectif/
-│   │   │   └── Objectif.md
 │   │   └── donnees/
-│   │       ├── Verification_Builders.md
-│   │       └── Totems_Fondateurs.md
-│   ├── Projet_01_VotePanel_V2/              # 🆕 VotePanel V2 - HomePage interactive
-│   │   ├── 01_ARCHITECTURE.md
-│   │   ├── 02_ETAT_IMPLEMENTATION.md
-│   │   ├── 03_RECHERCHES.md
-│   │   ├── 04_RECHERCHES_APPROFONDIES.md
-│   │   ├── 05_FIX_ACTUALISATION_VOTES.md   # 🆕 Fix useEffect cleanup bug
-│   │   ├── README.md
-│   │   └── TODO_Synchronisation_et_UX.md
+│   ├── Projet_01_VotePanel_V2/              # VotePanel V2 - HomePage interactive
 │   └── README.md                            # Ce fichier
-└── trash/                                   # Documentation obsolète (19 fichiers)
+└── trash/                                   # Documentation obsolète (gitignored)
 ```
 
 ## 📋 Fichiers

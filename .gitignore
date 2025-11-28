@@ -43,3 +43,6 @@ Thumbs.db
 *.key
 private/
 secrets/
+
+# Claude internal docs (not needed in repo)
+Claude/trash/
