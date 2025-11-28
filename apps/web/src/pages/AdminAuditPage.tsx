@@ -4,10 +4,9 @@ import { useAccount } from 'wagmi';
 import { GET_ATOMS_BY_LABELS, GET_ALL_TOTEM_CATEGORIES } from '../lib/graphql/queries';
 import { useIntuition } from '../hooks/useIntuition';
 import { getFounderImageUrl } from '../utils/founderImage';
+import { ADMIN_WALLET } from '../config/constants';
 import foundersData from '../../../../packages/shared/src/data/founders.json';
 import categoriesConfig from '../../../../packages/shared/src/data/categories.json';
-
-const ADMIN_WALLET = import.meta.env.VITE_ADMIN_WALLET_ADDRESS || '';
 
 interface Atom {
   term_id: string;

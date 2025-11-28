@@ -4,8 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { WalletConnectButton } from './ConnectButton';
 import { NetworkSwitch } from './NetworkSwitch';
 import { LanguageSwitcher } from './LanguageSwitcher';
-
-const ADMIN_WALLET = import.meta.env.VITE_ADMIN_WALLET_ADDRESS || '';
+import { ADMIN_WALLET } from '../config/constants';
 
 export function Header() {
   const { t } = useTranslation();

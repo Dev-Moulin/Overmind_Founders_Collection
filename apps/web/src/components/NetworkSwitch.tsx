@@ -1,11 +1,6 @@
 import { useAccount } from 'wagmi';
 import { useNetwork } from '../hooks/useNetwork';
-
-/**
- * Wallet address autorisé à voir et utiliser le switch réseau
- * Défini via variable d'environnement VITE_ADMIN_WALLET_ADDRESS
- */
-const AUTHORIZED_WALLET = import.meta.env.VITE_ADMIN_WALLET_ADDRESS || '';
+import { ADMIN_WALLET } from '../config/constants';
 
 /**
  * NetworkSwitch Component
@@ -17,7 +12,7 @@ export function NetworkSwitch() {
   const { network, toggleNetwork, isTestnet } = useNetwork();
 
   // Only show to authorized wallet
-  const isAuthorized = address?.toLowerCase() === AUTHORIZED_WALLET.toLowerCase();
+  const isAuthorized = address?.toLowerCase() === ADMIN_WALLET.toLowerCase();
 
   if (!isAuthorized) {
     return null;
