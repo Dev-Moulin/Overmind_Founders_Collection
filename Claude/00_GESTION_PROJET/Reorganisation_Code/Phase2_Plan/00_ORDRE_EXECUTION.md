@@ -43,7 +43,7 @@ Chaque fichier = 1 document de plan = 1 validation Paul = 1 exécution
 | 05 | hooks/useProtocolConfig.ts | ProtocolConfig | types/protocol.ts | [x] |
 | 06 | hooks/useFoundersForHomePage.ts | TrendDirection, WinningTotem, FounderForHomePage | types/founder.ts | [x] |
 | 07 | hooks/useTotemVoters.ts | TotemVoter, GET_TOTEM_VOTERS | types/voter.ts, lib/graphql/ | [x] |
-| 08 | hooks/useFounderProposals.ts | calculateVoteCounts, calculatePercentage, enrichTripleWithVotes (dupliqués) | utils/voteCalculations.ts | [ ] |
+| 08 | hooks/useFounderProposals.ts | calculateVoteCounts, calculatePercentage, enrichTripleWithVotes (dupliqués) | utils/voteCalculations.ts | [x] |
 | 09 | hooks/useFounderSubscription.ts | formatTimeSinceUpdate | utils/formatters.ts | [ ] |
 | 10 | components/VotePanel.tsx | OFC_PREFIX, CategoryConfigType, Predicate, getTimeAgo, getCategoryName | config/, types/, utils/ | [ ] |
 | 11 | components/ClaimExistsModal.tsx | ExistingClaimInfo | types/claim.ts | [ ] |
@@ -93,4 +93,4 @@ Ces fichiers ont été supprimés lors du nettoyage (commit aaa3790) :
 
 ## Prochain fichier à planifier
 
-→ `08_vote_calculations.md` (calculateVoteCounts, calculatePercentage, enrichTripleWithVotes)
+→ `09_formatters.md` (formatTimeSinceUpdate)

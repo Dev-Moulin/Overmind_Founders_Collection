@@ -9,6 +9,12 @@ export {
 
 export { getFounderImageUrl } from './founderImage';
 
+export {
+  calculateVoteCounts,
+  calculatePercentage,
+  enrichTripleWithVotes,
+} from './voteCalculations';
+
 // GraphQL types
 export type {
   Atom,
