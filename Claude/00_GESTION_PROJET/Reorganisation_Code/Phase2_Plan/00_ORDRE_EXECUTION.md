@@ -1,6 +1,6 @@
 # Ordre d'exécution - Phase 2
 
-**Mise à jour** : 28/11/2025 - Après nettoyage (commit aaa3790)
+**Mise à jour** : 28/11/2025 - Après étapes 10, 11, 13 (commit d3e73ea)
 
 ## Principe
 
@@ -45,10 +45,10 @@ Chaque fichier = 1 document de plan = 1 validation Paul = 1 exécution
 | 07 | hooks/useTotemVoters.ts | TotemVoter, GET_TOTEM_VOTERS | types/voter.ts, lib/graphql/ | [x] |
 | 08 | hooks/useFounderProposals.ts | calculateVoteCounts, calculatePercentage, enrichTripleWithVotes (dupliqués) | utils/voteCalculations.ts | [x] |
 | 09 | hooks/useFounderSubscription.ts | formatTimeSinceUpdate | utils/formatters.ts | [x] |
-| 10 | components/VotePanel.tsx | OFC_PREFIX, CategoryConfigType, Predicate, getTimeAgo, getCategoryName | config/, types/, utils/ | [ ] |
-| 11 | components/ClaimExistsModal.tsx | ExistingClaimInfo | types/claim.ts | [ ] |
-| 12 | utils/aggregateVotes.ts | VoteResult, AggregatedVotes, VotingStats | types/vote.ts | [ ] |
-| 13 | utils/index.ts | Nettoyer re-exports confus | - | [ ] |
+| 10 | components/VotePanel.tsx | OFC_PREFIX, CategoryConfigType, Predicate, getTimeAgo, getCategoryName | config/, types/, utils/ | [x] |
+| 11 | components/ClaimExistsModal.tsx | ExistingClaimInfo | types/claim.ts | [x] |
+| 12 | utils/aggregateVotes.ts | VoteResult, AggregatedVotes, VotingStats | types/vote.ts | [SKIP] types co-localisés |
+| 13 | utils/index.ts | Nettoyer re-exports confus | - | [x] |
 
 ---
 
@@ -56,9 +56,9 @@ Chaque fichier = 1 document de plan = 1 validation Paul = 1 exécution
 
 | # | Action | Status |
 |---|--------|--------|
-| 14 | Supprimer code dupliqué restant | [ ] |
-| 15 | Vérifier tous les imports | [ ] |
-| 16 | Build final + Tests | [ ] |
+| 14 | Supprimer code dupliqué restant | [x] Aucune duplication |
+| 15 | Vérifier tous les imports | [x] TypeScript OK |
+| 16 | Build final + Tests | [x] Build réussi |
 
 ---
 
@@ -91,6 +91,14 @@ Ces fichiers ont été supprimés lors du nettoyage (commit aaa3790) :
 
 ---
 
-## Prochain fichier à planifier
+## Phase 2 TERMINÉE
 
-→ `10_VotePanel.md` (OFC_PREFIX, CategoryConfigType, etc.)
+Toutes les étapes ont été complétées avec succès.
+
+### Résumé des extractions :
+- **types/** : vote.ts, withdraw.ts, intuition.ts, protocol.ts, founder.ts, voter.ts, category.ts, claim.ts, predicate.ts
+- **utils/** : voteCalculations.ts, formatters.ts, category.ts
+- **config/** : constants.ts (OFC_PREFIX, ADMIN_WALLET, NFT_CONTRACT)
+
+### Note - Problème mainnet GraphQL
+Le schéma GraphQL mainnet est différent de testnet (pas de relations `predicate`, `subject`, `object` dans les filtres). Ce n'est pas lié au refactoring - c'est un problème d'API à traiter séparément.
