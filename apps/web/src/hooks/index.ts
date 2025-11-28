@@ -28,14 +28,15 @@ export {
   // formatTotalVotes,
   hasVotedOnTerm,
   getUserVoteDirection,
-  type VoteWithDetails,
+  // type VoteWithDetails, // Migré vers types/vote.ts
 } from './useUserVotes';
 
 // DEPRECATED - À supprimer - Commenté le 27/11/2025
 // export { useAllTotems, type AggregatedTotem } from './useAllTotems';
 
 // Hook for voting on claims
-export { useVote, type UseVoteResult, type VoteStatus, type VoteError } from './useVote';
+export { useVote, type UseVoteResult } from './useVote';
+export type { VoteStatus, VoteError, VoteWithDetails } from '../types/vote';
 
 // Hooks for vote statistics and leaderboard
 export {

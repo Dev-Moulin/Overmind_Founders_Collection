@@ -5,19 +5,7 @@ import { getMultiVaultAddressFromChainId } from '@0xintuition/sdk';
 import { MultiVaultAbi } from '@0xintuition/protocol';
 import { currentIntuitionChain } from '../config/wagmi';
 import { toast } from 'sonner';
-
-export type VoteStatus =
-  | 'idle'
-  | 'checking'
-  | 'depositing'
-  | 'success'
-  | 'error';
-
-export interface VoteError {
-  code: string;
-  message: string;
-  step: 'checking' | 'depositing';
-}
+import type { VoteStatus, VoteError } from '../types/vote';
 
 export interface UseVoteResult {
   vote: (claimId: Hex, amount: string, isFor: boolean) => Promise<void>;

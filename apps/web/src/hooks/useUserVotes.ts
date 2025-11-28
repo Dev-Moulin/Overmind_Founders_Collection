@@ -12,14 +12,7 @@ import type {
   Deposit,
   VaultType,
 } from '../lib/graphql/types';
-
-/**
- * Enriched vote with computed data
- */
-export interface VoteWithDetails extends Deposit {
-  isPositive: boolean; // true = FOR, false = AGAINST
-  formattedAmount: string; // Human-readable amount (e.g., "10.50")
-}
+import type { VoteWithDetails } from '../types/vote';
 
 /**
  * Enrich deposit with computed fields
