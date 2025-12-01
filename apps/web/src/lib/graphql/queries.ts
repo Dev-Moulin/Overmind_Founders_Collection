@@ -603,6 +603,10 @@ export const GET_TRIPLE_BY_ATOMS = gql`
         total_shares
         total_assets
       }
+      counter_term {
+        id
+        total_assets
+      }
       created_at
     }
   }

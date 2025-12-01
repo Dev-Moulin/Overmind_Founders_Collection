@@ -7,8 +7,19 @@ import { currentIntuitionChain } from '../config/wagmi';
 import { toast } from 'sonner';
 import type { VoteStatus, VoteError } from '../types/vote';
 
+export interface VoteOptions {
+  /** The term ID (for FOR votes) */
+  termId: Hex;
+  /** The counter term ID (for AGAINST votes) - required if isFor is false */
+  counterTermId?: Hex;
+  /** Amount in TRUST to deposit */
+  amount: string;
+  /** True for FOR vote, false for AGAINST vote */
+  isFor: boolean;
+}
+
 export interface UseVoteResult {
-  vote: (claimId: Hex, amount: string, isFor: boolean) => Promise<void>;
+  vote: (options: VoteOptions) => Promise<void>;
   status: VoteStatus;
   error: VoteError | null;
   isLoading: boolean;
@@ -23,20 +34,34 @@ export interface UseVoteResult {
  * Sur INTUITION L3 Testnet, TRUST est le token NATIF (comme ETH).
  * Pas besoin d'approve ERC20 - on envoie directement avec msg.value.
  *
+ * FOR vs AGAINST est déterminé par le vault sur lequel on dépose:
+ * - FOR = deposit sur le term_id du triple (vault positif)
+ * - AGAINST = deposit sur le counter_term_id du triple (vault négatif)
+ *
  * @example
  * ```tsx
- * function VoteModal({ claimId }) {
+ * function VoteModal({ claim }) {
  *   const { vote, status, error, isLoading, currentStep, totalSteps } = useVote();
  *
- *   const handleVote = async () => {
- *     await vote(claimId, "0.01", true); // Vote FOR with 0.01 TRUST
+ *   const handleVoteFor = async () => {
+ *     await vote({ termId: claim.termId, amount: "0.01", isFor: true });
+ *   };
+ *
+ *   const handleVoteAgainst = async () => {
+ *     await vote({
+ *       termId: claim.termId,
+ *       counterTermId: claim.counterTermId,
+ *       amount: "0.01",
+ *       isFor: false
+ *     });
  *   };
  *
  *   return (
  *     <div>
  *       {isLoading && <p>Step {currentStep}/{totalSteps}</p>}
  *       {error && <p>Error: {error.message}</p>}
- *       <button onClick={handleVote}>Vote</button>
+ *       <button onClick={handleVoteFor}>Vote FOR</button>
+ *       <button onClick={handleVoteAgainst}>Vote AGAINST</button>
  *     </div>
  *   );
  * }
@@ -70,7 +95,7 @@ export function useVote(): UseVoteResult {
   }, [updateStatus]);
 
   const vote = useCallback(
-    async (claimId: Hex, amount: string, isFor: boolean) => {
+    async ({ termId, counterTermId, amount, isFor }: VoteOptions) => {
       if (!address) {
         setError({
           code: 'WALLET_NOT_CONNECTED',
@@ -85,6 +110,17 @@ export function useVote(): UseVoteResult {
         setError({
           code: 'CLIENT_NOT_READY',
           message: 'Wallet client not ready',
+          step: 'checking',
+        });
+        updateStatus('error');
+        return;
+      }
+
+      // For AGAINST votes, we need the counterTermId
+      if (!isFor && !counterTermId) {
+        setError({
+          code: 'MISSING_COUNTER_TERM',
+          message: 'Le counter_term_id est requis pour les votes AGAINST',
           step: 'checking',
         });
         updateStatus('error');
@@ -117,15 +153,10 @@ export function useVote(): UseVoteResult {
         // See @0xintuition/sdk/src/experimental/utils.ts line 607:
         //   termIds.map(() => 1n), // curveIds (all 1 for default curve)
         //
-        // FOR vs AGAINST is NOT determined by curveId, but by which vault you deposit to:
+        // FOR vs AGAINST is determined by which vault you deposit to:
         // - FOR = deposit on the triple's term_id (positive vault)
         // - AGAINST = deposit on the triple's counter_term_id (negative vault)
-        //
-        // Currently this hook only supports FOR votes.
-        if (!isFor) {
-          throw new Error('Les votes AGAINST ne sont pas encore supportés. Il faut le counter_term_id du triple.');
-        }
-
+        const depositTermId = isFor ? termId : counterTermId!;
         const curveId = 1n; // Default bonding curve for all deposits (per SDK)
 
         // Call depositBatch directly on the contract
@@ -138,7 +169,7 @@ export function useVote(): UseVoteResult {
           functionName: 'depositBatch',
           args: [
             address as Address,  // receiver - shares go to the voter
-            [claimId],           // termIds - the claim/triple term_id
+            [depositTermId],     // termIds - term_id for FOR, counter_term_id for AGAINST
             [curveId],           // curveIds - 1n = default bonding curve
             [amountWei],         // assets - amount to deposit
             [0n],                // minShares - minimum shares to receive (0 = no minimum)

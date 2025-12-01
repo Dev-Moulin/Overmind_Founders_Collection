@@ -118,7 +118,12 @@ export function ClaimExistsModal({
     }
 
     try {
-      await vote(claim.termId as Hex, amount, direction === 'for');
+      await vote({
+        termId: claim.termId as Hex,
+        counterTermId: claim.counterTermId as Hex | undefined,
+        amount,
+        isFor: direction === 'for',
+      });
     } catch (err) {
       console.error('Vote submission error:', err);
     }

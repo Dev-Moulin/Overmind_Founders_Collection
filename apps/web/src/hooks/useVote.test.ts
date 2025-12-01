@@ -121,7 +121,7 @@ describe('useVote', () => {
       const { result } = renderHook(() => useVote());
 
       await act(async () => {
-        await result.current.vote('0x123' as `0x${string}`, '10', true);
+        await result.current.vote({ termId: '0x123' as `0x${string}`, amount: '10', isFor: true });
       });
 
       expect(result.current.status).toBe('error');
@@ -139,7 +139,7 @@ describe('useVote', () => {
       const { result } = renderHook(() => useVote());
 
       await act(async () => {
-        await result.current.vote('0x123' as `0x${string}`, '10', true);
+        await result.current.vote({ termId: '0x123' as `0x${string}`, amount: '10', isFor: true });
       });
 
       expect(result.current.status).toBe('error');
@@ -159,7 +159,7 @@ describe('useVote', () => {
       const { result } = renderHook(() => useVote());
 
       await act(async () => {
-        await result.current.vote('0x123' as `0x${string}`, '10', true);
+        await result.current.vote({ termId: '0x123' as `0x${string}`, amount: '10', isFor: true });
       });
 
       expect(result.current.status).toBe('error');
@@ -191,7 +191,7 @@ describe('useVote', () => {
       const { result } = renderHook(() => useVote());
 
       await act(async () => {
-        await result.current.vote('0x123' as `0x${string}`, '10', true);
+        await result.current.vote({ termId: '0x123' as `0x${string}`, amount: '10', isFor: true });
       });
 
       expect(result.current.status).toBe('success');
@@ -204,15 +204,37 @@ describe('useVote', () => {
       );
     });
 
-    it('should reject AGAINST votes (not yet supported)', async () => {
+    it('should reject AGAINST votes without counterTermId', async () => {
       const { result } = renderHook(() => useVote());
 
       await act(async () => {
-        await result.current.vote('0x123' as `0x${string}`, '5', false);
+        await result.current.vote({ termId: '0x123' as `0x${string}`, amount: '5', isFor: false });
       });
 
       expect(result.current.status).toBe('error');
-      expect(result.current.error?.message).toBe('Les votes AGAINST ne sont pas encore supportés. Il faut le counter_term_id du triple.');
+      expect(result.current.error?.code).toBe('MISSING_COUNTER_TERM');
+      expect(result.current.error?.message).toBe('Le counter_term_id est requis pour les votes AGAINST');
+    });
+
+    it('should complete AGAINST vote when counterTermId is provided', async () => {
+      const { result } = renderHook(() => useVote());
+
+      await act(async () => {
+        await result.current.vote({
+          termId: '0x123' as `0x${string}`,
+          counterTermId: '0x456' as `0x${string}`,
+          amount: '5',
+          isFor: false,
+        });
+      });
+
+      expect(result.current.status).toBe('success');
+      expect(mockSimulateContract).toHaveBeenCalled();
+      expect(mockWriteContract).toHaveBeenCalled();
+      expect(toast.success).toHaveBeenCalledWith(
+        'Vote AGAINST enregistré avec succès !',
+        { id: 'deposit' }
+      );
     });
   });
 
@@ -236,7 +258,7 @@ describe('useVote', () => {
       const { result } = renderHook(() => useVote());
 
       await act(async () => {
-        await result.current.vote('0x123' as `0x${string}`, '10', true);
+        await result.current.vote({ termId: '0x123' as `0x${string}`, amount: '10', isFor: true });
       });
 
       expect(result.current.status).toBe('success');
@@ -250,7 +272,7 @@ describe('useVote', () => {
       const { result } = renderHook(() => useVote());
 
       await act(async () => {
-        await result.current.vote('0x123' as `0x${string}`, '10', true);
+        await result.current.vote({ termId: '0x123' as `0x${string}`, amount: '10', isFor: true });
       });
 
       expect(result.current.status).toBe('error');
@@ -283,7 +305,7 @@ describe('useVote', () => {
       const { result } = renderHook(() => useVote());
 
       await act(async () => {
-        await result.current.vote('0x123' as `0x${string}`, '10', true);
+        await result.current.vote({ termId: '0x123' as `0x${string}`, amount: '10', isFor: true });
       });
 
       expect(result.current.status).toBe('error');
@@ -318,7 +340,7 @@ describe('useVote', () => {
       const { result } = renderHook(() => useVote());
 
       await act(async () => {
-        await result.current.vote('0x123' as `0x${string}`, '10', true);
+        await result.current.vote({ termId: '0x123' as `0x${string}`, amount: '10', isFor: true });
       });
 
       expect(result.current.status).toBe('error');
@@ -334,7 +356,7 @@ describe('useVote', () => {
       const { result } = renderHook(() => useVote());
 
       await act(async () => {
-        await result.current.vote('0x123' as `0x${string}`, '10', true);
+        await result.current.vote({ termId: '0x123' as `0x${string}`, amount: '10', isFor: true });
       });
 
       expect(result.current.status).toBe('error');
@@ -350,7 +372,7 @@ describe('useVote', () => {
       const { result } = renderHook(() => useVote());
 
       await act(async () => {
-        await result.current.vote('0x123' as `0x${string}`, '10', true);
+        await result.current.vote({ termId: '0x123' as `0x${string}`, amount: '10', isFor: true });
       });
 
       expect(result.current.status).toBe('error');
@@ -366,7 +388,7 @@ describe('useVote', () => {
       const { result } = renderHook(() => useVote());
 
       await act(async () => {
-        await result.current.vote('0x123' as `0x${string}`, '10', true);
+        await result.current.vote({ termId: '0x123' as `0x${string}`, amount: '10', isFor: true });
       });
 
       expect(result.current.status).toBe('error');
@@ -380,7 +402,7 @@ describe('useVote', () => {
       const { result } = renderHook(() => useVote());
 
       await act(async () => {
-        await result.current.vote('0x123' as `0x${string}`, '10', true);
+        await result.current.vote({ termId: '0x123' as `0x${string}`, amount: '10', isFor: true });
       });
 
       expect(result.current.status).toBe('error');
@@ -393,7 +415,7 @@ describe('useVote', () => {
       const { result } = renderHook(() => useVote());
 
       await act(async () => {
-        await result.current.vote('0x123' as `0x${string}`, '10', true);
+        await result.current.vote({ termId: '0x123' as `0x${string}`, amount: '10', isFor: true });
       });
 
       expect(result.current.status).toBe('error');
@@ -416,7 +438,7 @@ describe('useVote', () => {
       const { result } = renderHook(() => useVote());
 
       await act(async () => {
-        await result.current.vote('0x123' as `0x${string}`, '10', true);
+        await result.current.vote({ termId: '0x123' as `0x${string}`, amount: '10', isFor: true });
       });
 
       expect(result.current.status).toBe('error');
@@ -451,7 +473,7 @@ describe('useVote', () => {
 
       // Start vote but don't await
       act(() => {
-        result.current.vote('0x123' as `0x${string}`, '10', true);
+        result.current.vote({ termId: '0x123' as `0x${string}`, amount: '10', isFor: true });
       });
 
       // Check loading state during execution
@@ -477,7 +499,7 @@ describe('useVote', () => {
       const { result } = renderHook(() => useVote());
 
       await act(async () => {
-        await result.current.vote('0x123' as `0x${string}`, '10', true);
+        await result.current.vote({ termId: '0x123' as `0x${string}`, amount: '10', isFor: true });
       });
 
       expect(result.current.error).toHaveProperty('code');

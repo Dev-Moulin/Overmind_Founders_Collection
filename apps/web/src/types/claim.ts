@@ -4,6 +4,8 @@
  */
 export interface ExistingClaimInfo {
   termId: string;
+  /** Counter term ID for AGAINST votes (deposit to this term for negative votes) */
+  counterTermId?: string;
   subjectLabel: string;
   predicateLabel: string;
   objectLabel: string;
