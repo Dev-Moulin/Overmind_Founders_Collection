@@ -1,46 +1,58 @@
 {
   "predicate": {
     "id": "has-category",
-    "label": "has_category",
-    "description": "Predicate for categorizing totems in OFC",
-    "termId": null
+    "label": "has category",
+    "description": "Predicate for linking totem to its category",
+    "termId": "0xddde1d94d102098bbe59c521e5f2aa1a958611cec579923584410f2a5f29b0f2"
+  },
+  "tagPredicate": {
+    "id": "tag-category",
+    "label": "tag category",
+    "description": "Predicate for marking an atom as a category in the system",
+    "termId": "0x13254dd3cd5fe212ae13d61be96d7c2aa14a55cf41b647fc3d7d179c6b439510"
+  },
+  "systemObject": {
+    "id": "overmind-founders-collection",
+    "label": "Overmind Founders Collection",
+    "description": "System identifier for OFC categories",
+    "termId": "0xcbe206fd932c4a83fbb483052b56c537e73f60e07f08c68d378d2a6b5c2c72f0"
   },
   "categories": [
     {
       "id": "animal",
-      "label": "OFC:Animal",
+      "label": "Animal",
       "name": "Animal",
-      "termId": null
+      "termId": "0x5abbd068373c29e685255696302a2c71e92f8dc07d6540a882beb81dc71c3c91"
     },
     {
-      "id": "objet",
-      "label": "OFC:Objet",
-      "name": "Objet",
-      "termId": null
+      "id": "object",
+      "label": "Object",
+      "name": "Object",
+      "termId": "0x9f6f7ffb880c51b18797e6519655066664d9029b8e4c5bd43869f84e646e870a"
     },
     {
       "id": "trait",
-      "label": "OFC:Trait",
+      "label": "Trait",
       "name": "Trait",
-      "termId": null
+      "termId": "0xdfc38fe05fba785bba9f05da4d24fe296f872a20e13664794b28d4d64a1d3520"
     },
     {
       "id": "concept",
-      "label": "OFC:Concept",
+      "label": "Concept",
       "name": "Concept",
-      "termId": null
+      "termId": "0xa2ac200f09dc38fd992f07da2ccc1d42f64086e7f5263aaa52e7629bb5d8be52"
     },
     {
       "id": "element",
-      "label": "OFC:Element",
+      "label": "Element",
       "name": "Element",
-      "termId": null
+      "termId": "0xa7ec6a04444593bdcbe2279bba6172d1aaf2f72af91b33657663d8960714e2a2"
     },
     {
-      "id": "mythologie",
-      "label": "OFC:Mythologie",
-      "name": "Mythologie",
-      "termId": null
+      "id": "mythology",
+      "label": "Mythology",
+      "name": "Mythology",
+      "termId": "0x32af969ca3551d79f539b11dc07fd2f32c8e7d6054f0dbd0100e553c3219b3cb"
     }
   ]
 }

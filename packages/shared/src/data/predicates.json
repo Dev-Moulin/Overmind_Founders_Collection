@@ -1,44 +1,16 @@
 [
   {
-    "id": "is-represented-by",
-    "label": "is represented by",
-    "description": "X is represented by Y",
-    "termId": null,
-    "isDefault": true
-  },
-  {
     "id": "has-totem",
     "label": "has totem",
-    "description": "X has totem Y",
-    "termId": null,
-    "isDefault": true
-  },
-  {
-    "id": "is-symbolized-by",
-    "label": "is symbolized by",
-    "description": "X is symbolized by Y",
+    "description": "Associative/neutral: X has totem Y",
     "termId": null,
     "isDefault": true
   },
   {
     "id": "embodies",
     "label": "embodies",
-    "description": "X embodies Y",
+    "description": "Strong opinion: X embodies/incarnates Y",
     "termId": null,
-    "isDefault": true
-  },
-  {
-    "id": "channels",
-    "label": "channels",
-    "description": "X channels Y",
-    "termId": null,
-    "isDefault": true
-  },
-  {
-    "id": "resonates-with",
-    "label": "resonates with",
-    "description": "X resonates with Y",
-    "termId": null,
-    "isDefault": true
+    "isDefault": false
   }
 ]

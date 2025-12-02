@@ -517,27 +517,31 @@ export function useIntuition() {
   );
 
   /**
-   * Create a complete claim with category triple (OFC: system)
-   * Creates TWO triples:
-   * 1. [Founder] [predicate] [Totem] - Vote principal
-   * 2. [Totem] [has_category] [OFC:Category] - Catégorie
+   * Create a complete claim with category triples (3-triple system)
+   * Creates THREE triples:
+   * 1. [Founder] [predicate] [Totem] - Vote principal (FOR/AGAINST)
+   * 2. [Totem] [has category] [Category] - Catégorie (sans préfixe)
+   * 3. [Category] [tag category] [Overmind Founders Collection] - Marqueur système
    *
-   * This enables WebSocket subscriptions for categories (description field not available in WS)
+   * This enables semantic queries and WebSocket subscriptions
    */
   const createClaimWithCategory = useCallback(
     async (params: {
       subjectId: Hex; // Founder atom ID (pre-existing)
       predicate: string | Hex; // String = get or create atom, Hex = use existing
       objectName: string; // Object name (totem name)
-      categoryId: string; // Category ID from categories.json (e.g. "animal", "objet")
+      categoryId: string; // Category ID from categories.json (e.g. "animal", "object")
       depositAmount: string;
     }): Promise<{
       triple: CreateTripleResult;
       categoryTriple: CreateTripleResult | null;
+      tagTriple: CreateTripleResult | null;
       predicateCreated: boolean;
       objectCreated: boolean;
       categoryPredicateCreated: boolean;
       categoryObjectCreated: boolean;
+      tagPredicateCreated: boolean;
+      systemObjectCreated: boolean;
     }> => {
       let predicateId: Hex;
       let objectId: Hex;
@@ -545,15 +549,16 @@ export function useIntuition() {
       let objectCreated = false;
       let categoryPredicateCreated = false;
       let categoryObjectCreated = false;
+      let tagPredicateCreated = false;
+      let systemObjectCreated = false;
 
       // Find category config - support both predefined and dynamic categories
       const predefinedCategory = typedCategoriesConfig.categories.find(c => c.id === params.categoryId);
 
-      // For dynamic categories, generate the OFC label from the category name
-      // Format: "OFC:CategoryName" (e.g., "tech" -> "OFC:Tech")
+      // For dynamic categories, use category name directly (no OFC: prefix)
       const categoryLabel = predefinedCategory
         ? predefinedCategory.label
-        : `OFC:${params.categoryId.charAt(0).toUpperCase()}${params.categoryId.slice(1)}`;
+        : params.categoryId.charAt(0).toUpperCase() + params.categoryId.slice(1);
 
 
       // Helper to check if a value is a Hex atomId (starts with 0x and is 66 chars long)
@@ -597,48 +602,92 @@ export function useIntuition() {
         params.depositAmount
       );
 
-      // === TRIPLE 2: Catégorie (OFC:) ===
+      // === TRIPLE 2: [Totem] → [has category] → [Category] ===
+      // Atoms système doivent être pré-créés par l'admin (termId dans categories.json)
       let categoryTriple: CreateTripleResult | null = null;
+      let tagTriple: CreateTripleResult | null = null;
+
+      // Get category termId from config (must be pre-created by admin)
+      const categoryTermId = predefinedCategory?.termId;
+      const categoryPredicateTermId = typedCategoriesConfig.predicate.termId;
+      const tagPredicateTermId = typedCategoriesConfig.tagPredicate?.termId;
+      const systemObjectTermId = typedCategoriesConfig.systemObject?.termId;
+
       try {
-
-        // Get or create "has_category" predicate
-        const categoryPredicateResult = await getOrCreateAtom(typedCategoriesConfig.predicate.label);
-        const categoryPredicateId = categoryPredicateResult.termId;
-        categoryPredicateCreated = categoryPredicateResult.created;
-
-        // Get or create OFC:Category atom (predefined or dynamic)
-        const categoryObjectResult = await getOrCreateAtom(categoryLabel);
-        const categoryObjectId = categoryObjectResult.termId;
-        categoryObjectCreated = categoryObjectResult.created;
-
-        // Vérifier si le triple de catégorie existe déjà
-        const existingCategoryTriple = await findTriple(objectId, categoryPredicateId, categoryObjectId);
-        if (existingCategoryTriple) {
-          // C'est OK, on ne le crée pas à nouveau
+        // Vérifier que les atoms système existent
+        if (!categoryPredicateTermId) {
+          console.warn('[useIntuition] Prédicat "has category" non créé par admin, triple 2 ignoré');
+        } else if (!categoryTermId) {
+          console.warn(`[useIntuition] Catégorie "${categoryLabel}" non créée par admin, triple 2 ignoré`);
         } else {
-          // Get min deposit for category triple (minimum cost)
-          const contractConfig = await multiCallIntuitionConfigs({ publicClient: publicClient!, address: multiVaultAddress });
-          const minDeposit = formatEther(BigInt(contractConfig.min_deposit));
+          const categoryPredicateId = categoryPredicateTermId as Hex;
+          const categoryObjectId = categoryTermId as Hex;
 
-          categoryTriple = await createTriple(
-            objectId, // Subject = le totem qu'on vient de créer
-            categoryPredicateId, // Predicate = has_category
-            categoryObjectId, // Object = OFC:Animal, OFC:Objet, etc.
-            minDeposit // Dépôt minimum pour le triple de catégorie
-          );
+          // Vérifier si le triple de catégorie existe déjà
+          const existingCategoryTriple = await findTriple(objectId, categoryPredicateId, categoryObjectId);
+          if (!existingCategoryTriple) {
+            // Get min deposit for category triple (minimum cost)
+            const contractConfig = await multiCallIntuitionConfigs({ publicClient: publicClient!, address: multiVaultAddress });
+            const minDeposit = formatEther(BigInt(contractConfig.min_deposit));
+
+            categoryTriple = await createTriple(
+              objectId, // Subject = le totem qu'on vient de créer
+              categoryPredicateId, // Predicate = "has category" (pré-créé)
+              categoryObjectId, // Object = Animal, Object, etc. (pre-created)
+              minDeposit // Dépôt minimum pour le triple de catégorie
+            );
+            categoryPredicateCreated = false; // Pré-existant
+            categoryObjectCreated = false; // Pré-existant
+          }
         }
       } catch (categoryError) {
         // Log but don't fail - the main vote triple was created successfully
         console.error('[useIntuition] Erreur création triple catégorie (non bloquant):', categoryError);
       }
 
+      // === TRIPLE 3: [Category] → [tag category] → [Overmind Founders Collection] ===
+      // Ce triple est créé UNE SEULE FOIS par catégorie (généralement par l'admin)
+      // On vérifie s'il existe, sinon on le crée
+      try {
+        if (categoryTermId && tagPredicateTermId && systemObjectTermId) {
+          const categoryObjectId = categoryTermId as Hex;
+          const tagPredicateId = tagPredicateTermId as Hex;
+          const systemObjectId = systemObjectTermId as Hex;
+
+          // Vérifier si le triple tag existe déjà
+          const existingTagTriple = await findTriple(categoryObjectId, tagPredicateId, systemObjectId);
+          if (!existingTagTriple) {
+            // Get min deposit for tag triple
+            const contractConfig = await multiCallIntuitionConfigs({ publicClient: publicClient!, address: multiVaultAddress });
+            const minDeposit = formatEther(BigInt(contractConfig.min_deposit));
+
+            tagTriple = await createTriple(
+              categoryObjectId, // Subject = la catégorie (pré-créée)
+              tagPredicateId, // Predicate = "tag category" (pré-créé)
+              systemObjectId, // Object = "Overmind Founders Collection" (pré-créé)
+              minDeposit // Dépôt minimum
+            );
+            tagPredicateCreated = false; // Pré-existant
+            systemObjectCreated = false; // Pré-existant
+          }
+        } else {
+          console.warn('[useIntuition] Atoms système pour triple 3 non créés par admin, triple tag ignoré');
+        }
+      } catch (tagError) {
+        // Log but don't fail - triples 1 and 2 were created successfully
+        console.error('[useIntuition] Erreur création triple tag (non bloquant):', tagError);
+      }
+
       return {
         triple,
         categoryTriple,
+        tagTriple,
         predicateCreated,
         objectCreated,
         categoryPredicateCreated,
         categoryObjectCreated,
+        tagPredicateCreated,
+        systemObjectCreated,
       };
     },
     [getOrCreateAtom, createTriple, findTriple, publicClient, multiVaultAddress]

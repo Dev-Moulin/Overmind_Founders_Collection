@@ -655,17 +655,20 @@ export const GET_FOUNDER_RECENT_VOTES = gql`
 `;
 
 /**
- * Get category for a specific totem via OFC: triple system
+ * Get category for a specific totem via 3-Triples system
  *
- * Looks for triple: [Totem] [has_category] [OFC:*]
+ * Looks for triple: [Totem] [has category] [Category]
+ * Where [Category] is marked by: [Category] [tag category] [Overmind Founders Collection]
+ *
+ * Note: This query returns the category without the OFC: prefix.
+ * The category is validated by the existence of the tag triple.
  */
 export const GET_TOTEM_CATEGORY = gql`
   query GetTotemCategory($totemId: String!) {
     triples(
       where: {
         subject_id: { _eq: $totemId }
-        predicate: { label: { _eq: "has_category" } }
-        object: { label: { _like: "OFC:%" } }
+        predicate: { label: { _eq: "has category" } }
       }
       limit: 1
     ) {
@@ -689,8 +692,7 @@ export const GET_CATEGORIES_BY_TOTEMS = gql`
     triples(
       where: {
         subject_id: { _in: $totemIds }
-        predicate: { label: { _eq: "has_category" } }
-        object: { label: { _like: "OFC:%" } }
+        predicate: { label: { _eq: "has category" } }
       }
     ) {
       term_id
@@ -710,14 +712,13 @@ export const GET_CATEGORIES_BY_TOTEMS = gql`
 /**
  * Get all totem categories (for statistics/debugging)
  *
- * Returns all OFC: category triples
+ * Returns all category triples for totems tagged with "Overmind Founders Collection"
  */
 export const GET_ALL_TOTEM_CATEGORIES = gql`
   query GetAllTotemCategories {
     triples(
       where: {
-        predicate: { label: { _eq: "has_category" } }
-        object: { label: { _like: "OFC:%" } }
+        predicate: { label: { _eq: "has category" } }
       }
       order_by: { created_at: desc }
     ) {
@@ -739,13 +740,13 @@ export const GET_ALL_TOTEM_CATEGORIES = gql`
 /**
  * Get all totems of a specific category
  *
- * Returns all totems with a specific OFC: category
+ * Returns all totems with a specific category label
  */
 export const GET_TOTEMS_BY_CATEGORY = gql`
   query GetTotemsByCategory($categoryLabel: String!) {
     triples(
       where: {
-        predicate: { label: { _eq: "has_category" } }
+        predicate: { label: { _eq: "has category" } }
         object: { label: { _eq: $categoryLabel } }
       }
     ) {

@@ -6,19 +6,32 @@ import type { Hex } from 'viem';
 
 /**
  * Type for categories.json config structure
+ * Updated for 3-triple system
  */
 export interface CategoryConfig {
   predicate: {
     id: string;
     label: string;
     description: string;
-    termId: string | null;
+    termId: string | null; // Created by admin
+  };
+  tagPredicate: {
+    id: string;
+    label: string;
+    description: string;
+    termId: string | null; // Created by admin
+  };
+  systemObject: {
+    id: string;
+    label: string;
+    description: string;
+    termId: string | null; // Created by admin
   };
   categories: Array<{
     id: string;
     label: string;
     name: string;
-    termId: string | null;
+    termId: string | null; // Created by admin
   }>;
 }
 

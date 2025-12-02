@@ -40,32 +40,32 @@ const PREDICATES = [
   { label: 'resonates with', description: 'X résonne avec Y' },
 ];
 
-// Catégories de totems/objets
+// Totem categories (mapped to categories.json IDs)
 const TOTEM_CATEGORIES = [
   {
     id: 'animals',
-    name: 'Animaux',
+    name: 'Animals',
     emoji: '🦁',
     ofcCategoryId: 'animal',
     examples: ['Lion', 'Eagle', 'Wolf', 'Owl', 'Fox', 'Dolphin', 'Elephant', 'Whale', 'Falcon', 'Horse', 'Lynx', 'Nightingale', 'Parrot', 'Peacock', 'Swan', 'Turtle'],
   },
   {
     id: 'objects',
-    name: 'Objets',
+    name: 'Objects',
     emoji: '⚔️',
-    ofcCategoryId: 'objet',
+    ofcCategoryId: 'object',
     examples: ['Master key', 'Foundation', 'Network node', 'Bridge', 'Megaphone', 'Compass', 'Shield', 'Padlock', 'Flashlight', 'Sword', 'Telescope', 'Radar'],
   },
   {
     id: 'traits',
-    name: 'Traits de personnalité',
+    name: 'Traits',
     emoji: '⭐',
     ofcCategoryId: 'trait',
     examples: ['Visionary', 'Leader', 'Innovator', 'Connector', 'Protector', 'Strategist', 'Builder', 'Pragmatic', 'Creative', 'Methodical', 'Analytical'],
   },
   {
     id: 'universe',
-    name: 'Univers/Énergie',
+    name: 'Concepts',
     emoji: '🌌',
     ofcCategoryId: 'concept',
     examples: ['Ethereum genesis', 'ConsenSys', 'Web3 infrastructure', 'Enterprise blockchain', 'Crypto security', 'DeFi', 'NFTs', 'DAO', 'Gaming', 'Metaverse'],
@@ -81,26 +81,55 @@ const TOTEM_CATEGORIES = [
     id: 'sports',
     name: 'Sports',
     emoji: '⚽',
-    ofcCategoryId: 'objet',
-    examples: ['Football', 'Basketball', 'Tennis', 'Surf', 'Skateboard', 'Escalade', 'Marathon', 'Boxe', 'MMA', 'Chess'],
+    ofcCategoryId: 'object',
+    examples: ['Football', 'Basketball', 'Tennis', 'Surf', 'Skateboard', 'Climbing', 'Marathon', 'Boxing', 'MMA', 'Chess'],
   },
 ];
 
 const ALL_TOTEM_LABELS = TOTEM_CATEGORIES.flatMap((cat) => cat.examples);
 
+// Type for categories.json with 3-triple system
+interface CategoriesConfigType {
+  predicate: { id: string; label: string; description: string; termId: string | null };
+  tagPredicate: { id: string; label: string; description: string; termId: string | null };
+  systemObject: { id: string; label: string; description: string; termId: string | null };
+  categories: Array<{ id: string; label: string; name: string; termId: string | null }>;
+}
+
+const typedCategoriesConfig = categoriesConfig as CategoriesConfigType;
+
+// Atoms système pour le système 3-triples
 const OFC_ATOMS = [
+  // Prédicat 1: has category (pour Triple 2)
   {
-    id: (categoriesConfig as { predicate: { id: string } }).predicate.id,
-    label: (categoriesConfig as { predicate: { label: string } }).predicate.label,
-    description: (categoriesConfig as { predicate: { description: string } }).predicate.description,
+    id: typedCategoriesConfig.predicate.id,
+    label: typedCategoriesConfig.predicate.label,
+    description: typedCategoriesConfig.predicate.description,
     emoji: '🔗',
     type: 'predicate' as const,
   },
-  ...(categoriesConfig as { categories: Array<{ id: string; label: string; name: string }> }).categories.map((cat) => ({
+  // Prédicat 2: tag category (pour Triple 3)
+  {
+    id: typedCategoriesConfig.tagPredicate.id,
+    label: typedCategoriesConfig.tagPredicate.label,
+    description: typedCategoriesConfig.tagPredicate.description,
+    emoji: '🏷️',
+    type: 'predicate' as const,
+  },
+  // Objet système: Overmind Founders Collection (pour Triple 3)
+  {
+    id: typedCategoriesConfig.systemObject.id,
+    label: typedCategoriesConfig.systemObject.label,
+    description: typedCategoriesConfig.systemObject.description,
+    emoji: '🎯',
+    type: 'system' as const,
+  },
+  // Catégories (sans préfixe OFC:)
+  ...typedCategoriesConfig.categories.map((cat) => ({
     id: cat.id,
     label: cat.label,
     description: `Category atom for ${cat.name} totems`,
-    emoji: cat.id === 'animal' ? '🦁' : cat.id === 'objet' ? '🔮' : cat.id === 'trait' ? '✨' : cat.id === 'concept' ? '💡' : cat.id === 'element' ? '🔥' : '🐉',
+    emoji: cat.id === 'animal' ? '🦁' : cat.id === 'object' ? '🔮' : cat.id === 'trait' ? '✨' : cat.id === 'concept' ? '💡' : cat.id === 'element' ? '🔥' : '🐉',
     type: 'category' as const,
   })),
 ];

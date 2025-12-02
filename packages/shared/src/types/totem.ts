@@ -1,7 +1,7 @@
 /**
- * Types de totems possibles
+ * Totem category types (matching categories.json IDs)
  */
-export type TotemType = 'animal' | 'objet' | 'trait' | 'univers';
+export type TotemType = 'animal' | 'object' | 'trait' | 'concept' | 'element' | 'mythology';
 
 /**
  * Représente un totem proposé pour un fondateur

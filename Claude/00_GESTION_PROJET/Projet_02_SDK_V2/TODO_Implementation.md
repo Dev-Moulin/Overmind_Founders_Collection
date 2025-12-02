@@ -1,7 +1,7 @@
 # TODO - Implémentation Système de Vote avec Triples
 
 > **Date:** 2 décembre 2025 (mise à jour)
-> **Branche:** refactor/votepanel-decomposition
+> **Branche:** feature/3-triples-system
 > **Documentation:** [INDEX.md](INDEX.md)
 > **Décisions Design:** [18_Design_Decisions_V2.md](18_Design_Decisions_V2.md)
 
@@ -173,7 +173,7 @@ deposit(counterTermId, curveId, amount, minShares)
 3. **Pas de MAX_BATCH_SIZE explicite** → Arrays limités par le gas uniquement
 4. **batchRedeem utilise un pourcentage** (0-100) et non des shares absolues
 
-### Phase 2: Système 3 Triples
+### Phase 2: Système 3 Triples ✅ COMPLÉTÉ
 
 **Référence doc:** [01_Architecture_3_Triples.md](../documentation/technologies/Triples_Vote_System/01_Architecture_3_Triples.md), [18_Design_Decisions_V2.md](18_Design_Decisions_V2.md)
 
@@ -185,26 +185,37 @@ Triple 2: [Totem] → [has category] → [Animal]           ← Catégorie du to
 Triple 3: [Animal] → [tag category] → [Overmind Founders Collection]
 ```
 
-- [ ] **2.1** Créer les atoms système (une fois sur mainnet)
-  - `has totem` (prédicat)
-  - `embodies` (prédicat)
-  - `has category` (prédicat)
-  - `tag category` (prédicat)
-  - `Overmind Founders Collection` (object système)
+- [x] **2.1** Créer les atoms système (testnet) ✅
+  - `has category` (prédicat) → `0xddde1d94...`
+  - `tag category` (prédicat) → `0x13254dd3...`
+  - `Overmind Founders Collection` (object système) → `0xcbe206fd...`
+  - 6 catégories: Animal, Object, Trait, Concept, Element, Mythology
 
-- [ ] **2.2** Modifier `useIntuition.ts`
+- [x] **2.2** Modifier `useIntuition.ts` ✅
   - Fonction `createClaimWithCategory` pour 3 triples
-  - Vérifier si catégorie existe déjà (Triple 3)
-  - Créer Triple 3 si nouvelle catégorie
+  - Utilise termIds pré-créés depuis `categories.json`
+  - Crée Triple 2 et Triple 3 automatiquement
 
-- [ ] **2.3** Adapter les queries GraphQL
-  - `GET_ALL_CATEGORIES` → filtrer par Triple 3
-  - `GET_TOTEM_CATEGORY` → lire Triple 2
-  - Retirer tous les `LIKE 'OFC:%'`
+- [x] **2.3** Adapter les queries GraphQL ✅
+  - `GET_TOTEM_CATEGORY` → `predicate: { label: { _eq: "has category" } }`
+  - `GET_CATEGORIES_BY_TOTEMS` → même pattern
+  - `GET_ALL_TOTEM_CATEGORIES` → même pattern
+  - `GET_TOTEMS_BY_CATEGORY` → même pattern
+  - Retiré tous les filtres `LIKE 'OFC:%'`
 
-- [ ] **2.4** Mettre à jour `categories.json`
-  - Retirer le préfixe `OFC:`
-  - Labels génériques (Animal, Film, Concept...)
+- [x] **2.4** Mettre à jour `categories.json` ✅
+  - Structure 3-triples: `predicate`, `tagPredicate`, `systemObject`, `categories`
+  - Labels en anglais (Animal, Object, Trait, Concept, Element, Mythology)
+  - TermIds testnet configurés
+
+- [x] **2.5** Interface Admin mise à jour ✅
+  - `OfcCategoriesTab.tsx` avec sections Prédicats, Objet système, Catégories
+  - Export JSON des termIds pour copie facile
+  - Affichage debug labels attendus vs retournés
+
+- [x] **2.6** Types TypeScript mis à jour ✅
+  - `CategoryConfig` dans `intuition.ts` avec `tagPredicate` et `systemObject`
+  - `TotemType` dans `totem.ts` avec IDs anglais
 
 ### Phase 3: Simplification Prédicats
 
@@ -553,20 +564,21 @@ function calculateCartCost(cart: VoteCart, config: MultivaultConfig) {
 
 - ✅ **Phase 1**: Vote AGAINST
 - ✅ **Phase 1b** (partiel): Panier de Votes (base créée)
+- ✅ **Phase 2**: Système 3 Triples (testnet configuré)
 
 ### Ordre d'implémentation
 
-| Phase | Nom | Dépendances | Priorité |
-|-------|-----|-------------|----------|
-| **2** | Système 3 Triples | - | Haute (fondation) |
-| **3** | Simplification Prédicats | Phase 2 | Haute |
-| **4** | Panier + Prévisualisation | Phases 2-3 | Moyenne |
-| **5** | Vote Market | - | Moyenne |
-| **6** | Batch Triples | Phase 2 | Basse |
-| **7** | Refonte UI 3 Panneaux | Phases 4-5 | Basse |
-| **8** | Graphe de Visualisation | - | Nice to have |
+| Phase | Nom | Dépendances | Priorité | Statut |
+|-------|-----|-------------|----------|--------|
+| ~~**2**~~ | ~~Système 3 Triples~~ | - | ~~Haute~~ | ✅ Fait |
+| **3** | Simplification Prédicats | Phase 2 | Haute | En attente |
+| **4** | Panier + Prévisualisation | Phases 2-3 | Moyenne | En attente |
+| **5** | Vote Market | - | Moyenne | En attente |
+| **6** | Batch Triples | Phase 2 | Basse | En attente |
+| **7** | Refonte UI 3 Panneaux | Phases 4-5 | Basse | En attente |
+| **8** | Graphe de Visualisation | - | Nice to have | En attente |
 
-**Prochaine phase à implémenter:** Phase 2 (Système 3 Triples)
+**Prochaine phase à implémenter:** Phase 3 (Simplification Prédicats) ou tester Phase 2 en testnet
 
 ---
 
@@ -578,3 +590,4 @@ function calculateCartCost(cart: VoteCart, config: MultivaultConfig) {
 | 1 déc 2025 | Phase 1 complétée, ajout Phase 1b (Panier de Votes), documentation batch operations |
 | 2 déc 2025 | Création [18_Design_Decisions_V2.md](18_Design_Decisions_V2.md) avec toutes les décisions de design |
 | 2 déc 2025 | Renumérotation phases (2-9) dans l'ordre logique d'implémentation |
+| 2 déc 2025 | **Phase 2 complétée**: Système 3 Triples implémenté et configuré sur testnet |
