@@ -5,11 +5,15 @@
  * Allows users to accumulate multiple votes on different totems
  * for a single founder before executing them in minimal transactions.
  *
+ * Features:
+ * - localStorage persistence (survives page refresh)
+ * - Per-founder carts (each founder has its own cart)
+ *
  * @see Documentation: Claude/00_GESTION_PROJET/Projet_02_SDK_V2/TODO_Implementation.md
  * @see Contract Reference: Claude/00_GESTION_PROJET/Projet_02_SDK_V2/17_EthMultiVault_V2_Reference.md
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { type Hex, parseEther, formatEther } from 'viem';
 import { useProtocolConfig } from './useProtocolConfig';
 import type {
@@ -17,6 +21,135 @@ import type {
   VoteCartItem,
   VoteCartCostSummary,
 } from '../types/voteCart';
+
+// localStorage key prefix for vote carts
+const STORAGE_KEY_PREFIX = 'ofc_vote_cart_';
+
+/**
+ * Serializable version of VoteCartItem for localStorage
+ * bigint values are stored as strings
+ */
+interface SerializedVoteCartItem {
+  id: string;
+  totemId: Hex;
+  totemName: string;
+  predicateId: Hex;
+  termId: Hex;
+  counterTermId: Hex;
+  direction: 'for' | 'against';
+  amount: string; // bigint as string
+  currentPosition?: {
+    direction: 'for' | 'against';
+    shares: string; // bigint as string
+  };
+  needsWithdraw: boolean;
+  isNewTotem: boolean;
+}
+
+interface SerializedVoteCart {
+  founderId: Hex;
+  founderName: string;
+  items: SerializedVoteCartItem[];
+  savedAt: number; // timestamp
+}
+
+/**
+ * Serialize cart for localStorage
+ */
+function serializeCart(cart: VoteCart): SerializedVoteCart {
+  return {
+    founderId: cart.founderId,
+    founderName: cart.founderName,
+    items: cart.items.map((item) => ({
+      ...item,
+      amount: item.amount.toString(),
+      currentPosition: item.currentPosition
+        ? {
+            direction: item.currentPosition.direction,
+            shares: item.currentPosition.shares.toString(),
+          }
+        : undefined,
+    })),
+    savedAt: Date.now(),
+  };
+}
+
+/**
+ * Deserialize cart from localStorage
+ */
+function deserializeCart(data: SerializedVoteCart): VoteCart {
+  return {
+    founderId: data.founderId,
+    founderName: data.founderName,
+    items: data.items.map((item) => ({
+      ...item,
+      amount: BigInt(item.amount),
+      currentPosition: item.currentPosition
+        ? {
+            direction: item.currentPosition.direction,
+            shares: BigInt(item.currentPosition.shares),
+          }
+        : undefined,
+    })),
+  };
+}
+
+/**
+ * Get storage key for a founder
+ */
+function getStorageKey(founderId: Hex): string {
+  return `${STORAGE_KEY_PREFIX}${founderId}`;
+}
+
+/**
+ * Load cart from localStorage
+ */
+function loadCartFromStorage(founderId: Hex): VoteCart | null {
+  try {
+    const key = getStorageKey(founderId);
+    const stored = localStorage.getItem(key);
+    if (!stored) return null;
+
+    const data: SerializedVoteCart = JSON.parse(stored);
+
+    // Check if cart is older than 24 hours (expired)
+    const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+    if (Date.now() - data.savedAt > maxAge) {
+      localStorage.removeItem(key);
+      return null;
+    }
+
+    return deserializeCart(data);
+  } catch (error) {
+    console.warn('[useVoteCart] Error loading cart from storage:', error);
+    return null;
+  }
+}
+
+/**
+ * Save cart to localStorage
+ */
+function saveCartToStorage(cart: VoteCart): void {
+  try {
+    const key = getStorageKey(cart.founderId);
+    const serialized = serializeCart(cart);
+    localStorage.setItem(key, JSON.stringify(serialized));
+  } catch (error) {
+    console.warn('[useVoteCart] Error saving cart to storage:', error);
+  }
+}
+
+/**
+ * Remove cart from localStorage
+ */
+function removeCartFromStorage(founderId: Hex): void {
+  try {
+    const key = getStorageKey(founderId);
+    localStorage.removeItem(key);
+  } catch (error) {
+    console.warn('[useVoteCart] Error removing cart from storage:', error);
+  }
+}
 
 /**
  * Input for adding an item to the cart
@@ -135,14 +268,34 @@ export function useVoteCart(): UseVoteCartResult {
   const [cart, setCart] = useState<VoteCart | null>(null);
 
   /**
+   * Persist cart to localStorage whenever it changes
+   */
+  useEffect(() => {
+    if (cart && cart.items.length > 0) {
+      saveCartToStorage(cart);
+    } else if (cart && cart.items.length === 0) {
+      // Remove from storage when cart is empty
+      removeCartFromStorage(cart.founderId);
+    }
+  }, [cart]);
+
+  /**
    * Initialize cart for a founder
+   * Attempts to restore from localStorage if available
    */
   const initCart = useCallback((founderId: Hex, founderName: string) => {
-    setCart({
-      founderId,
-      founderName,
-      items: [],
-    });
+    // Try to load existing cart from localStorage
+    const savedCart = loadCartFromStorage(founderId);
+    if (savedCart) {
+      console.log('[useVoteCart] Restored cart from localStorage:', savedCart.items.length, 'items');
+      setCart(savedCart);
+    } else {
+      setCart({
+        founderId,
+        founderName,
+        items: [],
+      });
+    }
   }, []);
 
   /**
@@ -263,11 +416,13 @@ export function useVoteCart(): UseVoteCartResult {
   );
 
   /**
-   * Clear all items from cart
+   * Clear all items from cart (also removes from localStorage)
    */
   const clearCart = useCallback(() => {
     setCart((prev) => {
       if (!prev) return prev;
+      // Remove from localStorage immediately
+      removeCartFromStorage(prev.founderId);
       return { ...prev, items: [] };
     });
   }, []);
