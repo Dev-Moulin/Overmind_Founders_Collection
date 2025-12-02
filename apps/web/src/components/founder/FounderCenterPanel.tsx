@@ -9,12 +9,18 @@
  * @see Phase 9 in TODO_Implementation.md
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, lazy, Suspense } from 'react';
 import { formatEther } from 'viem';
 import { useAccount } from 'wagmi';
 import type { FounderForHomePage } from '../../hooks/useFoundersForHomePage';
 import { useFounderProposals } from '../../hooks/useFounderProposals';
+import { useVoteGraph } from '../../hooks/useVoteGraph';
 import type { ProposalWithVotes } from '../../lib/graphql/types';
+
+// Lazy load the graph component (heavy WebGL)
+const VoteGraphWithStats = lazy(() =>
+  import('../graph/VoteGraph').then((mod) => ({ default: mod.VoteGraphWithStats }))
+);
 
 interface FounderCenterPanelProps {
   founder: FounderForHomePage;
@@ -57,7 +63,8 @@ export function FounderCenterPanel({
 }: FounderCenterPanelProps) {
   const { isConnected, address } = useAccount();
   const { proposals, loading } = useFounderProposals(founder.name);
-  const [viewMode, setViewMode] = useState<'totems' | 'positions'>('totems');
+  const { graphData, stats: graphStats, loading: graphLoading } = useVoteGraph(founder.name);
+  const [viewMode, setViewMode] = useState<'totems' | 'positions' | 'graph'>('totems');
 
   // Sort proposals by net score
   const sortedProposals = useMemo(() => {
@@ -81,7 +88,7 @@ export function FounderCenterPanel({
       {/* Header with tabs */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-white">
-          {viewMode === 'totems' ? 'Totems associés' : 'Mes positions'}
+          {viewMode === 'totems' ? 'Totems associés' : viewMode === 'graph' ? 'Graphe de relations' : 'Mes positions'}
         </h3>
         <div className="flex bg-white/5 rounded-lg p-0.5">
           <button
@@ -93,6 +100,16 @@ export function FounderCenterPanel({
             }`}
           >
             Totems
+          </button>
+          <button
+            onClick={() => setViewMode('graph')}
+            className={`px-3 py-1 text-xs rounded-md transition-colors ${
+              viewMode === 'graph'
+                ? 'bg-purple-500/30 text-purple-300'
+                : 'text-white/60 hover:text-white'
+            }`}
+          >
+            Graphe
           </button>
           {isConnected && (
             <button
@@ -111,7 +128,7 @@ export function FounderCenterPanel({
 
       {/* Content area */}
       <div className="flex-1 overflow-y-auto min-h-0">
-        {loading ? (
+        {loading || graphLoading ? (
           // Loading skeleton
           <div className="grid grid-cols-2 gap-3">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -121,6 +138,28 @@ export function FounderCenterPanel({
               </div>
             ))}
           </div>
+        ) : viewMode === 'graph' ? (
+          // Graph visualization
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center h-full">
+                <div className="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full" />
+              </div>
+            }
+          >
+            <VoteGraphWithStats
+              nodes={graphData.nodes}
+              edges={graphData.edges}
+              stats={graphStats}
+              height="100%"
+              onNodeClick={(node) => {
+                if (node.type === 'totem' && node.termId) {
+                  onSelectTotem?.(node.termId, node.label);
+                }
+              }}
+              darkMode
+            />
+          </Suspense>
         ) : viewMode === 'totems' ? (
           // Totems grid
           sortedProposals.length > 0 ? (
