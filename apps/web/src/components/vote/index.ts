@@ -26,3 +26,6 @@ export { PresetButtons, PresetButtonsCompact } from './PresetButtons';
 export { PositionModifier } from './PositionModifier';
 export { CartBadge, CartIconWithBadge, FloatingCartButton } from './CartBadge';
 export { VoteCartPanel } from './VoteCartPanel';
+
+// Phase 7 - Vote Market
+export { VoteMarket, VoteMarketCompact } from './VoteMarket';

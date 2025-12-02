@@ -19,6 +19,7 @@ import { ErrorNotification } from './vote/ErrorNotification';
 import { SubmitButton } from './vote/SubmitButton';
 import { FloatingCartButton } from './vote/CartBadge';
 import { VoteCartPanel } from './vote/VoteCartPanel';
+import { VoteMarket } from './vote/VoteMarket';
 import { GET_TRIPLES_BY_PREDICATES, GET_ATOMS_BY_LABELS, GET_FOUNDER_RECENT_VOTES } from '../lib/graphql/queries';
 import { useTotemData } from '../hooks/useTotemData';
 import { useProactiveClaimCheck } from '../hooks/useProactiveClaimCheck';
@@ -259,6 +260,9 @@ export function VotePanel({ founder }: VotePanelProps) {
       )}
 
       <RecentActivity votes={recentVotesData?.deposits || []} />
+
+      {/* Vote Market Stats */}
+      <VoteMarket founderName={founder.name} className="mb-6" />
 
       <PredicateSelector
         predicates={predicates}
