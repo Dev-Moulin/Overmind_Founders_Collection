@@ -41,7 +41,9 @@
     "title": "This claim already exists",
     "subtitle": "Would you like to vote on this existing claim?",
     "currentPosition": "Your current position",
-    "withdrawButton": "Withdraw"
+    "withdrawButton": "Withdraw",
+    "cannotVoteOpposite": "You already have a {{currentDirection}} position. To vote {{targetDirection}}, you must first withdraw your current position.",
+    "withdrawFirst": "Withdraw first to change direction"
   },
   "withdraw": {
     "title": "Withdraw your tokens",

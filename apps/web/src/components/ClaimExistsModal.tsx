@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAccount } from 'wagmi';
 import { useQuery } from '@apollo/client';
-import { formatEther, type Hex } from 'viem';
+import { formatEther, type Hex, type Address } from 'viem';
 import { useTranslation } from 'react-i18next';
 import { useVote } from '../hooks/useVote';
 import { formatVoteAmount } from '../hooks/useFounderProposals';
+import { usePositionBothSides } from '../hooks/usePositionFromContract';
 import { GET_USER_POSITION } from '../lib/graphql/queries';
 import { WithdrawModal } from './WithdrawModal';
 import type { ExistingClaimInfo } from '../types/claim';
@@ -16,6 +17,8 @@ interface UserPosition {
   id: string;
   shares: string;
 }
+
+type UserVoteDirection = 'for' | 'against' | null;
 
 interface ClaimExistsModalProps {
   isOpen: boolean;
@@ -56,22 +59,66 @@ export function ClaimExistsModal({
     onCloseRef.current = onClose;
   }, [onVoteSuccess, onClose]);
 
-  // Query user's position on this claim
-  const { data: positionData } = useQuery<{ positions: UserPosition[] }>(
+  // Read user's positions directly from the contract (source of truth)
+  // This is more reliable than GraphQL which can have indexer delays
+  const {
+    forShares,
+    againstShares,
+    positionDirection: contractPositionDirection,
+    hasAnyPosition: hasContractPosition,
+  } = usePositionBothSides(
+    isOpen ? (address as Address | undefined) : undefined,
+    isOpen ? (claim?.termId as Hex | undefined) : undefined,
+    isOpen ? (claim?.counterTermId as Hex | undefined) : undefined
+  );
+
+  // Also query GraphQL as fallback (for display purposes)
+  const { data: forPositionData } = useQuery<{ positions: UserPosition[] }>(
     GET_USER_POSITION,
     {
       variables: {
         walletAddress: address?.toLowerCase(),
-        termId: claim?.termId,
+        termId: claim?.termId?.toLowerCase(),
       },
       skip: !address || !claim?.termId || !isOpen,
       fetchPolicy: 'cache-and-network',
     }
   );
 
-  const userPosition = positionData?.positions?.[0];
-  const userShares = userPosition ? BigInt(userPosition.shares) : 0n;
-  const hasUserPosition = userShares > 0n;
+  // Use contract data (source of truth) for position direction
+  // Fall back to GraphQL only if contract shows no position but GraphQL does
+  const graphqlForShares = forPositionData?.positions?.[0]
+    ? BigInt(forPositionData.positions[0].shares)
+    : 0n;
+
+  const userExistingDirection: UserVoteDirection =
+    contractPositionDirection ??
+    (graphqlForShares > 0n ? 'for' : null);
+  const userShares = userExistingDirection === 'for' ? forShares : againstShares;
+  const hasUserPosition = hasContractPosition || graphqlForShares > 0n;
+
+  // Debug: Log position detection results
+  useEffect(() => {
+    if (isOpen && claim) {
+      console.log('[ClaimExistsModal] Position detection (contract + graphql):', {
+        termId: claim.termId,
+        counterTermId: claim.counterTermId,
+        contract: {
+          forShares: forShares.toString(),
+          againstShares: againstShares.toString(),
+          direction: contractPositionDirection,
+          hasPosition: hasContractPosition,
+        },
+        graphql: {
+          forShares: graphqlForShares.toString(),
+        },
+        final: {
+          direction: userExistingDirection,
+          hasPosition: hasUserPosition,
+        },
+      });
+    }
+  }, [isOpen, claim, forShares, againstShares, contractPositionDirection, hasContractPosition, graphqlForShares, userExistingDirection, hasUserPosition]);
 
   // Reset when modal opens
   useEffect(() => {
@@ -99,6 +146,9 @@ export function ClaimExistsModal({
     }
   }, [status]); // Only depend on status, callbacks are stored in refs
 
+  // Check if user is trying to vote in opposite direction of existing position
+  const isVotingOppositeDirection = hasUserPosition && userExistingDirection !== direction;
+
   const handleSubmit = async () => {
     setValidationError(null);
 
@@ -117,7 +167,25 @@ export function ClaimExistsModal({
       return;
     }
 
+    // Prevent voting in opposite direction - must withdraw first
+    if (isVotingOppositeDirection) {
+      setValidationError(t('claimExists.cannotVoteOpposite', {
+        currentDirection: userExistingDirection === 'for' ? 'FOR' : 'AGAINST',
+        targetDirection: direction === 'for' ? 'FOR' : 'AGAINST',
+      }));
+      return;
+    }
+
     try {
+      console.log('[ClaimExistsModal] Vote submission:', {
+        termId: claim.termId,
+        counterTermId: claim.counterTermId,
+        amount,
+        isFor: direction === 'for',
+        direction,
+        userExistingDirection,
+        hasUserPosition,
+      });
       await vote({
         termId: claim.termId as Hex,
         counterTermId: claim.counterTermId as Hex | undefined,
@@ -197,12 +265,16 @@ export function ClaimExistsModal({
 
           {/* User's existing position */}
           {hasUserPosition && (
-            <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
+            <div className={`p-4 rounded-lg ${
+              userExistingDirection === 'for'
+                ? 'bg-green-500/10 border border-green-500/30'
+                : 'bg-red-500/10 border border-red-500/30'
+            }`}>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-white/60">{t('claimExists.currentPosition')}</p>
-                  <p className="text-green-400 font-bold">
-                    {formatEther(userShares)} {t('common.shares')}
+                  <p className={`font-bold ${userExistingDirection === 'for' ? 'text-green-400' : 'text-red-400'}`}>
+                    {formatEther(userShares)} {t('common.shares')} ({userExistingDirection === 'for' ? 'FOR' : 'AGAINST'})
                   </p>
                 </div>
                 <button
@@ -213,6 +285,24 @@ export function ClaimExistsModal({
                   {t('claimExists.withdrawButton')}
                 </button>
               </div>
+              {/* Warning if user tries to vote in opposite direction */}
+              {userExistingDirection && direction !== userExistingDirection && (
+                <div className="mt-3 p-3 rounded bg-amber-500/20 border border-amber-500/40">
+                  <p className="text-amber-400 text-sm mb-2">
+                    {t('claimExists.cannotVoteOpposite', {
+                      currentDirection: userExistingDirection === 'for' ? 'FOR' : 'AGAINST',
+                      targetDirection: direction === 'for' ? 'FOR' : 'AGAINST',
+                    })}
+                  </p>
+                  <button
+                    onClick={() => setShowWithdrawModal(true)}
+                    disabled={isLoading}
+                    className="w-full px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded font-medium text-sm transition-colors disabled:opacity-50"
+                  >
+                    {t('claimExists.withdrawFirst')}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -303,6 +393,15 @@ export function ClaimExistsModal({
           {error && status !== 'success' && (
             <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
               <p className="text-red-400 text-sm">{error}</p>
+              {/* Show withdraw button if HasCounterStake error */}
+              {(voteError?.code === 'HAS_COUNTER_STAKE' || error.includes('position')) && (
+                <button
+                  onClick={() => setShowWithdrawModal(true)}
+                  className="mt-3 w-full px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-medium transition-colors"
+                >
+                  {t('claimExists.withdrawFirst')}
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -330,22 +429,33 @@ export function ClaimExistsModal({
         </div>
       </div>
 
-      {/* Withdraw Modal */}
-      {claim && (
-        <WithdrawModal
-          isOpen={showWithdrawModal}
-          termId={claim.termId}
-          claimLabel={`${claim.subjectLabel} ${claim.predicateLabel} ${claim.objectLabel}`}
-          isPositive={true}
-          vaultTotalShares={claim.forVotes}
-          vaultTotalAssets={claim.forVotes}
-          onClose={() => setShowWithdrawModal(false)}
-          onSuccess={() => {
-            setShowWithdrawModal(false);
-            onVoteSuccess?.();
-          }}
-        />
-      )}
+      {/* Withdraw Modal - use correct termId based on user's position direction */}
+      {/* If userExistingDirection is null but we got HAS_COUNTER_STAKE error,
+          the user's position is OPPOSITE to the direction they tried to vote */}
+      {claim && (() => {
+        // Determine the actual position direction
+        // If GraphQL query found a position, use that
+        // Otherwise, if we got HAS_COUNTER_STAKE error, it's opposite to vote direction
+        const actualPositionDirection = userExistingDirection ??
+          (voteError?.code === 'HAS_COUNTER_STAKE' ? (direction === 'for' ? 'against' : 'for') : 'for');
+        const isPositionAgainst = actualPositionDirection === 'against';
+
+        return (
+          <WithdrawModal
+            isOpen={showWithdrawModal}
+            termId={isPositionAgainst && claim.counterTermId ? claim.counterTermId : claim.termId}
+            claimLabel={`${claim.subjectLabel} ${claim.predicateLabel} ${claim.objectLabel}`}
+            isPositive={!isPositionAgainst}
+            vaultTotalShares={isPositionAgainst ? claim.againstVotes : claim.forVotes}
+            vaultTotalAssets={isPositionAgainst ? claim.againstVotes : claim.forVotes}
+            onClose={() => setShowWithdrawModal(false)}
+            onSuccess={() => {
+              setShowWithdrawModal(false);
+              onVoteSuccess?.();
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }

@@ -61,15 +61,21 @@ export interface FounderData {
  */
 export class ClaimExistsError extends Error {
   public readonly termId: Hex;
+  public readonly counterTermId?: Hex;
   public readonly subjectLabel: string;
   public readonly predicateLabel: string;
   public readonly objectLabel: string;
+  public readonly forVotes?: string;
+  public readonly againstVotes?: string;
 
   constructor(data: {
     termId: Hex;
+    counterTermId?: Hex;
     subjectLabel: string;
     predicateLabel: string;
     objectLabel: string;
+    forVotes?: string;
+    againstVotes?: string;
   }) {
     super(
       `Ce claim existe déjà : "${data.subjectLabel} ${data.predicateLabel} ${data.objectLabel}". ` +
@@ -77,8 +83,11 @@ export class ClaimExistsError extends Error {
     );
     this.name = 'ClaimExistsError';
     this.termId = data.termId;
+    this.counterTermId = data.counterTermId;
     this.subjectLabel = data.subjectLabel;
     this.predicateLabel = data.predicateLabel;
     this.objectLabel = data.objectLabel;
+    this.forVotes = data.forVotes;
+    this.againstVotes = data.againstVotes;
   }
 }

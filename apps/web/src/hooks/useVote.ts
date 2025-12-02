@@ -210,6 +210,10 @@ export function useVote(): UseVoteResult {
         if (errWithMessage.message?.includes('User rejected') || errWithMessage.message?.includes('user rejected')) {
           errorMessage = 'Transaction rejetée par l\'utilisateur';
           errorCode = 'USER_REJECTED';
+        } else if (errWithMessage.message?.includes('HasCounterStake') || errWithMessage.message?.includes('MultiVault_HasCounterStake')) {
+          // User already has a position on the opposite side
+          errorMessage = 'Vous avez déjà une position sur ce claim. Pour changer de direction (FOR → AGAINST ou inversement), vous devez d\'abord retirer votre position actuelle.';
+          errorCode = 'HAS_COUNTER_STAKE';
         } else if (errWithMessage.message?.includes('insufficient funds') || errWithMessage.message?.includes('InsufficientBalance')) {
           errorMessage = 'Balance TRUST insuffisante pour cette transaction';
           errorCode = 'INSUFFICIENT_BALANCE';

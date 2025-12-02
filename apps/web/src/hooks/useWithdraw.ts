@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import { formatEther, type Hex } from 'viem';
-import { redeem, getMultiVaultAddressFromChainId } from '@0xintuition/protocol';
+import { redeem, getMultiVaultAddressFromChainId, MultiVaultAbi } from '@0xintuition/protocol';
 import { currentIntuitionChain } from '../config/wagmi';
 import { toast } from 'sonner';
 import type { WithdrawStatus, WithdrawError, WithdrawPreview } from '../types/withdraw';
@@ -23,12 +23,16 @@ export interface UseWithdrawResult {
 }
 
 /**
- * Curve IDs for MultiVault
- * 0 = positive vault (FOR)
- * 1 = negative vault (AGAINST)
+ * Default Curve ID for MultiVault
+ *
+ * In INTUITION V2, curveId=1 is the default bonding curve used for ALL deposits.
+ * FOR vs AGAINST is determined by the termId used:
+ * - FOR = triple's term_id
+ * - AGAINST = triple's counter_term_id
+ *
+ * The curveId is NOT different for FOR vs AGAINST.
  */
-const POSITIVE_CURVE_ID = 0n;
-const NEGATIVE_CURVE_ID = 1n;
+const DEFAULT_CURVE_ID = 1n;
 
 /**
  * Hook to withdraw TRUST from a vault after voting
@@ -121,7 +125,50 @@ export function useWithdraw(): UseWithdrawResult {
         setStatus('withdrawing');
         toast.info('Please sign the withdrawal transaction...');
 
-        const curveId = isPositive ? POSITIVE_CURVE_ID : NEGATIVE_CURVE_ID;
+        // In INTUITION V2, curveId=1 is used for ALL deposits (FOR and AGAINST)
+        // FOR vs AGAINST is determined by which termId you use, not the curveId
+        // The isPositive parameter is kept for future use/clarity but doesn't affect curveId
+        const curveId = DEFAULT_CURVE_ID;
+
+        // Check maxRedeem to see how much can be redeemed
+        const maxRedeemable = await publicClient.readContract({
+          address: multiVaultAddress,
+          abi: MultiVaultAbi,
+          functionName: 'maxRedeem',
+          args: [address, termId, curveId],
+        }) as bigint;
+
+        console.log('[useWithdraw] Pre-redeem check:', {
+          receiver: address,
+          termId,
+          curveId: curveId.toString(),
+          requestedShares: shares.toString(),
+          maxRedeemable: maxRedeemable.toString(),
+          canRedeem: maxRedeemable >= shares,
+          minAssets: minAssets.toString(),
+          isPositive, // For logging only
+        });
+
+        // Determine actual shares to redeem
+        let sharesToRedeem = shares;
+
+        // If maxRedeem returns less than requested, adjust
+        if (maxRedeemable < shares) {
+          console.warn('[useWithdraw] maxRedeem < requested shares!', {
+            maxRedeemable: maxRedeemable.toString(),
+            requested: shares.toString(),
+            difference: (shares - maxRedeemable).toString(),
+          });
+
+          if (maxRedeemable > 0n) {
+            // Use maxRedeemable instead
+            console.log('[useWithdraw] Using maxRedeemable instead:', maxRedeemable.toString());
+            sharesToRedeem = maxRedeemable;
+            toast.info(`Ajustement: retrait de ${formatEther(maxRedeemable)} shares (max disponible)`);
+          } else {
+            throw new Error('Aucune share retirable actuellement. Le vault peut être vide ou verrouillé.');
+          }
+        }
 
         const config = {
           walletClient,
@@ -131,7 +178,7 @@ export function useWithdraw(): UseWithdrawResult {
 
         // Call redeem function from @0xintuition/protocol
         const txHash = await redeem(config, {
-          args: [address, termId, curveId, shares, minAssets],
+          args: [address, termId, curveId, sharesToRedeem, minAssets],
         });
 
         toast.loading('Withdrawing TRUST...', { id: 'withdraw' });
@@ -171,6 +218,9 @@ export function useWithdraw(): UseWithdrawResult {
         } else if (errorObj.message?.includes('insufficient funds')) {
           errorMessage = 'Insufficient ETH for gas fees';
           errorCode = 'INSUFFICIENT_GAS';
+        } else if (errorObj.message?.includes('InsufficientSharesInVault') || errorObj.message?.includes('MultiVault_InsufficientSharesInVault')) {
+          errorMessage = 'Le vault n\'a pas assez de liquidité pour ce retrait. Essayez un montant plus petit.';
+          errorCode = 'INSUFFICIENT_VAULT_SHARES';
         } else if (errorObj.message?.includes('no shares')) {
           errorMessage = 'No shares to withdraw';
           errorCode = 'NO_SHARES';

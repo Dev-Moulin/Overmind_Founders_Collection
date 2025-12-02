@@ -78,7 +78,15 @@ export function useIntuition() {
       subjectId: Hex,
       predicateId: Hex,
       objectId: Hex
-    ): Promise<{ termId: Hex; subjectLabel: string; predicateLabel: string; objectLabel: string } | null> => {
+    ): Promise<{
+      termId: Hex;
+      counterTermId?: Hex;
+      subjectLabel: string;
+      predicateLabel: string;
+      objectLabel: string;
+      forVotes?: string;
+      againstVotes?: string;
+    } | null> => {
       try {
         const { data } = await apolloClient.query<{
           triples: Array<{
@@ -86,6 +94,8 @@ export function useIntuition() {
             subject: { label: string };
             predicate: { label: string };
             object: { label: string };
+            triple_vault?: { total_assets: string };
+            counter_term?: { id: string; total_assets: string };
           }>;
         }>({
           query: GET_TRIPLE_BY_ATOMS,
@@ -97,9 +107,12 @@ export function useIntuition() {
           const triple = data.triples[0];
           return {
             termId: triple.term_id as Hex,
+            counterTermId: triple.counter_term?.id as Hex | undefined,
             subjectLabel: triple.subject.label,
             predicateLabel: triple.predicate.label,
             objectLabel: triple.object.label,
+            forVotes: triple.triple_vault?.total_assets,
+            againstVotes: triple.counter_term?.total_assets,
           };
         }
         return null;
@@ -403,9 +416,12 @@ export function useIntuition() {
       if (existingTriple) {
         throw new ClaimExistsError({
           termId: existingTriple.termId,
+          counterTermId: existingTriple.counterTermId,
           subjectLabel: existingTriple.subjectLabel,
           predicateLabel: existingTriple.predicateLabel,
           objectLabel: existingTriple.objectLabel,
+          forVotes: existingTriple.forVotes,
+          againstVotes: existingTriple.againstVotes,
         });
       }
 
@@ -474,9 +490,12 @@ export function useIntuition() {
       if (existingTriple) {
         throw new ClaimExistsError({
           termId: existingTriple.termId,
+          counterTermId: existingTriple.counterTermId,
           subjectLabel: existingTriple.subjectLabel,
           predicateLabel: existingTriple.predicateLabel,
           objectLabel: existingTriple.objectLabel,
+          forVotes: existingTriple.forVotes,
+          againstVotes: existingTriple.againstVotes,
         });
       }
 
@@ -561,9 +580,12 @@ export function useIntuition() {
       if (existingTriple) {
         throw new ClaimExistsError({
           termId: existingTriple.termId,
+          counterTermId: existingTriple.counterTermId,
           subjectLabel: existingTriple.subjectLabel,
           predicateLabel: existingTriple.predicateLabel,
           objectLabel: existingTriple.objectLabel,
+          forVotes: existingTriple.forVotes,
+          againstVotes: existingTriple.againstVotes,
         });
       }
 

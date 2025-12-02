@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@apollo/client';
 import { useAccount } from 'wagmi';
-import { formatEther, type Hex } from 'viem';
+import { formatEther, type Hex, type Address } from 'viem';
 import { useTranslation } from 'react-i18next';
 import { useWithdraw, estimateWithdrawAmount } from '../hooks/useWithdraw';
+import { usePositionFromContract } from '../hooks/usePositionFromContract';
 import { GET_USER_POSITION } from '../lib/graphql/queries';
 
 interface UserPosition {
@@ -55,21 +56,49 @@ export function WithdrawModal({
 
   const [shareAmount, setShareAmount] = useState('');
 
-  // Query user's position on this claim
-  const { data: positionData, loading: positionLoading } = useQuery<{
+  // Query user's position from GraphQL (may be delayed/out of sync)
+  const { data: positionData, loading: graphqlLoading } = useQuery<{
     positions: UserPosition[];
   }>(GET_USER_POSITION, {
     variables: {
       walletAddress: address?.toLowerCase(),
-      termId,
+      termId: termId?.toLowerCase(), // Normalize to lowercase for GraphQL
     },
     skip: !address || !isOpen,
     fetchPolicy: 'network-only',
   });
 
-  const userPosition = positionData?.positions?.[0];
-  const userShares = userPosition ? BigInt(userPosition.shares) : 0n;
+  // Also read directly from contract (source of truth, no delay)
+  const {
+    shares: contractShares,
+    isLoading: contractLoading,
+  } = usePositionFromContract(
+    address as Address | undefined,
+    termId as Hex | undefined
+  );
+
+  // Use contract shares as primary source, GraphQL as fallback
+  const graphqlShares = positionData?.positions?.[0]
+    ? BigInt(positionData.positions[0].shares)
+    : 0n;
+
+  // Prefer contract data (source of truth), but also check GraphQL
+  const userShares = contractShares > 0n ? contractShares : graphqlShares;
   const hasShares = userShares > 0n;
+  const positionLoading = contractLoading && graphqlLoading;
+
+  // Debug log to help troubleshoot position detection
+  useEffect(() => {
+    if (isOpen && address) {
+      console.log('[WithdrawModal] Position check:', {
+        termId,
+        address: address?.toLowerCase(),
+        graphqlShares: graphqlShares.toString(),
+        contractShares: contractShares.toString(),
+        finalShares: userShares.toString(),
+      });
+    }
+  }, [isOpen, address, termId, graphqlShares, contractShares, userShares]);
 
   // Calculate estimated withdrawal amount
   const sharesToWithdraw = shareAmount ? BigInt(Math.floor(parseFloat(shareAmount) * 1e18)) : 0n;

@@ -81,6 +81,17 @@ export type { CategoryConfig } from '../types/intuition';
 export { useProtocolConfig } from './useProtocolConfig';
 export type { ProtocolConfig } from '../types/protocol';
 
+// Vote Cart - Batch voting system
+export { useVoteCart, type UseVoteCartResult, type AddToCartInput } from './useVoteCart';
+export { useBatchVote, type UseBatchVoteResult, type BatchVoteResult } from './useBatchVote';
+export type {
+  VoteCart,
+  VoteCartItem,
+  VoteCartCostSummary,
+  VoteCartStatus,
+  VoteCartError,
+} from '../types/voteCart';
+
 // Hook for real-time founder proposals via WebSocket subscription
 export { useFounderSubscription } from './useFounderSubscription';
 export { formatTimeSinceUpdate } from '../utils/formatters';

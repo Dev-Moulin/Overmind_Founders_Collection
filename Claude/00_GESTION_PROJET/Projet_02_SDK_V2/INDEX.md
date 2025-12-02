@@ -35,6 +35,12 @@ Documentation de recherche sur le SDK INTUITION V2 pour la refonte du système d
 | 15 | [15_Validation_Atomes_Triples.md](./15_Validation_Atomes_Triples.md) | Règles validation, unicité, calculateAtomId, triplesByHash, frais création |
 | 16 | [16_Securite_Modificateurs.md](./16_Securite_Modificateurs.md) | whenNotPaused, nonReentrant, timelocks, access control, gas limits |
 
+### Doc 4 : Référence Contrat V2 (Recherche Internet)
+
+| # | Fichier | Contenu |
+|---|---------|---------|
+| 17 | [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md) | Signatures réelles contrat V2, batch functions, structures, différences SDK vs contrat |
+
 ---
 
 ## Index de recherche
@@ -250,6 +256,29 @@ Documentation de recherche sur le SDK INTUITION V2 pour la refonte du système d
 - Initializable / reinitialize → [16_Securite_Modificateurs.md](./16_Securite_Modificateurs.md)
 - UUPS proxies → [16_Securite_Modificateurs.md](./16_Securite_Modificateurs.md)
 
+### EthMultiVault V2 Référence (Doc 4)
+- `batchDeposit` (contrat V2 réel) → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
+- `batchDepositCurve` → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
+- `batchRedeem` (pourcentage) → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
+- `batchRedeemCurve` → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
+- `batchCreateAtom` → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
+- `batchCreateTriple` → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
+- `previewDeposit` (V2) → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
+- `previewDepositCurve` → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
+- `previewRedeem` (V2) → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
+- `previewRedeemCurve` → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
+- `GeneralConfig` structure → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
+- `VaultFees` structure → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
+- `AtomConfig` structure → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
+- `TripleConfig` structure → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
+- `BondingCurveConfig` structure → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
+- `getAtomCost` (V2) → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
+- `getTripleCost` (V2) → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
+- Différences SDK vs Contrat → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
+- Basis points (calcul frais) → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
+- Frais max 10% → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
+- Adresse EthMultiVault Base → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
+
 ---
 
 ## Sources principales
@@ -306,3 +335,4 @@ Documentation de recherche sur le SDK INTUITION V2 pour la refonte du système d
 ---
 
 **Créé** : 28/11/2025
+**Mis à jour** : 01/12/2025 - Ajout Doc 4 (EthMultiVault V2 Reference)

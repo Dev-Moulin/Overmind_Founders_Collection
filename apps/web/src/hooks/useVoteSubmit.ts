@@ -174,9 +174,12 @@ export function useVoteSubmit({
       if (err instanceof ClaimExistsError) {
         setExistingClaimInfo({
           termId: err.termId,
+          counterTermId: err.counterTermId,
           subjectLabel: err.subjectLabel,
           predicateLabel: err.predicateLabel,
           objectLabel: err.objectLabel,
+          forVotes: err.forVotes,
+          againstVotes: err.againstVotes,
         });
         setShowClaimExistsModal(true);
         setIsSubmitting(false);
