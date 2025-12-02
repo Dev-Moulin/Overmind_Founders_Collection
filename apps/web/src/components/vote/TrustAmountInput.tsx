@@ -1,8 +1,11 @@
 import { formatEther } from 'viem';
+import { PresetButtons } from './PresetButtons';
 
 /**
  * TrustAmountInput - Input pour le montant TRUST avec validation (Step 3)
  * Extrait de VotePanel.tsx lignes 988-1029
+ *
+ * Phase 6: Ajout PresetButtons pour sélection rapide
  */
 
 interface ProtocolConfig {
@@ -27,6 +30,11 @@ export function TrustAmountInput({
   configLoading,
   isDepositValid,
 }: TrustAmountInputProps) {
+  // Format balance for PresetButtons
+  const formattedBalance = balance !== undefined
+    ? Number(formatEther(balance)).toFixed(4)
+    : undefined;
+
   return (
     <div className="mb-6">
       <h4 className="text-sm font-semibold text-white/70 mb-3">3. Montant TRUST</h4>
@@ -41,6 +49,18 @@ export function TrustAmountInput({
         />
         <span className="text-white/60">TRUST</span>
       </div>
+
+      {/* Preset buttons for quick amount selection */}
+      {protocolConfig && formattedBalance && (
+        <PresetButtons
+          value={value}
+          onChange={onChange}
+          balance={formattedBalance}
+          minAmount={protocolConfig.formattedMinDeposit}
+          className="mt-3"
+        />
+      )}
+
       <div className="text-xs text-white/40 mt-2 space-y-1">
         <p>Balance: {balance !== undefined ? `${Number(formatEther(balance)).toFixed(3)} TRUST` : 'Chargement...'}</p>
         {configLoading ? (
@@ -62,7 +82,7 @@ export function TrustAmountInput({
             <p>Frais d'entrée: {protocolConfig.formattedEntryFee}</p>
             {!isDepositValid(value) && value && parseFloat(value) > 0 && (
               <p className="text-red-400 font-medium">
-                ⚠️ Montant inférieur au minimum ({protocolConfig.formattedMinDeposit} TRUST)
+                Montant inférieur au minimum ({protocolConfig.formattedMinDeposit} TRUST)
               </p>
             )}
           </>

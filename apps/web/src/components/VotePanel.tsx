@@ -1,9 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useAccount, useBalance } from 'wagmi';
 import { useQuery } from '@apollo/client';
+import type { Hex } from 'viem';
 import type { FounderForHomePage } from '../hooks/useFoundersForHomePage';
 import { useFounderProposals } from '../hooks/useFounderProposals';
 import { useProtocolConfig } from '../hooks/useProtocolConfig';
+import { useVoteCart } from '../hooks/useVoteCart';
 import { ClaimExistsModal } from './ClaimExistsModal';
 import { NotConnected } from './vote/NotConnected';
 import { RecentActivity } from './vote/RecentActivity';
@@ -15,6 +17,8 @@ import { TotemSelector } from './vote/TotemSelector';
 import { SuccessNotification } from './vote/SuccessNotification';
 import { ErrorNotification } from './vote/ErrorNotification';
 import { SubmitButton } from './vote/SubmitButton';
+import { FloatingCartButton } from './vote/CartBadge';
+import { VoteCartPanel } from './vote/VoteCartPanel';
 import { GET_TRIPLES_BY_PREDICATES, GET_ATOMS_BY_LABELS, GET_FOUNDER_RECENT_VOTES } from '../lib/graphql/queries';
 import { useTotemData } from '../hooks/useTotemData';
 import { useProactiveClaimCheck } from '../hooks/useProactiveClaimCheck';
@@ -42,6 +46,35 @@ export function VotePanel({ founder }: VotePanelProps) {
   const { config: protocolConfig, loading: configLoading, isDepositValid, getTotalTripleCost } = useProtocolConfig();
 
   const { data: balanceData } = useBalance({ address });
+
+  // Vote Cart state
+  const {
+    cart,
+    itemCount,
+    costSummary,
+    initCart,
+    addItem: _addItem, // Will be used for "Add to Cart" button in future phase
+    removeItem,
+    updateAmount,
+    updateDirection,
+    clearCart,
+    formattedNetCost,
+    isValid: isCartValid,
+    validationErrors,
+  } = useVoteCart();
+
+  // Expose addItem for future use (avoid unused warning)
+  void _addItem;
+
+  // Cart panel visibility
+  const [isCartPanelOpen, setIsCartPanelOpen] = useState(false);
+
+  // Initialize cart for the founder
+  useEffect(() => {
+    if (founder.atomId) {
+      initCart(founder.atomId as Hex, founder.name);
+    }
+  }, [founder.atomId, founder.name, initCart]);
 
   const predicateLabels = predicates.map(p => p.label);
   const { data: predicatesAtomData } = useQuery<{ atoms: Array<{ term_id: string; label: string }> }>(
@@ -328,6 +361,65 @@ export function VotePanel({ founder }: VotePanelProps) {
           }
         }}
       />
+
+      {/* Floating Cart Button */}
+      <FloatingCartButton
+        count={itemCount}
+        totalCost={formattedNetCost}
+        onClick={() => setIsCartPanelOpen(true)}
+      />
+
+      {/* Cart Panel Slide-over */}
+      {isCartPanelOpen && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setIsCartPanelOpen(false)}
+          />
+
+          {/* Panel */}
+          <div className="absolute right-0 top-0 h-full w-full max-w-md">
+            <div className="h-full bg-gray-900/95 border-l border-white/10 shadow-xl flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-white/10">
+                <h2 className="text-lg font-semibold text-white">
+                  Panier de votes ({itemCount})
+                </h2>
+                <button
+                  onClick={() => setIsCartPanelOpen(false)}
+                  className="p-2 text-white/60 hover:text-white transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-4">
+                <VoteCartPanel
+                  cart={cart}
+                  costSummary={costSummary}
+                  onRemoveItem={removeItem}
+                  onClearCart={clearCart}
+                  onUpdateDirection={updateDirection}
+                  onUpdateAmount={updateAmount}
+                  onSuccess={() => {
+                    setIsCartPanelOpen(false);
+                    clearCart();
+                    setSuccess('Votes enregistrés avec succès !');
+                    setTimeout(() => setSuccess(null), 5000);
+                    refetchProposals();
+                  }}
+                  validationErrors={validationErrors}
+                  isValid={isCartValid}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

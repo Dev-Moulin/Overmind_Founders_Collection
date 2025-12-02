@@ -243,7 +243,7 @@ Triple 3: [Animal] → [tag category] → [Overmind Founders Collection]
     - `embodies` → `0x34aa4950...`
   - `PredicatesTab.tsx` avec export JSON des termIds
 
-### Phase 4: Panier Amélioré + Prévisualisation
+### Phase 4: Panier Amélioré + Prévisualisation ✅ COMPLÉTÉ
 
 **Référence doc:** [18_Design_Decisions_V2.md](18_Design_Decisions_V2.md) - Sections 5, 6, 8 + [13_Deposit_Redeem_BondingCurve.md](13_Deposit_Redeem_BondingCurve.md)
 
@@ -251,56 +251,103 @@ Triple 3: [Animal] → [tag category] → [Overmind Founders Collection]
 
 #### Prévisualisation (hooks)
 
-- [ ] **4.1** Créer `usePreviewDeposit.ts`
-  - Appel `previewDeposit(termId, curveId, amount)`
+- [x] **4.1** Créer `usePreviewDeposit.ts` ✅
+  - **Fichier:** `hooks/usePreviewDeposit.ts`
+  - Appel `previewDeposit(termId, curveId, amount)` via `publicClient.readContract`
   - Retourne shares estimées + frais détaillés
 
-- [ ] **4.2** Créer `usePreviewRedeem.ts`
-  - Appel `previewRedeem(termId, curveId, shares)`
+- [x] **4.2** Créer `usePreviewRedeem.ts` ✅
+  - **Fichier:** `hooks/usePreviewRedeem.ts`
+  - Appel `previewRedeem(termId, curveId, shares)` via `publicClient.readContract`
   - Retourne montant TRUST estimé
+  - Inclut `previewByPercent` helper
 
 #### Panier amélioré
 
-- [ ] **4.3** Ajouter localStorage au panier
-  ```typescript
-  // Sauvegarder
-  localStorage.setItem('voteCart', JSON.stringify(cart));
+- [x] **4.3** Ajouter localStorage au panier ✅
+  - **Fichier:** `hooks/useVoteCart.ts` (modifié)
+  - Sérialisation/désérialisation bigint
+  - Expiration 24h
+  - Clé par founderId (`ofc_vote_cart_{founderId}`)
 
-  // Récupérer au chargement
-  const saved = localStorage.getItem('voteCart');
-  if (saved) setCart(JSON.parse(saved));
-  ```
-
-- [ ] **4.4** Créer `PresetButtons.tsx`
-  - Nouveau vote: basé sur 20% de la balance
+- [x] **4.4** Créer `PresetButtons.tsx` ✅
+  - **Fichier:** `components/vote/PresetButtons.tsx`
   - Presets: [Min] [10%] [25%] [50%] [100%]
-  - Filtrer les presets < minimum requis
+  - Filtre automatique des presets < minimum
+  - Version compacte `PresetButtonsCompact` disponible
 
-- [ ] **4.5** Créer `PositionModifier.tsx`
+- [x] **4.5** Créer `PositionModifier.tsx` ✅
+  - **Fichier:** `components/vote/PositionModifier.tsx`
   - Pour positions existantes
   - Presets: [10%] [25%] [50%] [80%] [100%] de la position
-  - Boutons: [FOR +Ajouter] [RETIRER Tout] [AGAINST Basculer]
+  - Boutons: [+ Ajouter] [Retirer] [Basculer]
 
-- [ ] **4.6** Améliorer UI panier
-  - Position: haut droite de l'écran
-  - Afficher nombre de votes en badge
-  - Bloquer navigation si panier non vide (confirmation)
-  - Afficher prévisualisation (coûts, shares) via hooks 4.1/4.2
+- [x] **4.6** Créer composants UI panier ✅
+  - **Fichier:** `components/vote/CartBadge.tsx`
+  - `CartBadge` - Badge numérique
+  - `CartIconWithBadge` - Icône panier avec badge
+  - `FloatingCartButton` - Bouton flottant position fixe
 
-### Phase 5: Vote Market
+### Phase 5: Batch Execution Hooks ✅ COMPLÉTÉ
+
+**Référence doc:** [17_EthMultiVault_V2_Reference.md](17_EthMultiVault_V2_Reference.md) - Batch functions
+
+**Objectif:** Créer les hooks pour exécuter des transactions batch.
+
+- [x] **5.1** Créer `useBatchDeposit.ts` ✅
+  - **Fichier:** `hooks/useBatchDeposit.ts`
+  - Appel `depositBatch(receiver, termIds[], curveIds[], assets[], minShares[])`
+  - Exécute plusieurs dépôts en 1 transaction
+  - Calcul automatique `totalAmount` pour `msg.value`
+
+- [x] **5.2** Créer `useBatchRedeem.ts` ✅
+  - **Fichier:** `hooks/useBatchRedeem.ts`
+  - Appel `redeemBatch(receiver, termIds[], curveIds[], shares[], minAssets[])`
+  - Exécute plusieurs retraits en 1 transaction
+
+- [x] **5.3** Créer `useCartExecution.ts` ✅
+  - **Fichier:** `hooks/useCartExecution.ts`
+  - Orchestrateur complet: validate → withdraw → deposit
+  - Status tracking: idle → validating → withdrawing → depositing → success/error
+  - Progress percentage (0-100%)
+  - Helper `getStatusLabel()` pour labels FR
+
+### Phase 6: VotePanel Integration ✅ COMPLÉTÉ
+
+**Objectif:** Intégrer les composants panier dans VotePanel.
+
+- [x] **6.1** Intégrer `PresetButtons` dans `TrustAmountInput` ✅
+  - Quick amount selection buttons
+  - Based on balance and minDeposit
+
+- [x] **6.2** Ajouter `FloatingCartButton` ✅
+  - Affiche item count et total cost
+  - Ouvre le panel panier au click
+
+- [x] **6.3** Intégrer `VoteCartPanel` en slide-over ✅
+  - Panel latéral droit
+  - Backdrop + fermeture au click
+  - Gestion complète du panier
+
+- [x] **6.4** Wire up `useVoteCart` dans VotePanel ✅
+  - Initialize cart per founder
+  - Callbacks: remove, update, clear
+  - Success callback avec refetch
+
+### Phase 7: Vote Market
 
 **Référence doc:** [18_Design_Decisions_V2.md](18_Design_Decisions_V2.md) - Section 4
 
 **Objectif:** Afficher les stats agrégées par fondateur.
 
-- [ ] **5.1** Créer `useVoteMarketStats.ts`
+- [ ] **7.1** Créer `useVoteMarketStats.ts`
   - Total TRUST déposé sur le fondateur
   - Nombre de votants uniques
   - Nombre de totems associés
   - Top totem
   - Ratio FOR/AGAINST global
 
-- [ ] **5.2** Créer `VoteMarket.tsx`
+- [ ] **7.2** Créer `VoteMarket.tsx`
   ```
   ┌─────────────────────────┐
   │ Total TRUST: 150.5      │
@@ -312,25 +359,25 @@ Triple 3: [Animal] → [tag category] → [Overmind Founders Collection]
   └─────────────────────────┘
   ```
 
-- [ ] **5.3** Intégrer dans panneau gauche
+- [ ] **7.3** Intégrer dans panneau gauche
   - Section dépliable/repliable
   - Mise à jour en temps réel (subscription)
 
-### Phase 6: Batch Triples
+### Phase 8: Batch Triples
 
 **Référence doc:** [03_Creation_Triples.md](03_Creation_Triples.md), [12_CreateTriple_Details.md](12_CreateTriple_Details.md)
 
-- [ ] **6.1** Créer `useBatchTriples.ts`
+- [ ] **8.1** Créer `useBatchTriples.ts`
   - Fonction `batchCreate(triples[])`
   - Gestion erreurs atomique (tout ou rien)
   - Progress tracking
 
-- [ ] **6.2** Créer `BatchTripleForm.tsx`
+- [ ] **8.2** Créer `BatchTripleForm.tsx`
   - Ajout/suppression de triples
   - Validation avant soumission
   - Coût total affiché
 
-### Phase 7: Refonte UI 3 Panneaux
+### Phase 9: Refonte UI 3 Panneaux
 
 **Référence doc:** [18_Design_Decisions_V2.md](18_Design_Decisions_V2.md) - Section 3
 
@@ -352,37 +399,37 @@ Triple 3: [Animal] → [tag category] → [Overmind Founders Collection]
 └─────────────┴─────────────────────────────┴─────────────────┘
 ```
 
-- [ ] **7.1** Créer `FounderInfoPanel.tsx` (gauche)
+- [ ] **9.1** Créer `FounderInfoPanel.tsx` (gauche)
   - Photo + nom fondateur
   - Tags (Tech, Entrepreneur...)
   - Description complète
   - Liens sociaux (Twitter, GitHub, LinkedIn)
   - Vote Market (dropdown)
 
-- [ ] **7.2** Créer `FounderCenterPanel.tsx` (centre)
+- [ ] **9.2** Créer `FounderCenterPanel.tsx` (centre)
   - Market Graph (timeline FOR/AGAINST)
   - Grille totems existants avec scores
   - Section "Mes positions"
 
-- [ ] **7.3** Adapter panneau droit (Vote Totem)
+- [ ] **9.3** Adapter panneau droit (Vote Totem)
   - Intégrer PresetButtons
   - Intégrer PositionModifier
   - Bouton "Ajouter au panier"
 
-- [ ] **7.4** Intégrer le panier (haut droite)
+- [ ] **9.4** Intégrer le panier (haut droite)
   - Badge avec nombre de votes
   - Panel dépliable
   - Total + bouton valider
 
-### Phase 8: Graphe de Visualisation (Nice to have)
+### Phase 10: Graphe de Visualisation (Nice to have)
 
 **Référence doc:** [14_Architecture_Contrats.md](14_Architecture_Contrats.md)
 
-- [ ] **8.1** Créer `useVoteGraph.ts`
+- [ ] **10.1** Créer `useVoteGraph.ts`
   - Récupère triples et votes
   - Formate en nodes/edges
 
-- [ ] **8.2** Créer `VoteGraph.tsx`
+- [ ] **10.2** Créer `VoteGraph.tsx`
   - Librairie: react-force-graph ou vis.js
   - Nodes = atoms (fondateurs, prédicats, totems)
   - Edges = triples avec scores
@@ -565,9 +612,11 @@ function calculateCartCost(cart: VoteCart, config: MultivaultConfig) {
 ### Phases complétées
 
 - ✅ **Phase 1**: Vote AGAINST
-- ✅ **Phase 1b** (partiel): Panier de Votes (base créée)
 - ✅ **Phase 2**: Système 3 Triples (testnet configuré)
 - ✅ **Phase 3**: Simplification Prédicats (2 prédicats: `has totem`, `embodies`)
+- ✅ **Phase 4**: Panier + Prévisualisation (hooks preview, localStorage, PresetButtons, CartBadge)
+- ✅ **Phase 5**: Batch Execution Hooks (useBatchDeposit, useBatchRedeem, useCartExecution)
+- ✅ **Phase 6**: VotePanel Integration (FloatingCartButton, VoteCartPanel slide-over)
 
 ### Ordre d'implémentation
 
@@ -575,13 +624,15 @@ function calculateCartCost(cart: VoteCart, config: MultivaultConfig) {
 |-------|-----|-------------|----------|--------|
 | ~~**2**~~ | ~~Système 3 Triples~~ | - | ~~Haute~~ | ✅ Fait |
 | ~~**3**~~ | ~~Simplification Prédicats~~ | Phase 2 | ~~Haute~~ | ✅ Fait |
-| **4** | Panier + Prévisualisation | Phases 2-3 | Moyenne | En attente |
-| **5** | Vote Market | - | Moyenne | En attente |
-| **6** | Batch Triples | Phase 2 | Basse | En attente |
-| **7** | Refonte UI 3 Panneaux | Phases 4-5 | Basse | En attente |
-| **8** | Graphe de Visualisation | - | Nice to have | En attente |
+| ~~**4**~~ | ~~Panier + Prévisualisation~~ | Phases 2-3 | ~~Moyenne~~ | ✅ Fait |
+| ~~**5**~~ | ~~Batch Execution Hooks~~ | Phase 4 | ~~Moyenne~~ | ✅ Fait |
+| ~~**6**~~ | ~~VotePanel Integration~~ | Phase 5 | ~~Moyenne~~ | ✅ Fait |
+| **7** | Vote Market | - | Moyenne | En attente |
+| **8** | Batch Triples | Phase 2 | Basse | En attente |
+| **9** | Refonte UI 3 Panneaux | Phases 4-7 | Basse | En attente |
+| **10** | Graphe de Visualisation | - | Nice to have | En attente |
 
-**Prochaine phase à implémenter:** Phase 4 (Panier + Prévisualisation) ou Phase 5 (Vote Market)
+**Prochaine phase à implémenter:** Phase 7 (Vote Market) - Stats agrégées par fondateur
 
 ---
 
@@ -595,3 +646,6 @@ function calculateCartCost(cart: VoteCart, config: MultivaultConfig) {
 | 2 déc 2025 | Renumérotation phases (2-9) dans l'ordre logique d'implémentation |
 | 2 déc 2025 | **Phase 2 complétée**: Système 3 Triples implémenté et configuré sur testnet |
 | 2 déc 2025 | **Phase 3 complétée**: Simplification à 2 prédicats (`has totem`, `embodies`) avec termIds testnet |
+| 2 déc 2025 | **Phase 4 complétée**: usePreviewDeposit, usePreviewRedeem, PresetButtons, PositionModifier, CartBadge, localStorage persistence |
+| 2 déc 2025 | **Phase 5 complétée**: useBatchDeposit, useBatchRedeem, useCartExecution orchestrator |
+| 2 déc 2025 | **Phase 6 complétée**: VotePanel integration avec FloatingCartButton et VoteCartPanel slide-over |
