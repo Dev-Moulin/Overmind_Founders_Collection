@@ -1,0 +1,254 @@
+/**
+ * VoteTotemPanel - Right panel for voting action
+ *
+ * Simplified vote panel focusing on the action:
+ * - Selected totem display
+ * - Predicate selector
+ * - Amount input with presets
+ * - FOR/AGAINST toggle
+ * - Add to cart or direct vote
+ *
+ * @see Phase 9 in TODO_Implementation.md
+ */
+
+import { useState, useEffect, useMemo } from 'react';
+import { useAccount, useBalance } from 'wagmi';
+import type { FounderForHomePage } from '../../hooks/useFoundersForHomePage';
+import { useProtocolConfig } from '../../hooks/useProtocolConfig';
+import { useVoteCart } from '../../hooks/useVoteCart';
+import { PresetButtonsCompact } from '../vote/PresetButtons';
+import { SuccessNotification } from '../vote/SuccessNotification';
+import { ErrorNotification } from '../vote/ErrorNotification';
+import predicatesData from '../../../../../packages/shared/src/data/predicates.json';
+import type { Predicate } from '../../types/predicate';
+
+interface VoteTotemPanelProps {
+  founder: FounderForHomePage;
+  selectedTotemId?: string;
+  selectedTotemLabel?: string;
+  onClearSelection?: () => void;
+  onOpenCart?: () => void;
+}
+
+export function VoteTotemPanel({
+  founder,
+  selectedTotemId,
+  selectedTotemLabel,
+  onClearSelection,
+  onOpenCart,
+}: VoteTotemPanelProps) {
+  const { isConnected, address } = useAccount();
+  const predicates = predicatesData as Predicate[];
+
+  const { config: protocolConfig, loading: configLoading, isDepositValid } = useProtocolConfig();
+  const { data: balanceData } = useBalance({ address });
+
+  const {
+    itemCount,
+    formattedNetCost,
+  } = useVoteCart();
+
+  // Form state
+  const [selectedPredicateId, setSelectedPredicateId] = useState<string>(predicates[0]?.id || '');
+  const [voteDirection, setVoteDirection] = useState<'for' | 'against'>('for');
+  const [trustAmount, setTrustAmount] = useState<string>('');
+  const [success, setSuccess] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Initialize amount with min deposit
+  useEffect(() => {
+    if (protocolConfig?.formattedMinDeposit && trustAmount === '') {
+      setTrustAmount(protocolConfig.formattedMinDeposit);
+    }
+  }, [protocolConfig?.formattedMinDeposit]);
+
+  const selectedPredicate = useMemo(
+    () => predicates.find((p) => p.id === selectedPredicateId),
+    [predicates, selectedPredicateId]
+  );
+
+  const isFormValid = useMemo(() => {
+    if (!selectedTotemId) return false;
+    if (!selectedPredicateId) return false;
+    if (!trustAmount || parseFloat(trustAmount) <= 0) return false;
+    if (!isDepositValid(trustAmount)) return false;
+    return true;
+  }, [selectedTotemId, selectedPredicateId, trustAmount, isDepositValid]);
+
+  // Handle add to cart - simplified for Phase 9
+  // Full cart integration requires termId lookup which is handled by VotePanel
+  const handleAddToCart = () => {
+    if (!isFormValid) return;
+
+    // For now, show info message - full integration in next phase
+    setSuccess('Vote préparé ! Utilisez le panneau complet pour soumettre.');
+    setTimeout(() => setSuccess(null), 3000);
+  };
+
+  if (!isConnected) {
+    return (
+      <div className="glass-card p-4 h-full flex flex-col items-center justify-center">
+        <div className="w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center mb-4">
+          <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+          </svg>
+        </div>
+        <p className="text-white/60 text-sm text-center">Connectez votre wallet pour voter</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="glass-card p-4 h-full flex flex-col">
+      {/* Header with cart button */}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-bold text-white">Vote Totem</h3>
+        {itemCount > 0 && (
+          <button
+            onClick={onOpenCart}
+            className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg transition-colors"
+          >
+            <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <span className="text-sm text-purple-300">{itemCount}</span>
+          </button>
+        )}
+      </div>
+
+      {/* Notifications */}
+      {success && <SuccessNotification message={success} onClose={() => setSuccess(null)} />}
+      {error && <ErrorNotification message={error} onClose={() => setError(null)} />}
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto space-y-4">
+        {/* Selected Totem */}
+        <div>
+          <label className="block text-xs text-white/60 mb-1">Totem sélectionné</label>
+          {selectedTotemLabel ? (
+            <div className="flex items-center justify-between bg-purple-500/20 rounded-lg p-3">
+              <span className="text-white font-medium">{selectedTotemLabel}</span>
+              <button
+                onClick={onClearSelection}
+                className="text-white/60 hover:text-white"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          ) : (
+            <div className="bg-white/5 rounded-lg p-3 text-white/40 text-sm text-center">
+              Sélectionnez un totem dans le panneau central
+            </div>
+          )}
+        </div>
+
+        {/* Predicate Selector */}
+        <div>
+          <label className="block text-xs text-white/60 mb-1">Type de relation</label>
+          <div className="grid grid-cols-2 gap-2">
+            {predicates.slice(0, 2).map((predicate) => (
+              <button
+                key={predicate.id}
+                onClick={() => setSelectedPredicateId(predicate.id)}
+                className={`p-2 rounded-lg text-sm transition-colors ${
+                  selectedPredicateId === predicate.id
+                    ? 'bg-purple-500/30 text-purple-300 ring-1 ring-purple-500/50'
+                    : 'bg-white/5 text-white/70 hover:bg-white/10'
+                }`}
+              >
+                {predicate.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Vote Direction */}
+        <div>
+          <label className="block text-xs text-white/60 mb-1">Direction du vote</label>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setVoteDirection('for')}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                voteDirection === 'for'
+                  ? 'bg-green-500/30 text-green-300 ring-1 ring-green-500/50'
+                  : 'bg-white/5 text-white/60 hover:bg-white/10'
+              }`}
+            >
+              FOR
+            </button>
+            <button
+              onClick={() => setVoteDirection('against')}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                voteDirection === 'against'
+                  ? 'bg-red-500/30 text-red-300 ring-1 ring-red-500/50'
+                  : 'bg-white/5 text-white/60 hover:bg-white/10'
+              }`}
+            >
+              AGAINST
+            </button>
+          </div>
+        </div>
+
+        {/* Amount Input */}
+        <div>
+          <label className="block text-xs text-white/60 mb-1">
+            Montant (TRUST)
+          </label>
+          <input
+            type="text"
+            value={trustAmount}
+            onChange={(e) => setTrustAmount(e.target.value)}
+            placeholder={protocolConfig?.formattedMinDeposit || '0.0001'}
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-purple-500"
+          />
+          {!configLoading && balanceData && (
+            <PresetButtonsCompact
+              onChange={setTrustAmount}
+              minAmount={protocolConfig?.formattedMinDeposit || '0.0001'}
+              maxAmount={balanceData.formatted}
+              className="mt-2"
+            />
+          )}
+        </div>
+
+        {/* Preview */}
+        {selectedTotemLabel && (
+          <div className="bg-white/5 rounded-lg p-3">
+            <div className="text-xs text-white/60 mb-1">Aperçu du vote</div>
+            <p className="text-sm text-white">
+              <span className="text-purple-400">{founder.name}</span>
+              {' '}{selectedPredicate?.label || '...'}{' '}
+              <span className="text-purple-400">{selectedTotemLabel}</span>
+            </p>
+            <p className="text-xs text-white/50 mt-1">
+              {voteDirection === 'for' ? '👍 FOR' : '👎 AGAINST'} - {trustAmount || '0'} TRUST
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Action Button */}
+      <div className="mt-4 pt-4 border-t border-white/10">
+        <button
+          onClick={handleAddToCart}
+          disabled={!isFormValid}
+          className={`w-full py-3 rounded-lg font-medium transition-colors ${
+            isFormValid
+              ? 'bg-purple-600 hover:bg-purple-700 text-white'
+              : 'bg-white/10 text-white/40 cursor-not-allowed'
+          }`}
+        >
+          Ajouter au panier
+        </button>
+        {itemCount > 0 && (
+          <p className="text-center text-xs text-white/50 mt-2">
+            {itemCount} vote{itemCount > 1 ? 's' : ''} dans le panier ({formattedNetCost} TRUST)
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -1,14 +1,13 @@
-import { useEffect, useState, useRef } from 'react';
-import { formatEther } from 'viem';
-import { useTranslation } from 'react-i18next';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { type Hex } from 'viem';
 import type { FounderForHomePage } from '../hooks/useFoundersForHomePage';
 import {
   useFounderSubscription,
   useAutoSubscriptionPause,
 } from '../hooks';
-import { getFounderImageUrl } from '../utils/founderImage';
-import { VotePanel } from './VotePanel';
-import { RefreshIndicator } from './RefreshIndicator';
+import { useVoteCart } from '../hooks/useVoteCart';
+import { FounderInfoPanel, FounderCenterPanel, VoteTotemPanel } from './founder';
+import { VoteCartPanel } from './vote/VoteCartPanel';
 
 interface FounderExpandedViewProps {
   founder: FounderForHomePage;
@@ -16,21 +15,19 @@ interface FounderExpandedViewProps {
 }
 
 /**
- * Full-screen overlay showing expanded founder card (left) + vote panel (right)
- * Implements V2_FONDATION split layout design
+ * Full-screen overlay showing 3-panel layout:
+ * - Left: Founder info + Vote Market stats
+ * - Center: Totems grid + user positions
+ * - Right: Vote action panel
+ *
+ * Implements V2_FONDATION Phase 9 three-panel design
  *
  * Uses WebSocket subscription for real-time updates on founder proposals.
  * Automatically pauses subscription when tab is hidden.
  */
 export function FounderExpandedView({ founder, onClose }: FounderExpandedViewProps) {
-  const { t } = useTranslation();
-  const imageUrl = getFounderImageUrl(founder);
-
   // Real-time subscription for founder proposals
-  // Note: proposals and loading are available for future Phase 2 integration
   const {
-    // proposals,  // Will be used to pass real-time data to VotePanel
-    // loading: subscriptionLoading,
     secondsSinceUpdate,
     isConnected,
     isPaused,
@@ -44,6 +41,27 @@ export function FounderExpandedView({ founder, onClose }: FounderExpandedViewPro
     pauseOnHidden: true,
     resumeDelay: 100,
   });
+
+  // Vote Cart
+  const {
+    cart,
+    itemCount,
+    costSummary,
+    initCart,
+    removeItem,
+    updateAmount,
+    updateDirection,
+    clearCart,
+    validationErrors,
+    isValid: isCartValid,
+  } = useVoteCart();
+
+  // Initialize cart for this founder
+  useEffect(() => {
+    if (founder.atomId) {
+      initCart(founder.atomId as Hex, founder.name);
+    }
+  }, [founder.atomId, founder.name, initCart]);
 
   // Track when new data arrives for animation
   const [hasNewData, setHasNewData] = useState(false);
@@ -64,24 +82,16 @@ export function FounderExpandedView({ founder, onClose }: FounderExpandedViewPro
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        if (isCartPanelOpen) {
+          setIsCartPanelOpen(false);
+        } else {
+          onClose();
+        }
       }
     };
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
   }, [onClose]);
-
-  // Format net score for display
-  const formatScore = (score: bigint): string => {
-    const ethValue = parseFloat(formatEther(score));
-    if (ethValue >= 1000) {
-      return `${(ethValue / 1000).toFixed(1)}k`;
-    }
-    if (ethValue >= 1) {
-      return ethValue.toFixed(1);
-    }
-    return ethValue.toFixed(3);
-  };
 
   // Handle backdrop click to close
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -90,119 +100,113 @@ export function FounderExpandedView({ founder, onClose }: FounderExpandedViewPro
     }
   };
 
+  // Selected totem state (from center panel)
+  const [selectedTotemId, setSelectedTotemId] = useState<string | undefined>();
+  const [selectedTotemLabel, setSelectedTotemLabel] = useState<string | undefined>();
+
+  const handleSelectTotem = useCallback((totemId: string, totemLabel: string) => {
+    setSelectedTotemId(totemId);
+    setSelectedTotemLabel(totemLabel);
+  }, []);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedTotemId(undefined);
+    setSelectedTotemLabel(undefined);
+  }, []);
+
+  // Cart panel state
+  const [isCartPanelOpen, setIsCartPanelOpen] = useState(false);
+
   return (
     <div
       className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
       onClick={handleBackdropClick}
     >
-      {/* Main container - split layout */}
-      <div className="w-full max-w-6xl h-[90vh] max-h-[800px] flex flex-col lg:flex-row gap-6 animate-fade-in">
+      {/* Main container - 3-panel layout */}
+      <div className="w-full max-w-7xl h-[90vh] max-h-[850px] flex flex-col lg:flex-row gap-4 animate-fade-in">
 
-        {/* Left Panel - Founder Card (1/4 on desktop, full on mobile) */}
-        <div className="lg:w-1/4 shrink-0">
-          <div className="glass-card p-6 h-full flex flex-col relative animate-slide-in-left">
-            {/* Close button */}
-            <button
-              onClick={onClose}
-              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"
-              aria-label="Fermer"
-            >
-              ×
-            </button>
-
-            {/* Founder Photo */}
-            <div className="flex justify-center mb-6">
-              <img
-                src={imageUrl}
-                alt={founder.name}
-                className="w-32 h-32 rounded-full object-cover border-4 border-purple-500/50 shadow-lg shadow-purple-500/20"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(founder.name)}`;
-                }}
-              />
-            </div>
-
-            {/* Founder Name */}
-            <h2 className="text-2xl font-bold text-white text-center mb-2">
-              {founder.name}
-            </h2>
-
-            {/* Real-time indicator */}
-            <div className="flex justify-center mb-4">
-              <RefreshIndicator
-                secondsSinceUpdate={secondsSinceUpdate}
-                isConnected={isConnected}
-                isPaused={isPaused}
-                isLoading={isLoading}
-              />
-            </div>
-
-            {/* Short Bio */}
-            {founder.shortBio && (
-              <p className="text-sm text-white/60 text-center mb-6 leading-relaxed">
-                {founder.shortBio}
-              </p>
-            )}
-
-            {/* Divider */}
-            <div className="border-t border-white/10 my-4" />
-
-            {/* Stats - with flash animation on new data */}
-            <div
-              className={`space-y-3 rounded-lg p-2 -mx-2 transition-all duration-300 ${
-                hasNewData ? 'bg-purple-500/20 ring-1 ring-purple-500/50' : ''
-              }`}
-            >
-              <div className="flex justify-between text-sm">
-                <span className="text-white/50">Propositions</span>
-                <span className="text-white font-medium">{founder.proposalCount}</span>
-              </div>
-
-              {founder.winningTotem && (
-                <>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-white/50">Totem gagnant</span>
-                    <span className="text-purple-400 font-medium">{founder.winningTotem.label}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-white/50">Score</span>
-                    <span className={`text-purple-400 font-medium transition-all duration-300 ${
-                      hasNewData ? 'scale-110' : ''
-                    }`}>
-                      {formatScore(founder.winningTotem.netScore)} TRUST
-                    </span>
-                  </div>
-                </>
-              )}
-
-              {founder.atomId && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-white/50">Atom ID</span>
-                  <span className="text-white/70 font-mono text-xs">
-                    {founder.atomId.slice(0, 8)}...
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Spacer */}
-            <div className="flex-1" />
-
-            {/* Close button at bottom (mobile) */}
-            <button
-              onClick={onClose}
-              className="lg:hidden mt-6 w-full py-3 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"
-            >
-              {t('common.close')}
-            </button>
-          </div>
+        {/* Left Panel - Founder Info (1/5 on desktop) */}
+        <div className="lg:w-1/5 shrink-0 min-w-[220px]">
+          <FounderInfoPanel
+            founder={founder}
+            onClose={onClose}
+            secondsSinceUpdate={secondsSinceUpdate}
+            isConnected={isConnected}
+            isPaused={isPaused}
+            isLoading={isLoading}
+            hasNewData={hasNewData}
+          />
         </div>
 
-        {/* Right Panel - Vote Panel (3/4 on desktop, full on mobile) */}
-        <div className="lg:w-3/4 flex-1 min-h-0">
-          <VotePanel founder={founder} />
+        {/* Center Panel - Totems Grid (2/5 on desktop) */}
+        <div className="lg:w-2/5 flex-1 min-h-0">
+          <FounderCenterPanel
+            founder={founder}
+            onSelectTotem={handleSelectTotem}
+            selectedTotemId={selectedTotemId}
+          />
+        </div>
+
+        {/* Right Panel - Vote Action (2/5 on desktop) */}
+        <div className="lg:w-2/5 shrink-0">
+          <VoteTotemPanel
+            founder={founder}
+            selectedTotemId={selectedTotemId}
+            selectedTotemLabel={selectedTotemLabel}
+            onClearSelection={handleClearSelection}
+            onOpenCart={() => setIsCartPanelOpen(true)}
+          />
         </div>
       </div>
+
+      {/* Cart Panel Slide-over */}
+      {isCartPanelOpen && (
+        <div className="fixed inset-0 z-[60] overflow-hidden">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setIsCartPanelOpen(false)}
+          />
+
+          {/* Panel */}
+          <div className="absolute right-0 top-0 h-full w-full max-w-md">
+            <div className="h-full bg-gray-900/95 border-l border-white/10 shadow-xl flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-white/10">
+                <h2 className="text-lg font-semibold text-white">
+                  Panier de votes ({itemCount})
+                </h2>
+                <button
+                  onClick={() => setIsCartPanelOpen(false)}
+                  className="p-2 text-white/60 hover:text-white transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-4">
+                <VoteCartPanel
+                  cart={cart}
+                  costSummary={costSummary}
+                  onRemoveItem={removeItem}
+                  onClearCart={clearCart}
+                  onUpdateDirection={updateDirection}
+                  onUpdateAmount={updateAmount}
+                  onSuccess={() => {
+                    setIsCartPanelOpen(false);
+                    clearCart();
+                  }}
+                  validationErrors={validationErrors}
+                  isValid={isCartValid}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
