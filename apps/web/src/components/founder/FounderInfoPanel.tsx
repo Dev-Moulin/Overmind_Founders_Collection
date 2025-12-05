@@ -17,6 +17,8 @@ import type { FounderForHomePage } from '../../hooks/useFoundersForHomePage';
 import { getFounderImageUrl } from '../../utils/founderImage';
 import { VoteMarketCompact } from '../vote/VoteMarket';
 import { RefreshIndicator } from '../RefreshIndicator';
+import { TopTotemsRadar } from '../graph/TopTotemsRadar';
+import { useTopTotems } from '../../hooks/useTopTotems';
 
 interface FounderInfoPanelProps {
   founder: FounderForHomePage;
@@ -54,6 +56,9 @@ export function FounderInfoPanel({
 }: FounderInfoPanelProps) {
   const { t } = useTranslation();
   const imageUrl = getFounderImageUrl(founder);
+
+  // Fetch top totems for radar chart
+  const { topTotems, loading: totemsLoading } = useTopTotems(founder.name, 5);
 
   // Extract social links from founder data
   const socialLinks = {
@@ -188,6 +193,15 @@ export function FounderInfoPanel({
             </div>
           </>
         )}
+      </div>
+
+      {/* Top Totems Radar Chart */}
+      <div className="mt-4">
+        <TopTotemsRadar
+          totems={topTotems}
+          loading={totemsLoading}
+          height={200}
+        />
       </div>
 
       {/* Spacer */}
