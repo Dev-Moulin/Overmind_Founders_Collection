@@ -356,3 +356,45 @@ export interface FounderStats {
     netScore: string;
   }>;
 }
+
+/**
+ * Deposit with triple details for user votes display
+ */
+export interface DepositWithTriple {
+  id: string;
+  sender_id: string;
+  term_id: string;
+  vault_type: VaultType;
+  shares: string;
+  assets_after_fees: string;
+  created_at: string;
+  transaction_hash: string;
+  term: {
+    term_id: string;
+    subject: {
+      term_id: string;
+      label: string;
+      image?: string;
+      emoji?: string;
+    };
+    predicate: {
+      term_id: string;
+      label: string;
+      image?: string;
+      emoji?: string;
+    };
+    object: {
+      term_id: string;
+      label: string;
+      image?: string;
+      emoji?: string;
+    };
+  };
+}
+
+/**
+ * Result type for GET_USER_VOTES_FOR_FOUNDER query
+ */
+export interface GetUserVotesForFounderResult {
+  deposits: DepositWithTriple[];
+}

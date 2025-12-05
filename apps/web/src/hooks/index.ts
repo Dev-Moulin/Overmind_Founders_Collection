@@ -105,3 +105,6 @@ export {
 // Hook for founders on HomePage with winning totems
 export { useFoundersForHomePage } from './useFoundersForHomePage';
 export type { TrendDirection, WinningTotem, FounderForHomePage } from '../types/founder';
+
+// Hook for user's votes on a specific founder with triple details (My Votes section)
+export { useUserVotesForFounder, type UserVoteWithDetails } from './useUserVotesForFounder';
