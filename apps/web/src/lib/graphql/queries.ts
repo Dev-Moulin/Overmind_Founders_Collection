@@ -788,3 +788,56 @@ export const GET_TOTEM_VOTERS = gql`
     }
   }
 `;
+
+/**
+ * Get user's votes for a specific founder with full triple details
+ *
+ * Returns deposits on triples where the subject is the founder,
+ * including subject, predicate, and object images for display.
+ * Format: [Img Subject] Subject - [Img Predicate] Predicate - [Img Object] Object  +X.XXX
+ */
+export const GET_USER_VOTES_FOR_FOUNDER = gql`
+  query GetUserVotesForFounder($walletAddress: String!, $founderName: String!) {
+    deposits(
+      where: {
+        sender_id: { _eq: $walletAddress }
+        term: {
+          subject: { label: { _eq: $founderName } }
+          predicate: { label: { _in: ["has totem", "embodies"] } }
+        }
+        vault_type: { _in: ["triple_positive", "triple_negative"] }
+      }
+      order_by: { created_at: desc }
+    ) {
+      id
+      sender_id
+      term_id
+      vault_type
+      shares
+      assets_after_fees
+      created_at
+      transaction_hash
+      term {
+        term_id
+        subject {
+          term_id
+          label
+          image
+          emoji
+        }
+        predicate {
+          term_id
+          label
+          image
+          emoji
+        }
+        object {
+          term_id
+          label
+          image
+          emoji
+        }
+      }
+    }
+  }
+`;
