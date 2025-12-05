@@ -18,6 +18,7 @@ import { getFounderImageUrl } from '../../utils/founderImage';
 import { VoteMarketCompact } from '../vote/VoteMarket';
 import { RefreshIndicator } from '../RefreshIndicator';
 import { TopTotemsRadar } from '../graph/TopTotemsRadar';
+import { RelationsRadar } from '../graph/RelationsRadar';
 import { useTopTotems } from '../../hooks/useTopTotems';
 
 interface FounderInfoPanelProps {
@@ -201,6 +202,17 @@ export function FounderInfoPanel({
           totems={topTotems}
           loading={totemsLoading}
           height={200}
+        />
+      </div>
+
+      {/* Relations Radar Graph */}
+      <div className="mt-4">
+        <RelationsRadar
+          founderName={founder.name}
+          founderImage={imageUrl}
+          totems={topTotems}
+          loading={totemsLoading}
+          height={220}
         />
       </div>
 
