@@ -13,6 +13,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useAccount, useBalance } from 'wagmi';
+import { useTranslation } from 'react-i18next';
 import type { FounderForHomePage } from '../../hooks/useFoundersForHomePage';
 import { useProtocolConfig } from '../../hooks/useProtocolConfig';
 import { useVoteCart } from '../../hooks/useVoteCart';
@@ -37,6 +38,7 @@ export function VoteTotemPanel({
   onClearSelection,
   onOpenCart,
 }: VoteTotemPanelProps) {
+  const { t } = useTranslation();
   const { isConnected, address } = useAccount();
   const predicates = predicatesData as Predicate[];
 
@@ -88,13 +90,13 @@ export function VoteTotemPanel({
   if (!isConnected) {
     return (
       <div className="glass-card p-4 h-full flex flex-col items-center justify-center">
-        <div className="w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center mb-4">
-          <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="w-16 h-16 rounded-full bg-slate-500/20 flex items-center justify-center mb-4">
+          <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
           </svg>
         </div>
-        <p className="text-white/60 text-sm text-center">Connectez votre wallet pour voter</p>
+        <p className="text-white/60 text-sm text-center">{t('common.connectWalletToVote')}</p>
       </div>
     );
   }
@@ -107,12 +109,12 @@ export function VoteTotemPanel({
         {itemCount > 0 && (
           <button
             onClick={onOpenCart}
-            className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 bg-slate-500/20 hover:bg-slate-500/30 rounded-lg transition-colors"
           >
-            <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
-            <span className="text-sm text-purple-300">{itemCount}</span>
+            <span className="text-sm text-slate-300">{itemCount}</span>
           </button>
         )}
       </div>
@@ -125,9 +127,9 @@ export function VoteTotemPanel({
       <div className="flex-1 overflow-y-auto space-y-4">
         {/* Selected Totem */}
         <div>
-          <label className="block text-xs text-white/60 mb-1">Totem sélectionné</label>
+          <label className="block text-xs text-white/60 mb-1">{t('founderExpanded.selectedTotem')}</label>
           {selectedTotemLabel ? (
-            <div className="flex items-center justify-between bg-purple-500/20 rounded-lg p-3">
+            <div className="flex items-center justify-between bg-slate-500/20 rounded-lg p-3">
               <span className="text-white font-medium">{selectedTotemLabel}</span>
               <button
                 onClick={onClearSelection}
@@ -140,14 +142,14 @@ export function VoteTotemPanel({
             </div>
           ) : (
             <div className="bg-white/5 rounded-lg p-3 text-white/40 text-sm text-center">
-              Sélectionnez un totem dans le panneau central
+              {t('founderExpanded.selectTotemFromCenter')}
             </div>
           )}
         </div>
 
         {/* Predicate Selector */}
         <div>
-          <label className="block text-xs text-white/60 mb-1">Type de relation</label>
+          <label className="block text-xs text-white/60 mb-1">{t('founderExpanded.relationType')}</label>
           <div className="grid grid-cols-2 gap-2">
             {predicates.slice(0, 2).map((predicate) => (
               <button
@@ -155,7 +157,7 @@ export function VoteTotemPanel({
                 onClick={() => setSelectedPredicateId(predicate.id)}
                 className={`p-2 rounded-lg text-sm transition-colors ${
                   selectedPredicateId === predicate.id
-                    ? 'bg-purple-500/30 text-purple-300 ring-1 ring-purple-500/50'
+                    ? 'bg-slate-500/30 text-slate-300 ring-1 ring-slate-500/50'
                     : 'bg-white/5 text-white/70 hover:bg-white/10'
                 }`}
               >
@@ -197,7 +199,7 @@ export function VoteTotemPanel({
                   : 'bg-white/5 text-white/60 hover:bg-white/10'
               }`}
             >
-              Retirer
+              {t('founderExpanded.withdraw')}
             </button>
           </div>
         </div>
@@ -205,14 +207,14 @@ export function VoteTotemPanel({
         {/* Amount Input */}
         <div>
           <label className="block text-xs text-white/60 mb-1">
-            Montant (TRUST)
+            {t('founderExpanded.amountTrust')}
           </label>
           <input
             type="text"
             value={trustAmount}
             onChange={(e) => setTrustAmount(e.target.value)}
             placeholder={protocolConfig?.formattedMinDeposit || '0.0001'}
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-purple-500"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-slate-500"
           />
           {!configLoading && balanceData && (
             <PresetButtonsCompact
@@ -228,15 +230,15 @@ export function VoteTotemPanel({
         {selectedTotemLabel && (
           <div className="bg-white/5 rounded-lg p-3">
             <div className="text-xs text-white/60 mb-1">
-              {voteDirection === 'withdraw' ? 'Aperçu du retrait' : 'Aperçu du vote'}
+              {voteDirection === 'withdraw' ? t('founderExpanded.withdrawPreview') : t('founderExpanded.votePreview')}
             </div>
             <p className="text-sm text-white">
-              <span className="text-purple-400">{founder.name}</span>
+              <span className="text-slate-400">{founder.name}</span>
               {' '}{selectedPredicate?.label || '...'}{' '}
-              <span className="text-purple-400">{selectedTotemLabel}</span>
+              <span className="text-slate-400">{selectedTotemLabel}</span>
             </p>
             <p className="text-xs text-white/50 mt-1">
-              {voteDirection === 'for' ? '👍 FOR' : voteDirection === 'against' ? '👎 AGAINST' : '🔄 RETIRER'} - {trustAmount || '0'} TRUST
+              {voteDirection === 'for' ? '👍 FOR' : voteDirection === 'against' ? '👎 AGAINST' : `🔄 ${t('founderExpanded.withdraw').toUpperCase()}`} - {trustAmount || '0'} TRUST
             </p>
           </div>
         )}
@@ -251,15 +253,15 @@ export function VoteTotemPanel({
             isFormValid
               ? voteDirection === 'withdraw'
                 ? 'bg-orange-600 hover:bg-orange-700 text-white'
-                : 'bg-purple-600 hover:bg-purple-700 text-white'
+                : 'bg-slate-600 hover:bg-slate-700 text-white'
               : 'bg-white/10 text-white/40 cursor-not-allowed'
           }`}
         >
-          {voteDirection === 'withdraw' ? 'Retirer ma position' : 'Ajouter au panier'}
+          {voteDirection === 'withdraw' ? t('founderExpanded.withdrawMyPosition') : t('founderExpanded.addToCart')}
         </button>
         {itemCount > 0 && (
           <p className="text-center text-xs text-white/50 mt-2">
-            {itemCount} vote{itemCount > 1 ? 's' : ''} dans le panier ({formattedNetCost} TRUST)
+            {itemCount} {t('founderExpanded.votesInCart')} ({formattedNetCost} TRUST)
           </p>
         )}
       </div>

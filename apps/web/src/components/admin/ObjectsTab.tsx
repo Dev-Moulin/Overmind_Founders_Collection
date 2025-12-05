@@ -121,7 +121,7 @@ export function ObjectsTab({
               onClick={() => setSelectedCategory(category.id)}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 selectedCategory === category.id
-                  ? 'bg-purple-500/20 text-purple-400 border-2 border-purple-400'
+                  ? 'bg-slate-500/20 text-slate-400 border-2 border-slate-400'
                   : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10'
               }`}
             >
@@ -189,7 +189,7 @@ export function ObjectsTab({
                     <button
                       onClick={() => onCreateTotem(example, activeCategory.ofcCategoryId)}
                       disabled={creatingItem !== null || !isAdmin}
-                      className="w-full px-3 py-1 text-sm bg-purple-500/20 text-purple-400 rounded hover:bg-purple-500/30 disabled:opacity-50"
+                      className="w-full px-3 py-1 text-sm bg-slate-500/20 text-slate-400 rounded hover:bg-slate-500/30 disabled:opacity-50"
                     >
                       {creatingItem === example ? 'Création...' : 'Créer'}
                     </button>
@@ -222,7 +222,7 @@ export function ObjectsTab({
                   onClick={() => setCustomTotemCategory(cat.ofcCategoryId)}
                   className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                     customTotemCategory === cat.ofcCategoryId
-                      ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50'
+                      ? 'bg-slate-500/30 text-slate-300 border border-slate-500/50'
                       : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10'
                   }`}
                 >

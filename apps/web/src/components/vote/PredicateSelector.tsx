@@ -35,10 +35,10 @@ export function PredicateSelector({
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-white/70">1. Prédicat</span>
           {selectedPredicate && (
-            <span className="text-sm text-purple-400">: {selectedPredicate.label}</span>
+            <span className="text-sm text-slate-400">: {selectedPredicate.label}</span>
           )}
         </div>
-        <span className={`text-xs text-purple-400 transition-transform duration-500 ${isOpen ? 'rotate-180' : ''}`}>
+        <span className={`text-xs text-slate-400 transition-transform duration-500 ${isOpen ? 'rotate-180' : ''}`}>
           ▼
         </span>
       </button>
@@ -56,7 +56,7 @@ export function PredicateSelector({
               className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors
                 ${
                   selectedPredicateId === predicate.id
-                    ? 'bg-purple-500/20 border border-purple-500/50'
+                    ? 'bg-slate-500/20 border border-slate-500/50'
                     : 'bg-white/5 border border-white/10 hover:bg-white/10'
                 }`}
             >
@@ -72,7 +72,7 @@ export function PredicateSelector({
                 className={`w-4 h-4 mt-0.5 rounded-full border-2 shrink-0 flex items-center justify-center
                 ${
                   selectedPredicateId === predicate.id
-                    ? 'border-purple-500 bg-purple-500'
+                    ? 'border-slate-500 bg-slate-500'
                     : 'border-white/30'
                 }`}
               >
@@ -87,7 +87,7 @@ export function PredicateSelector({
                 )}
               </div>
               {predicate.isDefault && (
-                <span className="ml-auto text-xs bg-purple-500/30 text-purple-300 px-2 py-0.5 rounded">
+                <span className="ml-auto text-xs bg-slate-500/30 text-slate-300 px-2 py-0.5 rounded">
                   défaut
                 </span>
               )}

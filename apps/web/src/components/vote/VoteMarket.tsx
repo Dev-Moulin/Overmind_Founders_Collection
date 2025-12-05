@@ -14,6 +14,7 @@
  */
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useVoteMarketStats } from '../../hooks/useVoteMarketStats';
 
 interface VoteMarketProps {
@@ -32,6 +33,7 @@ interface VoteMarketProps {
  * ```
  */
 export function VoteMarket({ founderName, className = '' }: VoteMarketProps) {
+  const { t } = useTranslation();
   const { stats, loading, error } = useVoteMarketStats(founderName);
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -63,7 +65,7 @@ export function VoteMarket({ founderName, className = '' }: VoteMarketProps) {
   if (stats.totemCount === 0) {
     return (
       <div className={`p-4 bg-white/5 border border-white/10 rounded-lg ${className}`}>
-        <p className="text-sm text-white/40 text-center">Aucun vote pour le moment</p>
+        <p className="text-sm text-white/40 text-center">{t('founderExpanded.noVotesYet')}</p>
       </div>
     );
   }
@@ -122,7 +124,7 @@ export function VoteMarket({ founderName, className = '' }: VoteMarketProps) {
         {/* Expand button */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="mt-3 w-full flex items-center justify-center gap-1 text-xs text-purple-400 hover:text-purple-300 transition-colors"
+          className="mt-3 w-full flex items-center justify-center gap-1 text-xs text-slate-400 hover:text-slate-300 transition-colors"
         >
           {isExpanded ? 'Masquer' : 'Détails'}
           <svg

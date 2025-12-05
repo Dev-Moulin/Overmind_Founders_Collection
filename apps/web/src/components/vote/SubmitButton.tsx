@@ -31,7 +31,7 @@ export function SubmitButton({
       className={`w-full py-3 rounded-lg font-semibold transition-colors
         ${
           isFormValid && !isSubmitting && !hasExistingClaim
-            ? 'bg-purple-500 hover:bg-purple-600 text-white'
+            ? 'bg-slate-500 hover:bg-slate-600 text-white'
             : 'bg-white/10 text-white/30 cursor-not-allowed'
         }`}
     >

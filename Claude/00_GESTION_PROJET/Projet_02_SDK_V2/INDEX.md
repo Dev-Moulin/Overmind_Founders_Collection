@@ -335,4 +335,34 @@ Documentation de recherche sur le SDK INTUITION V2 pour la refonte du système d
 ---
 
 **Créé** : 28/11/2025
-**Mis à jour** : 01/12/2025 - Ajout Doc 4 (EthMultiVault V2 Reference)
+**Mis à jour** : 05/12/2025 - **PROJET TERMINÉ** - 10 phases complétées + i18n internationalization complete
+
+---
+
+## Dernières mises à jour (5 décembre 2025)
+
+### Internationalisation (i18n) complète
+
+L'application supporte désormais l'anglais et le français avec basculement dynamique.
+
+**Fichiers de traduction:**
+- `apps/web/src/i18n/locales/en.json` - Traductions anglaises
+- `apps/web/src/i18n/locales/fr.json` - Traductions françaises
+
+**Composants mis à jour avec i18n:**
+| Composant | Clés de traduction |
+|-----------|-------------------|
+| `VoteGraph.tsx` | `common.noRelationFound`, `common.founder`, `common.relation` |
+| `TradingChart.tsx` | `common.noData` |
+| `FounderExpandedView.tsx` | `founderExpanded.voteCart` |
+| `FounderInfoPanel.tsx` | `common.close`, `common.proposals` |
+| `RefreshIndicator.tsx` | `refreshIndicator.*` (complet) |
+| `VotePanel.tsx` | Multiples clés vote/common |
+| `VoteCartPanel.tsx` | `founderExpanded.*` (summary, deposits, fees, etc.) |
+| `VoteMarket.tsx` | `founderExpanded.noVotesYet` |
+| `FoundersTab.tsx` (Admin) | `admin.*` (loadingAtoms, graphqlError, etc.) |
+
+**Nouvelles sections de traduction:**
+- `refreshIndicator` : États de connexion temps réel
+- `admin` : Interface d'administration complète
+- Extensions `founderExpanded` : summary, deposits, entryFees, atomCreation, withdrawals, netTotal, etc.

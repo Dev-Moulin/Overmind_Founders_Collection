@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { type Hex } from 'viem';
 import type { FounderForHomePage } from '../hooks/useFoundersForHomePage';
 import {
@@ -26,6 +27,8 @@ interface FounderExpandedViewProps {
  * Automatically pauses subscription when tab is hidden.
  */
 export function FounderExpandedView({ founder, onClose }: FounderExpandedViewProps) {
+  const { t } = useTranslation();
+
   // Real-time subscription for founder proposals
   const {
     secondsSinceUpdate,
@@ -119,11 +122,12 @@ export function FounderExpandedView({ founder, onClose }: FounderExpandedViewPro
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 m-0 bg-black/40 backdrop-blur-md flex items-center justify-center p-4"
       onClick={handleBackdropClick}
+      style={{ margin: 0 }}
     >
-      {/* Main container - 3-panel layout */}
-      <div className="w-full max-w-7xl h-[90vh] max-h-[850px] flex flex-col lg:flex-row gap-4 animate-fade-in">
+      {/* Main container - 3-panel layout (+25% size) */}
+      <div className="w-full max-w-[1600px] h-[95vh] flex flex-col lg:flex-row gap-4 animate-fade-in">
 
         {/* Left Panel - Founder Info (1/5 on desktop) */}
         <div className="lg:w-1/5 shrink-0 min-w-[220px]">
@@ -161,7 +165,7 @@ export function FounderExpandedView({ founder, onClose }: FounderExpandedViewPro
 
       {/* Cart Panel Slide-over */}
       {isCartPanelOpen && (
-        <div className="fixed inset-0 z-[60] overflow-hidden">
+        <div className="fixed inset-0 z-60 overflow-hidden">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -174,7 +178,7 @@ export function FounderExpandedView({ founder, onClose }: FounderExpandedViewPro
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-white/10">
                 <h2 className="text-lg font-semibold text-white">
-                  Panier de votes ({itemCount})
+                  {t('founderExpanded.voteCart')} ({itemCount})
                 </h2>
                 <button
                   onClick={() => setIsCartPanelOpen(false)}

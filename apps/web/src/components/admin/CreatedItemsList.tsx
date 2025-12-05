@@ -18,7 +18,7 @@ export function CreatedItemsList({ createdItems }: CreatedItemsListProps) {
               href={`https://testnet.explorer.intuition.systems/tx/${data.txHash}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-purple-400 hover:text-purple-300 text-sm"
+              className="text-slate-400 hover:text-slate-300 text-sm"
             >
               Voir TX
             </a>

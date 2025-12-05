@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatTimeSinceUpdate } from '../hooks/useFounderSubscription';
+import { useTranslation } from 'react-i18next';
 
 interface RefreshIndicatorProps {
   /** Seconds since last update */
@@ -43,6 +43,18 @@ export const RefreshIndicator: React.FC<RefreshIndicatorProps> = ({
   isLoading = false,
   className = '',
 }) => {
+  const { t } = useTranslation();
+
+  // Format time since update with i18n
+  const formatTime = (seconds: number): string => {
+    if (seconds < 5) return t('refreshIndicator.justNow');
+    if (seconds < 60) return t('refreshIndicator.secondsAgo', { seconds });
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}min`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h`;
+  };
+
   // Determine status
   let statusColor: string;
   let statusText: string;
@@ -50,17 +62,17 @@ export const RefreshIndicator: React.FC<RefreshIndicatorProps> = ({
 
   if (isPaused) {
     statusColor = 'bg-yellow-500';
-    statusText = 'En pause';
+    statusText = t('refreshIndicator.paused');
   } else if (isLoading) {
     statusColor = 'bg-blue-500';
-    statusText = 'Connexion...';
+    statusText = t('refreshIndicator.connecting');
     pulseAnimation = true;
   } else if (!isConnected) {
     statusColor = 'bg-red-500';
-    statusText = 'Déconnecté';
+    statusText = t('refreshIndicator.disconnected');
   } else {
     statusColor = 'bg-green-500';
-    statusText = formatTimeSinceUpdate(secondsSinceUpdate);
+    statusText = formatTime(secondsSinceUpdate);
     // Pulse animation when just updated (< 3 seconds)
     pulseAnimation = secondsSinceUpdate < 3;
   }
@@ -68,10 +80,10 @@ export const RefreshIndicator: React.FC<RefreshIndicatorProps> = ({
   return (
     <div
       className={`flex items-center gap-2 text-xs text-gray-400 ${className}`}
-      title={isPaused ? 'Onglet masqué - actualisation en pause' :
-             isLoading ? 'Connexion en cours...' :
-             !isConnected ? 'Connexion perdue - vérifiez votre réseau' :
-             'Actualisation temps réel active'}
+      title={isPaused ? t('refreshIndicator.pausedTooltip') :
+             isLoading ? t('refreshIndicator.connectingTooltip') :
+             !isConnected ? t('refreshIndicator.disconnectedTooltip') :
+             t('refreshIndicator.activeTooltip')}
     >
       {/* Status dot */}
       <span className="relative flex h-2 w-2">
@@ -88,9 +100,9 @@ export const RefreshIndicator: React.FC<RefreshIndicatorProps> = ({
       {/* Status text */}
       <span>{statusText}</span>
 
-      {/* Live indicator when connected and recently updated */}
-      {isConnected && !isPaused && secondsSinceUpdate < 60 && (
-        <span className="text-green-500 font-medium">LIVE</span>
+      {/* Connection indicator - shows "Intuition" when connected */}
+      {isConnected && !isPaused && (
+        <span className="text-slate-400 font-medium">Intuition</span>
       )}
     </div>
   );
@@ -102,23 +114,35 @@ export const RefreshIndicator: React.FC<RefreshIndicatorProps> = ({
 export const RefreshIndicatorCompact: React.FC<
   Omit<RefreshIndicatorProps, 'className'> & { className?: string }
 > = ({ secondsSinceUpdate, isConnected, isPaused, isLoading = false, className = '' }) => {
+  const { t } = useTranslation();
+
+  // Format time since update with i18n
+  const formatTime = (seconds: number): string => {
+    if (seconds < 5) return t('refreshIndicator.justNow');
+    if (seconds < 60) return t('refreshIndicator.secondsAgo', { seconds });
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}min`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h`;
+  };
+
   let statusColor: string;
   let title: string;
   let pulseAnimation = false;
 
   if (isPaused) {
     statusColor = 'bg-yellow-500';
-    title = 'En pause (onglet masqué)';
+    title = t('refreshIndicator.pausedTooltip');
   } else if (isLoading) {
     statusColor = 'bg-blue-500';
-    title = 'Connexion en cours...';
+    title = t('refreshIndicator.connectingTooltip');
     pulseAnimation = true;
   } else if (!isConnected) {
     statusColor = 'bg-red-500';
-    title = 'Déconnecté - vérifiez votre réseau';
+    title = t('refreshIndicator.disconnectedTooltip');
   } else {
     statusColor = 'bg-green-500';
-    title = `Actualisé ${formatTimeSinceUpdate(secondsSinceUpdate)}`;
+    title = t('refreshIndicator.updatedAt', { time: formatTime(secondsSinceUpdate) });
     pulseAnimation = secondsSinceUpdate < 3;
   }
 

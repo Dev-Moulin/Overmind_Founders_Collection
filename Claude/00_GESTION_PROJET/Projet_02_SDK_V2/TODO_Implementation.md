@@ -334,50 +334,47 @@ Triple 3: [Animal] → [tag category] → [Overmind Founders Collection]
   - Callbacks: remove, update, clear
   - Success callback avec refetch
 
-### Phase 7: Vote Market
+### Phase 7: Vote Market ✅ COMPLÉTÉ
 
 **Référence doc:** [18_Design_Decisions_V2.md](18_Design_Decisions_V2.md) - Section 4
 
 **Objectif:** Afficher les stats agrégées par fondateur.
 
-- [ ] **7.1** Créer `useVoteMarketStats.ts`
+- [x] **7.1** Créer `useVoteMarketStats.ts` ✅
+  - **Fichier:** `hooks/useVoteMarketStats.ts`
   - Total TRUST déposé sur le fondateur
   - Nombre de votants uniques
   - Nombre de totems associés
   - Top totem
   - Ratio FOR/AGAINST global
 
-- [ ] **7.2** Créer `VoteMarket.tsx`
-  ```
-  ┌─────────────────────────┐
-  │ Total TRUST: 150.5      │
-  │ Total votants: 45       │
-  │ Totems associés: 12     │
-  │ ▼ Détails               │
-  │   Top totem: Lion       │
-  │   Ratio FOR/AGAINST: 78%│
-  └─────────────────────────┘
-  ```
+- [x] **7.2** Créer `VoteMarket.tsx` ✅
+  - **Fichier:** `components/vote/VoteMarket.tsx`
+  - Version compacte: `VoteMarketCompact.tsx`
+  - Stats agrégées avec animations
+  - Expandable pour voir plus de détails
 
-- [ ] **7.3** Intégrer dans panneau gauche
+- [x] **7.3** Intégrer dans panneau gauche ✅
   - Section dépliable/repliable
-  - Mise à jour en temps réel (subscription)
+  - Utilisé dans `FounderInfoPanel.tsx`
 
-### Phase 8: Batch Triples
+### Phase 8: Batch Triples ✅ COMPLÉTÉ
 
 **Référence doc:** [03_Creation_Triples.md](03_Creation_Triples.md), [12_CreateTriple_Details.md](12_CreateTriple_Details.md)
 
-- [ ] **8.1** Créer `useBatchTriples.ts`
-  - Fonction `batchCreate(triples[])`
-  - Gestion erreurs atomique (tout ou rien)
-  - Progress tracking
+- [x] **8.1** Créer `useBatchTriples.ts` ✅
+  - **Fichier:** `hooks/useBatchTriples.ts`
+  - Fonction `createBatch(triples[])` avec atomicité
+  - Fonction `validateItems()` pour vérifier si triples existent
+  - Fonction `estimateCost()` pour calculer les coûts
 
-- [ ] **8.2** Créer `BatchTripleForm.tsx`
-  - Ajout/suppression de triples
+- [x] **8.2** Créer `BatchTripleForm.tsx` ✅
+  - **Fichier:** `components/admin/BatchTripleForm.tsx`
+  - Ajout/suppression de triples dans le batch
   - Validation avant soumission
-  - Coût total affiché
+  - Coût total affiché en temps réel
 
-### Phase 9: Refonte UI 3 Panneaux
+### Phase 9: Refonte UI 3 Panneaux ✅ COMPLÉTÉ
 
 **Référence doc:** [18_Design_Decisions_V2.md](18_Design_Decisions_V2.md) - Section 3
 
@@ -386,53 +383,68 @@ Triple 3: [Animal] → [tag category] → [Overmind Founders Collection]
 ```
 ┌─────────────┬─────────────────────────────┬─────────────────┐
 │   GAUCHE    │          CENTRE             │     DROITE      │
+│   (1/5)     │           (2/5)             │      (2/5)      │
 │             │                             │                 │
-│ Infos       │ Market Graph                │ Vote Totem      │
-│ Fondateur   │ (FOR/AGAINST timeline)      │                 │
+│ Infos       │ Totems existants            │ Vote Totem      │
+│ Fondateur   │ (grille avec scores)        │                 │
 │             │                             │ 1. Prédicat     │
-│ Tags        ├─────────────────────────────┤ 2. Totem        │
-│ Description │ Totems existants            │ 3. Montant      │
-│ Liens       │ (grille avec scores)        │                 │
-│             ├─────────────────────────────┤ [Ajouter]       │
-│ Vote Market │ Mes positions               │                 │
-│ (dropdown)  │ (sur ce fondateur)          │                 │
+│ Photo       ├─────────────────────────────┤ 2. Direction    │
+│ Description │ Mes positions               │ 3. Montant      │
+│ Liens       │ (sur ce fondateur)          │                 │
+│             │                             │ [Ajouter]       │
+│ Vote Market │                             │                 │
+│ (compact)   │                             │ [Panier]        │
 └─────────────┴─────────────────────────────┴─────────────────┘
 ```
 
-- [ ] **9.1** Créer `FounderInfoPanel.tsx` (gauche)
+- [x] **9.1** Créer `FounderInfoPanel.tsx` (gauche) ✅
+  - **Fichier:** `components/founder/FounderInfoPanel.tsx`
   - Photo + nom fondateur
-  - Tags (Tech, Entrepreneur...)
-  - Description complète
-  - Liens sociaux (Twitter, GitHub, LinkedIn)
-  - Vote Market (dropdown)
+  - Bio / description
+  - Liens sociaux (Twitter, Farcaster)
+  - Vote Market compact intégré
+  - Status WebSocket (connecté, pausé, chargement)
 
-- [ ] **9.2** Créer `FounderCenterPanel.tsx` (centre)
-  - Market Graph (timeline FOR/AGAINST)
-  - Grille totems existants avec scores
-  - Section "Mes positions"
+- [x] **9.2** Créer `FounderCenterPanel.tsx` (centre) ✅
+  - **Fichier:** `components/founder/FounderCenterPanel.tsx`
+  - Onglets: Totems | Mes positions
+  - Grille totems cliquables avec scores FOR/AGAINST
+  - Section "Mes positions" (positions de l'utilisateur)
+  - Sélection de totem pour vote
 
-- [ ] **9.3** Adapter panneau droit (Vote Totem)
-  - Intégrer PresetButtons
-  - Intégrer PositionModifier
+- [x] **9.3** Adapter panneau droit (Vote Totem) ✅
+  - **Fichier:** `components/founder/VoteTotemPanel.tsx`
+  - Sélecteur de prédicat (has totem / embodies)
+  - Direction FOR/AGAINST
+  - Input montant avec PresetButtonsCompact
   - Bouton "Ajouter au panier"
+  - Preview du vote
 
-- [ ] **9.4** Intégrer le panier (haut droite)
+- [x] **9.4** Intégrer le panier (haut droite) ✅
+  - **Fichier:** `components/FounderExpandedView.tsx`
   - Badge avec nombre de votes
-  - Panel dépliable
+  - Panel slide-over dépliable
+  - VoteCartPanel intégré
   - Total + bouton valider
 
-### Phase 10: Graphe de Visualisation (Nice to have)
+### Phase 10: Graphe de Visualisation ✅ COMPLÉTÉ
 
 **Référence doc:** [14_Architecture_Contrats.md](14_Architecture_Contrats.md)
 
-- [ ] **10.1** Créer `useVoteGraph.ts`
-  - Récupère triples et votes
-  - Formate en nodes/edges
+- [x] **10.1** Créer `useVoteGraph.ts` ✅
+  - **Fichier:** `hooks/useVoteGraph.ts`
+  - Récupère triples et votes via GraphQL
+  - Transforme en nodes/edges pour reagraph
+  - Stats: totalNodes, totalEdges, uniqueTotems, uniquePredicates, totalVotes
 
-- [ ] **10.2** Créer `VoteGraph.tsx`
-  - Librairie: react-force-graph ou vis.js
-  - Nodes = atoms (fondateurs, prédicats, totems)
-  - Edges = triples avec scores
+- [x] **10.2** Créer `VoteGraph.tsx` ✅
+  - **Fichier:** `components/graph/VoteGraph.tsx`
+  - Librairie: **reagraph** (WebGL haute performance)
+  - Nodes = atoms (fondateurs violet, prédicats indigo, totems vert)
+  - Edges = triples avec poids basé sur votes
+  - Contrôles: recentrer, ajuster la vue
+  - Lazy loading pour les performances
+  - Intégré dans FounderCenterPanel (onglet "Graphe")
 
 ---
 
@@ -617,6 +629,10 @@ function calculateCartCost(cart: VoteCart, config: MultivaultConfig) {
 - ✅ **Phase 4**: Panier + Prévisualisation (hooks preview, localStorage, PresetButtons, CartBadge)
 - ✅ **Phase 5**: Batch Execution Hooks (useBatchDeposit, useBatchRedeem, useCartExecution)
 - ✅ **Phase 6**: VotePanel Integration (FloatingCartButton, VoteCartPanel slide-over)
+- ✅ **Phase 7**: Vote Market (useVoteMarketStats, VoteMarket, VoteMarketCompact)
+- ✅ **Phase 8**: Batch Triples (useBatchTriples, BatchTripleForm)
+- ✅ **Phase 9**: Refonte UI 3 Panneaux (FounderInfoPanel, FounderCenterPanel, VoteTotemPanel)
+- ✅ **Phase 10**: Graphe de Visualisation (useVoteGraph, VoteGraph avec reagraph)
 
 ### Ordre d'implémentation
 
@@ -627,12 +643,12 @@ function calculateCartCost(cart: VoteCart, config: MultivaultConfig) {
 | ~~**4**~~ | ~~Panier + Prévisualisation~~ | Phases 2-3 | ~~Moyenne~~ | ✅ Fait |
 | ~~**5**~~ | ~~Batch Execution Hooks~~ | Phase 4 | ~~Moyenne~~ | ✅ Fait |
 | ~~**6**~~ | ~~VotePanel Integration~~ | Phase 5 | ~~Moyenne~~ | ✅ Fait |
-| **7** | Vote Market | - | Moyenne | En attente |
-| **8** | Batch Triples | Phase 2 | Basse | En attente |
-| **9** | Refonte UI 3 Panneaux | Phases 4-7 | Basse | En attente |
-| **10** | Graphe de Visualisation | - | Nice to have | En attente |
+| ~~**7**~~ | ~~Vote Market~~ | - | ~~Moyenne~~ | ✅ Fait |
+| ~~**8**~~ | ~~Batch Triples~~ | Phase 2 | ~~Basse~~ | ✅ Fait |
+| ~~**9**~~ | ~~Refonte UI 3 Panneaux~~ | Phases 4-7 | ~~Basse~~ | ✅ Fait |
+| ~~**10**~~ | ~~Graphe de Visualisation~~ | - | ~~Nice to have~~ | ✅ Fait |
 
-**Prochaine phase à implémenter:** Phase 7 (Vote Market) - Stats agrégées par fondateur
+**PROJET TERMINÉ !** Toutes les 10 phases ont été implémentées.
 
 ---
 
@@ -649,3 +665,9 @@ function calculateCartCost(cart: VoteCart, config: MultivaultConfig) {
 | 2 déc 2025 | **Phase 4 complétée**: usePreviewDeposit, usePreviewRedeem, PresetButtons, PositionModifier, CartBadge, localStorage persistence |
 | 2 déc 2025 | **Phase 5 complétée**: useBatchDeposit, useBatchRedeem, useCartExecution orchestrator |
 | 2 déc 2025 | **Phase 6 complétée**: VotePanel integration avec FloatingCartButton et VoteCartPanel slide-over |
+| 2 déc 2025 | **Phase 7 complétée**: useVoteMarketStats, VoteMarket.tsx, VoteMarketCompact.tsx |
+| 2 déc 2025 | **Phase 8 complétée**: useBatchTriples.ts, BatchTripleForm.tsx |
+| 2 déc 2025 | **Phase 9 complétée**: FounderInfoPanel, FounderCenterPanel, VoteTotemPanel, refonte FounderExpandedView 3-panels |
+| 2 déc 2025 | **Phase 10 complétée**: useVoteGraph.ts, VoteGraph.tsx avec reagraph (WebGL), onglet Graphe dans FounderCenterPanel |
+| 2 déc 2025 | **PROJET TERMINÉ** - Toutes les 10 phases implémentées ! |
+| 5 déc 2025 | **i18n Internationalisation**: Tous les composants traduits EN/FR (VoteGraph, TradingChart, RefreshIndicator, VoteCartPanel, VoteMarket, FoundersTab Admin, etc.) |

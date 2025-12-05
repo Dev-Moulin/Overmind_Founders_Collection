@@ -151,7 +151,7 @@ export function PositionModifier({
           <button
             onClick={() => setAction('add')}
             disabled={disabled}
-            className="flex-1 px-3 py-2 text-sm bg-purple-500/20 text-purple-300 rounded-lg hover:bg-purple-500/30 transition-colors disabled:opacity-50"
+            className="flex-1 px-3 py-2 text-sm bg-slate-500/20 text-slate-300 rounded-lg hover:bg-slate-500/30 transition-colors disabled:opacity-50"
           >
             + Ajouter
           </button>
@@ -211,7 +211,7 @@ export function PositionModifier({
           <button
             onClick={handleAddSubmit}
             disabled={disabled || !addAmount || parseFloat(addAmount) <= 0}
-            className="w-full px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-4 py-2 bg-slate-500 text-white rounded-lg hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Ajouter au panier
           </button>
@@ -244,7 +244,7 @@ export function PositionModifier({
               step="10"
               value={withdrawPercent}
               onChange={(e) => handleWithdrawPercentChange(parseInt(e.target.value))}
-              className="w-full accent-purple-500"
+              className="w-full accent-slate-500"
             />
             <div className="flex justify-between text-xs text-white/50">
               <span>10%</span>

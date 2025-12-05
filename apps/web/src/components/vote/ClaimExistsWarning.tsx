@@ -18,7 +18,7 @@ export function ClaimExistsWarning({ claimInfo, isLoading, onVoteClick }: ClaimE
     return (
       <div className="mb-4 p-3 bg-white/5 border border-white/10 rounded-lg">
         <div className="flex items-center gap-2 text-white/60 text-sm">
-          <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-4 h-4 border-2 border-slate-500 border-t-transparent rounded-full animate-spin" />
           Vérification si ce claim existe...
         </div>
       </div>

@@ -69,8 +69,8 @@ export function OfcCategoriesTab({
           <div className="text-2xl font-bold text-red-400">{missingCount}</div>
           <div className="text-sm text-white/60">Atoms manquants</div>
         </div>
-        <div className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
-          <div className="text-2xl font-bold text-purple-400">{ofcAtoms.length}</div>
+        <div className="p-4 bg-slate-500/10 border border-slate-500/30 rounded-lg">
+          <div className="text-2xl font-bold text-slate-400">{ofcAtoms.length}</div>
           <div className="text-sm text-white/60">Total atoms OFC</div>
         </div>
       </div>
@@ -190,8 +190,8 @@ export function OfcCategoriesTab({
       )}
 
       {/* Categories Section */}
-      <div className="p-6 bg-purple-500/10 border border-purple-500/30 rounded-lg">
-        <h3 className="text-lg font-bold text-purple-400 mb-4">Catégories ({categoryAtoms.length})</h3>
+      <div className="p-6 bg-slate-500/10 border border-slate-500/30 rounded-lg">
+        <h3 className="text-lg font-bold text-slate-400 mb-4">Catégories ({categoryAtoms.length})</h3>
         <div className="space-y-3">
           {categoryAtoms.map((atom) => {
             const exists = ofcAtomsByLabel.has(atom.label);
@@ -228,7 +228,7 @@ export function OfcCategoriesTab({
                         <button
                           onClick={() => onCreateOfcAtom(atom.label)}
                           disabled={creatingItem !== null}
-                          className="px-4 py-2 bg-purple-500/20 text-purple-400 rounded hover:bg-purple-500/30 disabled:opacity-50"
+                          className="px-4 py-2 bg-slate-500/20 text-slate-400 rounded hover:bg-slate-500/30 disabled:opacity-50"
                         >
                           {creatingItem === atom.label ? 'Création...' : 'Créer'}
                         </button>
