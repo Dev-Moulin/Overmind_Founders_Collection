@@ -20,7 +20,7 @@ export const SUBSCRIBE_FOUNDER_PROPOSALS = gql`
     triples(
       where: {
         subject: { label: { _eq: $founderName } }
-        predicate: { label: { _eq: "represented_by" } }
+        predicate: { label: { _in: ["has totem", "embodies"] } }
       }
       order_by: { created_at: desc }
     ) {

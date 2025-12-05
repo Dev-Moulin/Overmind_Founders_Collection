@@ -10,14 +10,14 @@ import { gql } from '@apollo/client';
  * Get all triples (propositions) for a specific founder
  *
  * Returns all totem proposals for a founder where they are the subject
- * with the "represented_by" predicate.
+ * with the "has totem" or "embodies" predicate.
  */
 export const GET_FOUNDER_PROPOSALS = gql`
   query GetFounderProposals($founderName: String!) {
     triples(
       where: {
         subject: { label: { _eq: $founderName } }
-        predicate: { label: { _eq: "represented_by" } }
+        predicate: { label: { _in: ["has totem", "embodies"] } }
       }
       order_by: { created_at: desc }
     ) {
@@ -67,7 +67,7 @@ export const GET_USER_PROPOSALS = gql`
     triples(
       where: {
         creator_id: { _eq: $walletAddress }
-        predicate: { label: { _eq: "represented_by" } }
+        predicate: { label: { _in: ["has totem", "embodies"] } }
       }
       order_by: { created_at: desc }
     ) {
@@ -116,7 +116,7 @@ export const COUNT_USER_PROPOSALS_FOR_FOUNDER = gql`
       where: {
         creator_id: { _eq: $walletAddress }
         subject: { label: { _eq: $founderName } }
-        predicate: { label: { _eq: "represented_by" } }
+        predicate: { label: { _in: ["has totem", "embodies"] } }
       }
     ) {
       aggregate {
@@ -263,13 +263,13 @@ export const SEARCH_ATOMS = gql`
 `;
 
 /**
- * Get all triples with the "represented_by" predicate
+ * Get all triples with the "has totem" or "embodies" predicate
  * Used for getting all founder-totem proposals
  */
 export const GET_ALL_PROPOSALS = gql`
   query GetAllProposals {
     triples(
-      where: { predicate: { label: { _eq: "represented_by" } } }
+      where: { predicate: { label: { _in: ["has totem", "embodies"] } } }
       order_by: { created_at: desc }
     ) {
       term_id
@@ -507,7 +507,7 @@ export const GET_FOUNDER_STATS = gql`
     triples(
       where: {
         subject: { label: { _eq: $founderName } }
-        predicate: { label: { _eq: "represented_by" } }
+        predicate: { label: { _in: ["has totem", "embodies"] } }
       }
     ) {
       term_id

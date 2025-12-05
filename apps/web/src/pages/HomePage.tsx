@@ -50,7 +50,7 @@ export function HomePage() {
       <section className="text-center py-8">
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
           {t('homePage.title')}
-          <span className="block text-purple-400">{t('homePage.subtitle')}</span>
+          <span className="block text-slate-400">{t('homePage.subtitle')}</span>
         </h1>
         <p className="text-lg text-white/70 max-w-2xl mx-auto mb-6">
           {t('homePage.description')}
@@ -65,7 +65,7 @@ export function HomePage() {
             <Link to="/vote" className="glass-button">
               {t('homePage.viewAllTotems')}
             </Link>
-            <Link to="/results" className="glass-button bg-purple-500/20 border-purple-500/30">
+            <Link to="/results" className="glass-button bg-slate-500/20 border-slate-500/30">
               {t('homePage.results')}
             </Link>
           </div>
@@ -75,19 +75,19 @@ export function HomePage() {
       {/* Stats Section - Dynamic */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="glass-card p-4 text-center">
-          <div className="text-3xl font-bold text-purple-400">{stats.totalFounders}</div>
+          <div className="text-3xl font-bold text-slate-400">{stats.totalFounders}</div>
           <div className="text-white/60 text-sm">{t('homePage.stats.founders')}</div>
         </div>
         <div className="glass-card p-4 text-center">
-          <div className="text-3xl font-bold text-purple-400">{stats.foundersWithAtoms}</div>
+          <div className="text-3xl font-bold text-slate-400">{stats.foundersWithAtoms}</div>
           <div className="text-white/60 text-sm">{t('homePage.stats.onChain')}</div>
         </div>
         <div className="glass-card p-4 text-center">
-          <div className="text-3xl font-bold text-purple-400">{stats.totalProposals}</div>
+          <div className="text-3xl font-bold text-slate-400">{stats.totalProposals}</div>
           <div className="text-white/60 text-sm">{t('homePage.stats.proposals')}</div>
         </div>
         <div className="glass-card p-4 text-center">
-          <div className="text-3xl font-bold text-purple-400">{stats.foundersWithTotems}</div>
+          <div className="text-3xl font-bold text-slate-400">{stats.foundersWithTotems}</div>
           <div className="text-white/60 text-sm">{t('homePage.stats.withTotem')}</div>
         </div>
       </section>
@@ -96,9 +96,6 @@ export function HomePage() {
       <section>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-white">{t('homePage.foundersTitle')}</h2>
-          <Link to="/propose" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">
-            {t('homePage.proposeTotem')} &rarr;
-          </Link>
         </div>
 
         {error && (
@@ -108,13 +105,13 @@ export function HomePage() {
         )}
 
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
-            {Array.from({ length: 20 }).map((_, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {Array.from({ length: 16 }).map((_, i) => (
               <FounderHomeCardSkeleton key={i} />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {founders.map((founder) => (
               <FounderHomeCard
                 key={founder.id}
@@ -134,54 +131,6 @@ export function HomePage() {
           onClose={closeExpandedView}
         />
       )}
-
-      {/* How It Works Section */}
-      <section className="glass-card p-6">
-        <h2 className="text-xl font-bold text-white mb-4 text-center">
-          {t('homePage.howItWorks.title')}
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center">
-            <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center mx-auto mb-2">
-              <span className="text-purple-400 font-bold text-sm">1</span>
-            </div>
-            <h4 className="font-semibold text-white text-sm mb-1">{t('homePage.howItWorks.step1.title')}</h4>
-            <p className="text-white/60 text-xs">
-              {t('homePage.howItWorks.step1.description')}
-            </p>
-          </div>
-
-          <div className="text-center">
-            <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center mx-auto mb-2">
-              <span className="text-purple-400 font-bold text-sm">2</span>
-            </div>
-            <h4 className="font-semibold text-white text-sm mb-1">{t('homePage.howItWorks.step2.title')}</h4>
-            <p className="text-white/60 text-xs">
-              {t('homePage.howItWorks.step2.description')}
-            </p>
-          </div>
-
-          <div className="text-center">
-            <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center mx-auto mb-2">
-              <span className="text-purple-400 font-bold text-sm">3</span>
-            </div>
-            <h4 className="font-semibold text-white text-sm mb-1">{t('homePage.howItWorks.step3.title')}</h4>
-            <p className="text-white/60 text-xs">
-              {t('homePage.howItWorks.step3.description')}
-            </p>
-          </div>
-
-          <div className="text-center">
-            <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center mx-auto mb-2">
-              <span className="text-purple-400 font-bold text-sm">4</span>
-            </div>
-            <h4 className="font-semibold text-white text-sm mb-1">{t('homePage.howItWorks.step4.title')}</h4>
-            <p className="text-white/60 text-xs">
-              {t('homePage.howItWorks.step4.description')}
-            </p>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

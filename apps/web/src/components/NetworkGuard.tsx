@@ -74,7 +74,7 @@ export function NetworkGuard({ children }: NetworkGuardProps) {
             </p>
             <p className="text-sm text-white/50">
               Adresse du contrat NFT :<br />
-              <code className="text-purple-400">
+              <code className="text-slate-400">
                 0x98e2...8f8c
               </code>
             </p>

@@ -1,26 +1,25 @@
 /**
- * FounderCenterPanel - Center panel showing totems grid and user positions
+ * FounderCenterPanel - Center panel showing Trading chart, totems grid and user positions
  *
  * Displays:
- * - Grid of existing totems with scores
- * - User's positions on this founder (if connected)
+ * - Trading chart at the top (always visible) - FOR/AGAINST votes over time
+ * - Two sections with tabs:
+ *   - Section 1: Totems / Création
+ *   - Section 2: My Votes / Best Triples
  * - Click on totem to select for voting
  *
- * @see Phase 9 in TODO_Implementation.md
+ * @see Phase 10 in TODO_FIX_01_Discussion.md
  */
 
-import { useState, useMemo, lazy, Suspense } from 'react';
+import { useState, useMemo } from 'react';
 import { formatEther } from 'viem';
 import { useAccount } from 'wagmi';
+import { useTranslation } from 'react-i18next';
 import type { FounderForHomePage } from '../../hooks/useFoundersForHomePage';
 import { useFounderProposals } from '../../hooks/useFounderProposals';
-import { useVoteGraph } from '../../hooks/useVoteGraph';
+import { useVotesTimeline } from '../../hooks/useVotesTimeline';
+import { TradingChart, type Timeframe } from '../graph/TradingChart';
 import type { ProposalWithVotes } from '../../lib/graphql/types';
-
-// Lazy load the graph component (heavy WebGL)
-const VoteGraphWithStats = lazy(() =>
-  import('../graph/VoteGraph').then((mod) => ({ default: mod.VoteGraphWithStats }))
-);
 
 interface FounderCenterPanelProps {
   founder: FounderForHomePage;
@@ -61,10 +60,18 @@ export function FounderCenterPanel({
   onSelectTotem,
   selectedTotemId,
 }: FounderCenterPanelProps) {
+  const { t } = useTranslation();
   const { isConnected, address } = useAccount();
   const { proposals, loading } = useFounderProposals(founder.name);
-  const { graphData, stats: graphStats, loading: graphLoading } = useVoteGraph(founder.name);
-  const [viewMode, setViewMode] = useState<'totems' | 'positions' | 'graph'>('totems');
+  const [viewMode, setViewMode] = useState<'totems' | 'positions'>('totems');
+  const [timeframe, setTimeframe] = useState<Timeframe>('24H');
+
+  // Trading chart data
+  const {
+    data: timelineData,
+    loading: timelineLoading,
+    // stats: timelineStats, // TODO: Utiliser pour afficher des stats sous le graphe
+  } = useVotesTimeline(founder.name, timeframe);
 
   // Sort proposals by net score
   const sortedProposals = useMemo(() => {
@@ -85,38 +92,40 @@ export function FounderCenterPanel({
 
   return (
     <div className="glass-card p-4 h-full flex flex-col">
-      {/* Header with tabs */}
-      <div className="flex items-center justify-between mb-4">
+      {/* Trading Chart Section - Always visible at top */}
+      <div className="mb-4">
+        <TradingChart
+          data={timelineData}
+          timeframe={timeframe}
+          onTimeframeChange={setTimeframe}
+          height={180}
+          loading={timelineLoading}
+          title="Vote Activity"
+        />
+      </div>
+
+      {/* Tabs Header */}
+      <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-bold text-white">
-          {viewMode === 'totems' ? 'Totems associés' : viewMode === 'graph' ? 'Graphe de relations' : 'Mes positions'}
+          {viewMode === 'totems' ? t('founderExpanded.associatedTotems') : t('founderExpanded.myPositions')}
         </h3>
         <div className="flex bg-white/5 rounded-lg p-0.5">
           <button
             onClick={() => setViewMode('totems')}
             className={`px-3 py-1 text-xs rounded-md transition-colors ${
               viewMode === 'totems'
-                ? 'bg-purple-500/30 text-purple-300'
+                ? 'bg-slate-500/30 text-slate-300'
                 : 'text-white/60 hover:text-white'
             }`}
           >
             Totems
-          </button>
-          <button
-            onClick={() => setViewMode('graph')}
-            className={`px-3 py-1 text-xs rounded-md transition-colors ${
-              viewMode === 'graph'
-                ? 'bg-purple-500/30 text-purple-300'
-                : 'text-white/60 hover:text-white'
-            }`}
-          >
-            Graphe
           </button>
           {isConnected && (
             <button
               onClick={() => setViewMode('positions')}
               className={`px-3 py-1 text-xs rounded-md transition-colors ${
                 viewMode === 'positions'
-                  ? 'bg-purple-500/30 text-purple-300'
+                  ? 'bg-slate-500/30 text-slate-300'
                   : 'text-white/60 hover:text-white'
               }`}
             >
@@ -128,7 +137,7 @@ export function FounderCenterPanel({
 
       {/* Content area */}
       <div className="flex-1 overflow-y-auto min-h-0">
-        {loading || graphLoading ? (
+        {loading ? (
           // Loading skeleton
           <div className="grid grid-cols-2 gap-3">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -138,28 +147,6 @@ export function FounderCenterPanel({
               </div>
             ))}
           </div>
-        ) : viewMode === 'graph' ? (
-          // Graph visualization
-          <Suspense
-            fallback={
-              <div className="flex items-center justify-center h-full">
-                <div className="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full" />
-              </div>
-            }
-          >
-            <VoteGraphWithStats
-              nodes={graphData.nodes}
-              edges={graphData.edges}
-              stats={graphStats}
-              height="100%"
-              onNodeClick={(node) => {
-                if (node.type === 'totem' && node.termId) {
-                  onSelectTotem?.(node.termId, node.label);
-                }
-              }}
-              darkMode
-            />
-          </Suspense>
         ) : viewMode === 'totems' ? (
           // Totems grid
           sortedProposals.length > 0 ? (
@@ -175,7 +162,7 @@ export function FounderCenterPanel({
                     onClick={() => onSelectTotem?.(proposal.object_id, proposal.object.label)}
                     className={`text-left p-3 rounded-lg transition-all ${
                       isSelected
-                        ? 'bg-purple-500/30 ring-2 ring-purple-500/50'
+                        ? 'bg-slate-500/30 ring-2 ring-slate-500/50'
                         : 'bg-white/5 hover:bg-white/10'
                     }`}
                   >
@@ -184,7 +171,7 @@ export function FounderCenterPanel({
                         {proposal.object.label}
                       </span>
                       {isSelected && (
-                        <span className="shrink-0 w-2 h-2 rounded-full bg-purple-400" />
+                        <span className="shrink-0 w-2 h-2 rounded-full bg-slate-400" />
                       )}
                     </div>
                     <div className="flex items-center gap-2 mt-1">
@@ -206,8 +193,8 @@ export function FounderCenterPanel({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                 </svg>
               </div>
-              <p className="text-white/50 text-sm">Aucun totem pour ce fondateur</p>
-              <p className="text-white/30 text-xs mt-1">Soyez le premier à proposer un totem !</p>
+              <p className="text-white/50 text-sm">{t('founderExpanded.noTotemForFounder')}</p>
+              <p className="text-white/30 text-xs mt-1">{t('founderExpanded.beFirstToPropose')}</p>
             </div>
           )
         ) : (
@@ -242,18 +229,18 @@ export function FounderCenterPanel({
                           AGAINST: {formatScore(proposal.votes.againstVotes)}
                         </span>
                       </div>
-                      {/* Position actions would go here */}
+                      {/* Position actions */}
                       <div className="flex gap-2 mt-3">
                         <button
                           onClick={() => onSelectTotem?.(proposal.object_id, proposal.object.label)}
                           className="flex-1 py-1.5 text-xs bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded transition-colors"
                         >
-                          + Ajouter
+                          + {t('founderExpanded.addToCart')}
                         </button>
                         <button
                           className="flex-1 py-1.5 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded transition-colors"
                         >
-                          - Retirer
+                          - {t('founderExpanded.withdraw')}
                         </button>
                       </div>
                     </div>
@@ -262,14 +249,13 @@ export function FounderCenterPanel({
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center py-8">
-                <p className="text-white/50 text-sm">Vous n'avez pas encore de positions</p>
-                <p className="text-white/30 text-xs mt-1">Votez sur un totem pour commencer</p>
+                <p className="text-white/50 text-sm">{t('founderExpanded.noTotemForFounder')}</p>
+                <p className="text-white/30 text-xs mt-1">{t('founderExpanded.voteOnTotemToStart')}</p>
               </div>
             )
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center py-8">
-              <p className="text-white/50 text-sm">Connectez votre wallet</p>
-              <p className="text-white/30 text-xs mt-1">pour voir vos positions</p>
+              <p className="text-white/50 text-sm">{t('common.connectWallet')}</p>
             </div>
           )
         )}
@@ -277,7 +263,7 @@ export function FounderCenterPanel({
 
       {/* Footer stats */}
       <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs text-white/40">
-        <span>{sortedProposals.length} totems</span>
+        <span>{sortedProposals.length} {t('founderExpanded.totems')}</span>
         {isConnected && address && (
           <span className="truncate ml-2">
             {address.slice(0, 6)}...{address.slice(-4)}

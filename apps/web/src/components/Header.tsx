@@ -20,14 +20,14 @@ export function Header() {
   const navLinkClass = (path: string) => {
     const base = 'text-sm font-medium transition-colors';
     return isActive(path)
-      ? `${base} text-purple-400`
+      ? `${base} text-slate-400`
       : `${base} text-white/70 hover:text-white`;
   };
 
   return (
     <header className="flex justify-between items-center px-6 py-4 border-b border-white/10 bg-black/20 backdrop-blur-sm">
       <div className="flex items-center gap-6">
-        <Link to="/" className="text-xl font-bold text-white hover:text-purple-400 transition-colors">
+        <Link to="/" className="text-xl font-bold text-white hover:text-slate-400 transition-colors">
           {t('header.title')}
         </Link>
 

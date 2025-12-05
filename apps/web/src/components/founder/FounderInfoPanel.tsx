@@ -12,6 +12,7 @@
  */
 
 import { formatEther } from 'viem';
+import { useTranslation } from 'react-i18next';
 import type { FounderForHomePage } from '../../hooks/useFoundersForHomePage';
 import { getFounderImageUrl } from '../../utils/founderImage';
 import { VoteMarketCompact } from '../vote/VoteMarket';
@@ -51,6 +52,7 @@ export function FounderInfoPanel({
   isLoading = false,
   hasNewData = false,
 }: FounderInfoPanelProps) {
+  const { t } = useTranslation();
   const imageUrl = getFounderImageUrl(founder);
 
   // Extract social links from founder data
@@ -68,7 +70,7 @@ export function FounderInfoPanel({
       <button
         onClick={onClose}
         className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors z-10"
-        aria-label="Fermer"
+        aria-label={t('common.close')}
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -80,7 +82,7 @@ export function FounderInfoPanel({
         <img
           src={imageUrl}
           alt={founder.name}
-          className="w-24 h-24 rounded-full object-cover border-3 border-purple-500/50 shadow-lg shadow-purple-500/20"
+          className="w-24 h-24 rounded-full object-cover border-3 border-slate-500/50 shadow-lg shadow-slate-500/20"
           onError={(e) => {
             (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(founder.name)}`;
           }}
@@ -102,10 +104,10 @@ export function FounderInfoPanel({
         />
       </div>
 
-      {/* Short Bio */}
-      {founder.shortBio && (
-        <p className="text-xs text-white/60 text-center mb-4 leading-relaxed line-clamp-3">
-          {founder.shortBio}
+      {/* Full Bio (with fallback to short bio) */}
+      {(founder.fullBio || founder.shortBio) && (
+        <p className="text-xs text-white/60 text-center mb-4 leading-relaxed">
+          {founder.fullBio || founder.shortBio}
         </p>
       )}
 
@@ -160,11 +162,11 @@ export function FounderInfoPanel({
       {/* Quick Stats with animation */}
       <div
         className={`space-y-2 rounded-lg p-2 -mx-2 transition-all duration-300 ${
-          hasNewData ? 'bg-purple-500/20 ring-1 ring-purple-500/50' : ''
+          hasNewData ? 'bg-slate-500/20 ring-1 ring-slate-500/50' : ''
         }`}
       >
         <div className="flex justify-between text-xs">
-          <span className="text-white/50">Propositions</span>
+          <span className="text-white/50">{t('common.proposals')}</span>
           <span className="text-white font-medium">{founder.proposalCount}</span>
         </div>
 
@@ -172,13 +174,13 @@ export function FounderInfoPanel({
           <>
             <div className="flex justify-between text-xs">
               <span className="text-white/50">Top totem</span>
-              <span className="text-purple-400 font-medium truncate ml-2 max-w-[100px]">
+              <span className="text-slate-400 font-medium truncate ml-2 max-w-[100px]">
                 {founder.winningTotem.label}
               </span>
             </div>
             <div className="flex justify-between text-xs">
               <span className="text-white/50">Score</span>
-              <span className={`text-purple-400 font-medium transition-all duration-300 ${
+              <span className={`text-slate-400 font-medium transition-all duration-300 ${
                 hasNewData ? 'scale-110' : ''
               }`}>
                 {formatScore(founder.winningTotem.netScore)} TRUST

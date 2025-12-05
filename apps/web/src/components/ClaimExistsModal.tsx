@@ -243,13 +243,13 @@ export function ClaimExistsModal({
         {/* Body */}
         <div className="p-6 space-y-6">
           {/* Claim Info */}
-          <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/30">
+          <div className="p-4 rounded-lg bg-slate-500/10 border border-slate-500/30">
             <p className="text-white font-medium text-center">
-              <span className="text-purple-400">{claim.subjectLabel}</span>
+              <span className="text-slate-400">{claim.subjectLabel}</span>
               {' '}
               <span className="text-white/70">{claim.predicateLabel}</span>
               {' '}
-              <span className="text-purple-400">{claim.objectLabel}</span>
+              <span className="text-slate-400">{claim.objectLabel}</span>
             </p>
             {(claim.forVotes || claim.againstVotes) && (
               <div className="flex justify-center gap-4 mt-3 text-sm">
@@ -352,7 +352,7 @@ export function ClaimExistsModal({
               min="0"
               step="0.01"
               disabled={isLoading}
-              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white text-lg placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white text-lg placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:opacity-50"
             />
             <p className="mt-2 text-sm text-white/60">
               {t('vote.amountHelper')}

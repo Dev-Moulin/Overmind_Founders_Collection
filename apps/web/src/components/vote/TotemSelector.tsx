@@ -74,13 +74,13 @@ export function TotemSelector({
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-white/70">2. Totem</span>
           {(selectedTotem || newTotemName) && (
-            <span className="text-sm text-purple-400">
+            <span className="text-sm text-slate-400">
               : {totemMode === 'existing' ? selectedTotem?.label : newTotemName}
               {totemMode === 'new' && ' (nouveau)'}
             </span>
           )}
         </div>
-        <span className={`text-xs text-purple-400 transition-transform duration-500 ${isOpen ? 'rotate-180' : ''}`}>
+        <span className={`text-xs text-slate-400 transition-transform duration-500 ${isOpen ? 'rotate-180' : ''}`}>
           ▼
         </span>
       </button>
@@ -98,7 +98,7 @@ export function TotemSelector({
               onClick={() => onModeChange('existing')}
               className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-colors ${
                 totemMode === 'existing'
-                  ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50'
+                  ? 'bg-slate-500/30 text-slate-300 border border-slate-500/50'
                   : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10'
               }`}
             >
@@ -108,7 +108,7 @@ export function TotemSelector({
               onClick={() => onModeChange('new')}
               className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-colors ${
                 totemMode === 'new'
-                  ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50'
+                  ? 'bg-slate-500/30 text-slate-300 border border-slate-500/50'
                   : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10'
               }`}
             >
@@ -134,7 +134,7 @@ export function TotemSelector({
                         }}
                         className={`px-2 py-1 text-xs rounded-lg transition-colors ${
                           selectedTotemId === totem.id
-                            ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50'
+                            ? 'bg-slate-500/30 text-slate-300 border border-slate-500/50'
                             : 'bg-white/5 text-white/70 hover:bg-white/10 border border-white/10'
                         }`}
                       >
@@ -156,7 +156,7 @@ export function TotemSelector({
                       placeholder="Rechercher..."
                       value={searchQuery}
                       onChange={(e) => onSearchQueryChange(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white placeholder-white/30 focus:outline-none focus:border-purple-500/50"
+                      className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white placeholder-white/30 focus:outline-none focus:border-slate-500/50"
                     />
                   </div>
 
@@ -175,7 +175,7 @@ export function TotemSelector({
                           }}
                           className={`px-2 py-1 text-xs rounded-lg transition-colors ${
                             selectedTotemId === totem.id
-                              ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50'
+                              ? 'bg-slate-500/30 text-slate-300 border border-slate-500/50'
                               : 'bg-white/5 text-white/70 hover:bg-white/10 border border-white/10'
                           }`}
                         >
@@ -189,7 +189,7 @@ export function TotemSelector({
                     <div className="space-y-3 max-h-48 overflow-y-auto">
                       {Array.from(totemsByCategory.entries()).map(([category, totems]) => (
                         <div key={category}>
-                          <p className="text-xs text-purple-400 font-medium mb-1.5">
+                          <p className="text-xs text-slate-400 font-medium mb-1.5">
                             {category} ({totems.length})
                           </p>
                           <div className="flex flex-wrap gap-1.5">
@@ -204,7 +204,7 @@ export function TotemSelector({
                                 }}
                                 className={`px-2 py-1 text-xs rounded-lg transition-colors ${
                                   selectedTotemId === totem.id
-                                    ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50'
+                                    ? 'bg-slate-500/30 text-slate-300 border border-slate-500/50'
                                     : 'bg-white/5 text-white/70 hover:bg-white/10 border border-white/10'
                                 }`}
                               >
@@ -280,7 +280,7 @@ export function TotemSelector({
                     placeholder="Ex: Lion, Compass, Visionary..."
                     value={newTotemName}
                     onChange={(e) => onNewTotemNameChange(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500/50"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-slate-500/50"
                   />
                 </div>
 
@@ -301,7 +301,7 @@ export function TotemSelector({
                         onClick={() => onNewTotemCategoryChange(cat.name)}
                         className={`px-2 py-1 text-xs rounded-lg transition-colors ${
                           newTotemCategory === cat.name
-                            ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50'
+                            ? 'bg-slate-500/30 text-slate-300 border border-slate-500/50'
                             : 'bg-white/5 text-white/70 hover:bg-white/10 border border-white/10'
                         }`}
                       >
@@ -333,12 +333,12 @@ export function TotemSelector({
                       placeholder="Ou créer nouvelle catégorie..."
                       value={!typedCategoriesConfig.categories.some(c => c.name === newTotemCategory) && !dynamicCategories.includes(newTotemCategory) ? newTotemCategory : ''}
                       onChange={(e) => onNewTotemCategoryChange(e.target.value)}
-                      className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white placeholder-white/30 focus:outline-none focus:border-purple-500/50"
+                      className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-white placeholder-white/30 focus:outline-none focus:border-slate-500/50"
                     />
                   </div>
                   {newTotemCategory && (
                     <p className="text-xs text-white/40 mt-2">
-                      Triple créé: <span className="text-purple-400">[{newTotemName || '...'}] [has_category] [{OFC_PREFIX}{newTotemCategory}]</span>
+                      Triple créé: <span className="text-slate-400">[{newTotemName || '...'}] [has_category] [{OFC_PREFIX}{newTotemCategory}]</span>
                     </p>
                   )}
                 </div>

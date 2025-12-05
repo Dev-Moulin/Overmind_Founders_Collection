@@ -22,7 +22,16 @@
     "all": "Tous",
     "name": "Nom",
     "votes": "Votes",
-    "proposals": "Propositions"
+    "proposals": "Propositions",
+    "noTotem": "Aucun totem",
+    "clickToVote": "Cliquez pour voter",
+    "connectWallet": "Connectez votre wallet",
+    "connectWalletToVote": "Connectez votre wallet pour voter",
+    "noData": "Aucune donnée disponible",
+    "noRelationFound": "Aucune relation trouvée",
+    "founder": "Fondateur",
+    "relation": "Relation",
+    "totem": "Totem"
   },
   "vote": {
     "for": "FOR",
@@ -67,6 +76,18 @@
   "transaction": {
     "pleaseSign": "Veuillez signer la transaction dans votre wallet"
   },
+  "refreshIndicator": {
+    "paused": "En pause",
+    "connecting": "Connexion...",
+    "disconnected": "Déconnecté",
+    "justNow": "à l'instant",
+    "secondsAgo": "il y a {{seconds}}s",
+    "pausedTooltip": "Onglet masqué - actualisation en pause",
+    "connectingTooltip": "Connexion en cours...",
+    "disconnectedTooltip": "Connexion perdue - vérifiez votre réseau",
+    "activeTooltip": "Actualisation temps réel active",
+    "updatedAt": "Actualisé {{time}}"
+  },
   "founderCard": {
     "newBadge": "NOUVEAU",
     "viewProfile": "Voir le profil"
@@ -76,7 +97,39 @@
     "stats": "Statistiques",
     "totalVotes": "Total votes",
     "proposals": "Propositions",
-    "recentActivity": "Activité récente"
+    "recentActivity": "Activité récente",
+    "voteCart": "Panier de votes",
+    "associatedTotems": "Totems associés",
+    "myPositions": "Mes positions",
+    "noTotemForFounder": "Aucun totem pour ce fondateur",
+    "beFirstToPropose": "Soyez le premier à proposer un totem !",
+    "voteOnTotemToStart": "Votez sur un totem pour commencer",
+    "totems": "totems",
+    "selectedTotem": "Totem sélectionné",
+    "selectTotemFromCenter": "Sélectionnez un totem dans le panneau central",
+    "relationType": "Type de relation",
+    "voteDirection": "Direction du vote",
+    "withdrawPreview": "Aperçu du retrait",
+    "votePreview": "Aperçu du vote",
+    "withdrawMyPosition": "Retirer ma position",
+    "addToCart": "Ajouter au panier",
+    "votesInCart": "vote(s) dans le panier",
+    "withdraw": "Retirer",
+    "amountTrust": "Montant (TRUST)",
+    "amountBelowMin": "Montant inférieur au minimum",
+    "oppositePositionWarning": "Position opposée existante - retrait automatique",
+    "newTotemInfo": "Nouveau totem - création incluse",
+    "summary": "Récapitulatif",
+    "deposits": "Dépôts",
+    "entryFees": "Frais d'entrée (estimés)",
+    "atomCreation": "Création atoms ({{count}})",
+    "withdrawals": "Retraits ({{count}})",
+    "netTotal": "Total net",
+    "noVotesYet": "Aucun vote pour le moment",
+    "emptyCart": "Panier vide",
+    "addVotesHint": "Ajoutez des votes au panier pour les valider en batch",
+    "validating": "Validation...",
+    "validateCart": "Valider le panier"
   },
   "homePage": {
     "title": "INTUITION",
@@ -253,5 +306,24 @@
       "description": "Erreur lors du chargement de vos votes: {message}",
       "button": "← Retour à l'accueil"
     }
+  },
+  "admin": {
+    "loadingAtoms": "Chargement des atoms...",
+    "graphqlError": "Erreur GraphQL : {message}",
+    "existingAtoms": "Atoms existants",
+    "missingAtoms": "Atoms manquants",
+    "totalFounders": "Total fondateurs",
+    "foundersWithAtoms": "Fondateurs avec Atoms ({count})",
+    "foundersWithoutAtom": "Fondateurs sans Atom ({count})",
+    "termId": "Term ID",
+    "type": "Type",
+    "creating": "Création...",
+    "createAtom": "Créer Atom",
+    "noUrl": "Aucune URL",
+    "imageSource": "Image: {source}",
+    "sourceManual": "Manuel",
+    "sourceTwitter": "Twitter",
+    "sourceGitHub": "GitHub",
+    "sourceGenerated": "DiceBear (généré)"
   }
 }

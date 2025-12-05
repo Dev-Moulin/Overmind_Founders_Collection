@@ -120,7 +120,7 @@ export function PresetButtons({
             transition-all duration-200
             ${
               preset.isActive
-                ? 'bg-purple-500 text-white border border-purple-400'
+                ? 'bg-slate-500 text-white border border-slate-400'
                 : 'bg-white/5 text-white/70 border border-white/10 hover:bg-white/10 hover:text-white'
             }
             ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}

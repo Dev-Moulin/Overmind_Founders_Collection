@@ -49,7 +49,7 @@ export function PredicatesTab({
       <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
         <h3 className="text-lg font-bold text-blue-400 mb-2">Prédicats Utilisateur (Phase 3):</h3>
         <div className="text-white/70 text-sm space-y-1">
-          <p><code className="bg-white/10 px-2 py-1 rounded">Triple 1:</code> [Founder] → [<span className="text-purple-400">predicate</span>] → [Totem] <span className="text-white/50">(Vote FOR/AGAINST)</span></p>
+          <p><code className="bg-white/10 px-2 py-1 rounded">Triple 1:</code> [Founder] → [<span className="text-slate-400">predicate</span>] → [Totem] <span className="text-white/50">(Vote FOR/AGAINST)</span></p>
         </div>
         <p className="text-white/50 text-xs mt-2">
           Ces 2 prédicats sont utilisés par les utilisateurs dans le VotePanel.
@@ -66,8 +66,8 @@ export function PredicatesTab({
           <div className="text-2xl font-bold text-red-400">{missingCount}</div>
           <div className="text-sm text-white/60">Prédicats manquants</div>
         </div>
-        <div className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
-          <div className="text-2xl font-bold text-purple-400">{predicates.length}</div>
+        <div className="p-4 bg-slate-500/10 border border-slate-500/30 rounded-lg">
+          <div className="text-2xl font-bold text-slate-400">{predicates.length}</div>
           <div className="text-sm text-white/60">Total prédicats</div>
         </div>
       </div>
@@ -92,7 +92,7 @@ export function PredicatesTab({
                   <div className="font-bold text-white mb-1 flex items-center gap-2">
                     "{predicate.label}"
                     {predicate.isDefault && (
-                      <span className="text-xs bg-purple-500/30 text-purple-300 px-2 py-0.5 rounded">
+                      <span className="text-xs bg-slate-500/30 text-slate-300 px-2 py-0.5 rounded">
                         défaut
                       </span>
                     )}
@@ -114,7 +114,7 @@ export function PredicatesTab({
                       <button
                         onClick={() => onCreatePredicate(predicate.label)}
                         disabled={creatingItem !== null}
-                        className="px-4 py-2 bg-purple-500/20 text-purple-400 rounded hover:bg-purple-500/30 disabled:opacity-50"
+                        className="px-4 py-2 bg-slate-500/20 text-slate-400 rounded hover:bg-slate-500/30 disabled:opacity-50"
                       >
                         {creatingItem === predicate.label ? 'Création...' : 'Créer'}
                       </button>

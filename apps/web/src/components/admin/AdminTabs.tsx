@@ -22,7 +22,7 @@ export function AdminTabs({ activeTab, setActiveTab, tabs }: AdminTabsProps) {
           onClick={() => setActiveTab(tab.id)}
           className={`px-6 py-3 font-medium transition-colors ${
             activeTab === tab.id
-              ? 'text-purple-400 border-b-2 border-purple-400'
+              ? 'text-slate-400 border-b-2 border-slate-400'
               : 'text-white/50 hover:text-white/80'
           }`}
         >

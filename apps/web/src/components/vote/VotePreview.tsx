@@ -16,8 +16,8 @@ interface VotePreviewProps {
 
 export function VotePreview({ previewText, trustAmount, totalCost }: VotePreviewProps) {
   return (
-    <div className="mb-6 p-4 bg-purple-500/10 border border-purple-500/20 rounded-lg">
-      <h4 className="text-xs font-semibold text-purple-400 mb-2">Preview</h4>
+    <div className="mb-6 p-4 bg-slate-500/10 border border-slate-500/20 rounded-lg">
+      <h4 className="text-xs font-semibold text-slate-400 mb-2">Preview</h4>
       <p className="text-white font-medium">{previewText}</p>
       <p className="text-sm text-white/50 mt-1">
         Dépôt: {trustAmount || '0'} TRUST (vote FOR)

@@ -47,7 +47,7 @@ export function CartBadge({
       className={`
         inline-flex items-center justify-center
         rounded-full font-bold
-        bg-purple-500 text-white
+        bg-slate-500 text-white
         ${sizeClasses[size]}
         ${count > 0 ? 'animate-pulse' : ''}
         ${className}
@@ -115,7 +115,7 @@ export function CartIconWithBadge({
             w-5 h-5 text-xs font-bold
             flex items-center justify-center
             rounded-full
-            bg-purple-500 text-white
+            bg-slate-500 text-white
             animate-pulse
           "
         >
@@ -171,9 +171,9 @@ export function FloatingCartButton({
         z-50
         flex items-center gap-3
         px-4 py-3 rounded-full
-        bg-purple-500 hover:bg-purple-600
+        bg-slate-500 hover:bg-slate-600
         text-white font-medium
-        shadow-lg shadow-purple-500/30
+        shadow-lg shadow-slate-500/30
         transition-all duration-300
         hover:scale-105
         disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100

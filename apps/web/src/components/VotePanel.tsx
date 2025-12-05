@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAccount, useBalance } from 'wagmi';
 import { useQuery } from '@apollo/client';
 import type { Hex } from 'viem';
@@ -40,6 +41,7 @@ interface VotePanelProps {
  * Shows predicate selector, totem selector/creator, and vote form
  */
 export function VotePanel({ founder }: VotePanelProps) {
+  const { t } = useTranslation();
   const { isConnected, address } = useAccount();
   const predicates = predicatesData as Predicate[];
 
@@ -388,7 +390,7 @@ export function VotePanel({ founder }: VotePanelProps) {
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-white/10">
                 <h2 className="text-lg font-semibold text-white">
-                  Panier de votes ({itemCount})
+                  {t('founderExpanded.voteCart')} ({itemCount})
                 </h2>
                 <button
                   onClick={() => setIsCartPanelOpen(false)}

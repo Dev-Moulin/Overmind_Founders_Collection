@@ -179,7 +179,7 @@ export function WithdrawModal({
         {/* Body */}
         <div className="p-6 space-y-4">
           {/* Claim info */}
-          <div className="bg-purple-500/10 rounded-lg p-3 border border-purple-500/20">
+          <div className="bg-slate-500/10 rounded-lg p-3 border border-slate-500/20">
             <p className="text-sm text-white/60 mb-1">Claim</p>
             <p className="text-white font-medium">{claimLabel}</p>
             <p className="text-xs text-white/40 mt-1">
@@ -190,7 +190,7 @@ export function WithdrawModal({
           {/* Loading state */}
           {positionLoading && (
             <div className="text-center py-4">
-              <div className="animate-spin w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full mx-auto mb-2" />
+              <div className="animate-spin w-6 h-6 border-2 border-slate-500 border-t-transparent rounded-full mx-auto mb-2" />
               <p className="text-white/60 text-sm">Chargement de votre position...</p>
             </div>
           )}
@@ -233,12 +233,12 @@ export function WithdrawModal({
                     min="0"
                     step="0.001"
                     disabled={isLoading}
-                    className="flex-1 bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-white/40 focus:outline-none focus:border-purple-500 disabled:opacity-50"
+                    className="flex-1 bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-white/40 focus:outline-none focus:border-slate-500 disabled:opacity-50"
                   />
                   <button
                     onClick={handleSetMax}
                     disabled={isLoading}
-                    className="px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                    className="px-3 py-2 bg-slate-500/20 hover:bg-slate-500/30 text-slate-400 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                   >
                     MAX
                   </button>
@@ -285,7 +285,7 @@ export function WithdrawModal({
             <button
               onClick={handleWithdraw}
               disabled={isLoading || sharesToWithdraw <= 0n || sharesToWithdraw > userShares}
-              className="flex-1 py-3 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-3 rounded-lg bg-slate-600 hover:bg-slate-500 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">

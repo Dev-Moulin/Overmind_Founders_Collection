@@ -12,6 +12,7 @@
  */
 
 import { useRef, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { GraphCanvas, useSelection, lightTheme, darkTheme } from 'reagraph';
 import type { GraphNode, GraphEdge } from '../../hooks/useVoteGraph';
 
@@ -19,8 +20,8 @@ import type { GraphNode, GraphEdge } from '../../hooks/useVoteGraph';
  * Color palette for node types
  */
 const NODE_COLORS = {
-  founder: '#8b5cf6', // Purple
-  predicate: '#6366f1', // Indigo
+  founder: '#64748b', // Slate
+  predicate: '#475569', // Slate darker
   totem: '#10b981', // Green
 };
 
@@ -82,6 +83,7 @@ export function VoteGraph({
   darkMode = true,
   layoutType = 'forceDirected2d',
 }: VoteGraphProps) {
+  const { t } = useTranslation();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const graphRef = useRef<any>(null);
 
@@ -165,7 +167,7 @@ export function VoteGraph({
       edge: {
         ...baseTheme.edge,
         fill: darkMode ? '#4b5563' : '#9ca3af',
-        activeFill: '#8b5cf6',
+        activeFill: '#94a3b8',
       },
     };
   }, [darkMode]);
@@ -191,7 +193,7 @@ export function VoteGraph({
               d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
             />
           </svg>
-          <p className="text-white/40 text-sm">Aucune relation trouvée</p>
+          <p className="text-white/40 text-sm">{t('common.noRelationFound')}</p>
         </div>
       </div>
     );
@@ -223,14 +225,14 @@ export function VoteGraph({
             className="w-3 h-3 rounded-full"
             style={{ backgroundColor: NODE_COLORS.founder }}
           />
-          <span className="text-xs text-white/60">Fondateur</span>
+          <span className="text-xs text-white/60">{t('common.founder')}</span>
         </div>
         <div className="flex items-center gap-1">
           <div
             className="w-2 h-2 rounded-full"
             style={{ backgroundColor: NODE_COLORS.predicate }}
           />
-          <span className="text-xs text-white/60">Relation</span>
+          <span className="text-xs text-white/60">{t('common.relation')}</span>
         </div>
         <div className="flex items-center gap-1">
           <div
@@ -330,22 +332,18 @@ export function VoteGraphWithStats({
       />
 
       {stats && (
-        <div className="grid grid-cols-4 gap-2 text-center">
+        <div className="grid grid-cols-3 gap-2 text-center">
           <div className="bg-white/5 rounded p-2">
-            <div className="text-lg font-bold text-white">{stats.uniqueTotems}</div>
+            <div className="text-lg font-bold text-green-400">{stats.uniqueTotems}</div>
             <div className="text-xs text-white/50">Totems</div>
           </div>
           <div className="bg-white/5 rounded p-2">
             <div className="text-lg font-bold text-white">{stats.totalEdges}</div>
-            <div className="text-xs text-white/50">Relations</div>
+            <div className="text-xs text-white/50">Connexions</div>
           </div>
           <div className="bg-white/5 rounded p-2">
-            <div className="text-lg font-bold text-white">{stats.uniquePredicates}</div>
-            <div className="text-xs text-white/50">Prédicats</div>
-          </div>
-          <div className="bg-white/5 rounded p-2">
-            <div className="text-lg font-bold text-purple-400">{stats.totalVotes}</div>
-            <div className="text-xs text-white/50">TRUST</div>
+            <div className="text-lg font-bold text-slate-400">{stats.totalVotes}</div>
+            <div className="text-xs text-white/50">Total TRUST</div>
           </div>
         </div>
       )}
