@@ -101,7 +101,7 @@ export function ObjectsTab({
         <div className="p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
           <p className="text-orange-300 text-sm">
             <strong>{atomOnlyCount} totems</strong> existent sur la blockchain mais n'ont pas de triple de catégorie.
-            Cliquez sur "Ajouter catégorie" pour créer le triple <code className="bg-white/10 px-1 rounded">[Totem] [has_category] [OFC:*]</code>
+            Cliquez sur "Ajouter catégorie" pour créer le triple <code className="bg-white/10 px-1 rounded">[Totem] [has category] [Category]</code>
           </p>
         </div>
       )}

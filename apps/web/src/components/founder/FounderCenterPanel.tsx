@@ -18,8 +18,20 @@ import { useTranslation } from 'react-i18next';
 import type { FounderForHomePage } from '../../hooks/useFoundersForHomePage';
 import { useFounderProposals } from '../../hooks/useFounderProposals';
 import { useVotesTimeline } from '../../hooks/useVotesTimeline';
+import { useAllOFCTotems } from '../../hooks/useAllOFCTotems';
 import { TradingChart, type Timeframe } from '../graph/TradingChart';
-import type { ProposalWithVotes } from '../../lib/graphql/types';
+
+/** Unified totem type for display */
+interface DisplayTotem {
+  id: string;
+  label: string;
+  image?: string;
+  category?: string;
+  hasVotes: boolean;
+  netScore: bigint;
+  forVotes: string;
+  againstVotes: string;
+}
 
 interface FounderCenterPanelProps {
   founder: FounderForHomePage;
@@ -45,16 +57,6 @@ function formatScore(score: bigint | string): string {
   return '< 0.001';
 }
 
-/**
- * Get color class based on net score
- */
-function getScoreColor(proposal: ProposalWithVotes): string {
-  const net = BigInt(proposal.votes.netVotes);
-  if (net > 0n) return 'text-green-400';
-  if (net < 0n) return 'text-red-400';
-  return 'text-white/60';
-}
-
 export function FounderCenterPanel({
   founder,
   onSelectTotem,
@@ -62,33 +64,85 @@ export function FounderCenterPanel({
 }: FounderCenterPanelProps) {
   const { t } = useTranslation();
   const { isConnected, address } = useAccount();
-  const { proposals, loading } = useFounderProposals(founder.name);
+  const { proposals, loading: proposalsLoading } = useFounderProposals(founder.name);
+  const { totems: ofcTotems, loading: ofcLoading } = useAllOFCTotems();
   const [viewMode, setViewMode] = useState<'totems' | 'positions'>('totems');
   const [timeframe, setTimeframe] = useState<Timeframe>('24H');
+
+  const loading = proposalsLoading || ofcLoading;
 
   // Trading chart data
   const {
     data: timelineData,
     loading: timelineLoading,
-    // stats: timelineStats, // TODO: Utiliser pour afficher des stats sous le graphe
   } = useVotesTimeline(founder.name, timeframe);
 
-  // Sort proposals by net score
-  const sortedProposals = useMemo(() => {
-    if (!proposals) return [];
-    return [...proposals].sort((a, b) => {
-      const aNet = BigInt(a.votes.netVotes);
-      const bNet = BigInt(b.votes.netVotes);
-      return bNet > aNet ? 1 : bNet < aNet ? -1 : 0;
+  // Merge proposals (with votes) and OFC totems (may not have votes)
+  const allTotems = useMemo((): DisplayTotem[] => {
+    const totemMap = new Map<string, DisplayTotem>();
+
+    // First, add all proposals (totems with votes for this founder)
+    if (proposals) {
+      proposals.forEach((proposal) => {
+        const id = proposal.object_id;
+        const netScore = BigInt(proposal.votes.netVotes);
+
+        if (totemMap.has(id)) {
+          // Aggregate votes if same totem appears multiple times
+          const existing = totemMap.get(id)!;
+          existing.netScore += netScore;
+          existing.forVotes = (BigInt(existing.forVotes) + BigInt(proposal.votes.forVotes)).toString();
+          existing.againstVotes = (BigInt(existing.againstVotes) + BigInt(proposal.votes.againstVotes)).toString();
+        } else {
+          totemMap.set(id, {
+            id,
+            label: proposal.object.label,
+            image: proposal.object.image,
+            hasVotes: true,
+            netScore,
+            forVotes: proposal.votes.forVotes,
+            againstVotes: proposal.votes.againstVotes,
+          });
+        }
+      });
+    }
+
+    // Then, add OFC totems that don't have votes yet
+    ofcTotems.forEach((totem) => {
+      if (!totemMap.has(totem.id)) {
+        totemMap.set(totem.id, {
+          id: totem.id,
+          label: totem.label,
+          image: totem.image,
+          category: totem.category,
+          hasVotes: false,
+          netScore: 0n,
+          forVotes: '0',
+          againstVotes: '0',
+        });
+      } else {
+        // Add category info to existing totem
+        const existing = totemMap.get(totem.id)!;
+        existing.category = totem.category;
+      }
     });
-  }, [proposals]);
+
+    // Sort: totems with votes first (by net score), then totems without votes (alphabetically)
+    return Array.from(totemMap.values()).sort((a, b) => {
+      if (a.hasVotes && !b.hasVotes) return -1;
+      if (!a.hasVotes && b.hasVotes) return 1;
+      if (a.hasVotes && b.hasVotes) {
+        return b.netScore > a.netScore ? 1 : b.netScore < a.netScore ? -1 : 0;
+      }
+      return a.label.localeCompare(b.label);
+    });
+  }, [proposals, ofcTotems]);
 
   // Filter user's positions (proposals where user has voted)
-  // For now, we show all proposals - position filtering would require user deposit data
   const userPositions = useMemo(() => {
     // TODO: Filter by user's actual positions when we have that data
-    return sortedProposals.slice(0, 5); // Placeholder: show top 5
-  }, [sortedProposals]);
+    return allTotems.filter(t => t.hasVotes).slice(0, 5);
+  }, [allTotems]);
 
   return (
     <div className="glass-card p-4 h-full flex flex-col">
@@ -148,18 +202,17 @@ export function FounderCenterPanel({
             ))}
           </div>
         ) : viewMode === 'totems' ? (
-          // Totems grid
-          sortedProposals.length > 0 ? (
+          // Totems grid - includes both voted totems and OFC totems without votes
+          allTotems.length > 0 ? (
             <div className="grid grid-cols-2 gap-3">
-              {sortedProposals.map((proposal) => {
-                const isSelected = proposal.object_id === selectedTotemId;
-                const netScore = BigInt(proposal.votes.netVotes);
-                const scoreColor = getScoreColor(proposal);
+              {allTotems.map((totem) => {
+                const isSelected = totem.id === selectedTotemId;
+                const scoreColor = totem.netScore > 0n ? 'text-green-400' : totem.netScore < 0n ? 'text-red-400' : 'text-white/60';
 
                 return (
                   <button
-                    key={proposal.term_id}
-                    onClick={() => onSelectTotem?.(proposal.object_id, proposal.object.label)}
+                    key={totem.id}
+                    onClick={() => onSelectTotem?.(totem.id, totem.label)}
                     className={`text-left p-3 rounded-lg transition-all ${
                       isSelected
                         ? 'bg-slate-500/30 ring-2 ring-slate-500/50'
@@ -168,19 +221,28 @@ export function FounderCenterPanel({
                   >
                     <div className="flex items-start justify-between gap-2">
                       <span className="text-sm font-medium text-white truncate flex-1">
-                        {proposal.object.label}
+                        {totem.label}
                       </span>
                       {isSelected && (
                         <span className="shrink-0 w-2 h-2 rounded-full bg-slate-400" />
                       )}
                     </div>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-xs font-medium ${scoreColor}`}>
-                        {netScore >= 0n ? '+' : ''}{formatScore(netScore.toString())}
-                      </span>
-                      <span className="text-xs text-white/40">
-                        ({formatScore(proposal.votes.forVotes)} FOR / {formatScore(proposal.votes.againstVotes)} AGAINST)
-                      </span>
+                      {totem.hasVotes ? (
+                        <>
+                          <span className={`text-xs font-medium ${scoreColor}`}>
+                            {totem.netScore >= 0n ? '+' : ''}{formatScore(totem.netScore.toString())}
+                          </span>
+                          <span className="text-xs text-white/40">
+                            ({formatScore(totem.forVotes)} FOR / {formatScore(totem.againstVotes)} AGAINST)
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-xs text-slate-400">{totem.category}</span>
+                          <span className="text-xs text-white/30">• No votes yet</span>
+                        </>
+                      )}
                     </div>
                   </button>
                 );
@@ -202,37 +264,36 @@ export function FounderCenterPanel({
           isConnected ? (
             userPositions.length > 0 ? (
               <div className="space-y-3">
-                {userPositions.map((proposal) => {
-                  const netScore = BigInt(proposal.votes.netVotes);
-                  const scoreColor = getScoreColor(proposal);
+                {userPositions.map((totem) => {
+                  const scoreColor = totem.netScore > 0n ? 'text-green-400' : totem.netScore < 0n ? 'text-red-400' : 'text-white/60';
 
                   return (
                     <div
-                      key={proposal.term_id}
+                      key={totem.id}
                       className="bg-white/5 rounded-lg p-3"
                     >
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-white">
-                          {proposal.object.label}
+                          {totem.label}
                         </span>
                         <span className={`text-xs font-medium ${scoreColor}`}>
-                          {netScore >= 0n ? '+' : ''}{formatScore(netScore.toString())}
+                          {totem.netScore >= 0n ? '+' : ''}{formatScore(totem.netScore.toString())}
                         </span>
                       </div>
                       <div className="flex items-center gap-4 text-xs text-white/50">
                         <span className="flex items-center gap-1">
                           <span className="w-2 h-2 rounded-full bg-green-400/50" />
-                          FOR: {formatScore(proposal.votes.forVotes)}
+                          FOR: {formatScore(totem.forVotes)}
                         </span>
                         <span className="flex items-center gap-1">
                           <span className="w-2 h-2 rounded-full bg-red-400/50" />
-                          AGAINST: {formatScore(proposal.votes.againstVotes)}
+                          AGAINST: {formatScore(totem.againstVotes)}
                         </span>
                       </div>
                       {/* Position actions */}
                       <div className="flex gap-2 mt-3">
                         <button
-                          onClick={() => onSelectTotem?.(proposal.object_id, proposal.object.label)}
+                          onClick={() => onSelectTotem?.(totem.id, totem.label)}
                           className="flex-1 py-1.5 text-xs bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded transition-colors"
                         >
                           + {t('founderExpanded.addToCart')}
@@ -263,7 +324,7 @@ export function FounderCenterPanel({
 
       {/* Footer stats */}
       <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs text-white/40">
-        <span>{sortedProposals.length} {t('founderExpanded.totems')}</span>
+        <span>{allTotems.length} {t('founderExpanded.totems')}</span>
         {isConnected && address && (
           <span className="truncate ml-2">
             {address.slice(0, 6)}...{address.slice(-4)}
