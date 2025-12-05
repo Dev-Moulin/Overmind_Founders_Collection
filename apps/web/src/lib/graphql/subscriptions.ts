@@ -173,20 +173,20 @@ export const SUBSCRIBE_USER_POSITIONS = gql`
 `;
 
 /**
- * Subscribe to totem categories (OFC: system)
+ * Subscribe to totem categories (OFC system)
  *
  * Real-time updates when:
  * - New totem is categorized
  * - Category triple is created
  *
- * Uses the has_category predicate and OFC: prefix for filtering
+ * Uses "has category" predicate and category labels (Animal, Object, etc.)
  */
 export const SUBSCRIBE_TOTEM_CATEGORIES = gql`
   subscription SubscribeTotemCategories {
     triples(
       where: {
-        predicate: { label: { _eq: "has_category" } }
-        object: { label: { _like: "OFC:%" } }
+        predicate: { label: { _eq: "has category" } }
+        object: { label: { _in: ["Animal", "Object", "Trait", "Concept", "Element", "Mythology"] } }
       }
       order_by: { created_at: desc }
     ) {
@@ -216,8 +216,8 @@ export const SUBSCRIBE_CATEGORIES_BY_TOTEMS = gql`
     triples(
       where: {
         subject_id: { _in: $totemIds }
-        predicate: { label: { _eq: "has_category" } }
-        object: { label: { _like: "OFC:%" } }
+        predicate: { label: { _eq: "has category" } }
+        object: { label: { _in: ["Animal", "Object", "Trait", "Concept", "Element", "Mythology"] } }
       }
     ) {
       term_id

@@ -1,4 +1,3 @@
-import { OFC_PREFIX } from '../../config/constants';
 import type { CategoryConfigType } from '../../types/category';
 import categoriesConfig from '../../../../../packages/shared/src/data/categories.json';
 
@@ -338,7 +337,7 @@ export function TotemSelector({
                   </div>
                   {newTotemCategory && (
                     <p className="text-xs text-white/40 mt-2">
-                      Triple créé: <span className="text-slate-400">[{newTotemName || '...'}] [has_category] [{OFC_PREFIX}{newTotemCategory}]</span>
+                      Triple créé: <span className="text-slate-400">[{newTotemName || '...'}] [has category] [{newTotemCategory}]</span>
                     </p>
                   )}
                 </div>
