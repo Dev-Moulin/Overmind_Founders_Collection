@@ -1020,3 +1020,116 @@ query GetFounderTags($founderName: String!) {
 | `components/graph/TopTotemsRadar.tsx` | Fix dimensions recharts |
 
 **Branche** : `feature/founder-tags-recharts-fix`
+
+---
+
+## 12. FIX BATCH VOTE - Création Triple + Dépôt en 1 TX - 8 décembre 2025
+
+### 12.1 Problème initial
+
+Lors d'un vote sur un **nouveau totem** (triple inexistant), le système effectuait **2 transactions** :
+1. `createTriples` - Création du triple `[Founder] → [has totem] → [Totem]`
+2. `depositBatch` - Dépôt du vote sur le triple créé
+
+L'utilisateur devait signer 2 fois et payait potentiellement plus que prévu.
+
+### 12.2 Solution implémentée
+
+**Optimisation en 1 transaction** : Le montant du vote est maintenant inclus dans l'appel `createTriples`.
+
+Le contrat `createTriples` accepte un paramètre `assets[]` qui permet d'inclure un montant supplémentaire au-delà du `tripleBaseCost`. Ce montant est directement déposé sur le triple créé.
+
+#### Changement 1 : Inclure le dépôt dans createTriples
+
+```typescript
+// Avant (2 tx)
+const assetAmount = tripleBaseCost + minDeposit;  // Création seulement
+
+// Après (1 tx)
+const assetAmount = item.amount;  // Montant choisi par l'utilisateur = total à payer
+// Le contrat utilise tripleBaseCost pour la création, le reste va au dépôt
+```
+
+#### Changement 2 : Ne pas appeler depositBatch pour les nouveaux triples
+
+```typescript
+// Condition basée sur le cart ORIGINAL (pas updatedItems)
+if (hasExistingTriples) {
+  // depositBatch seulement pour les triples qui existaient AVANT
+  const itemsToDeposit = updatedItems.filter(item =>
+    itemsWithExistingTriples.some(orig => orig.totemId === item.totemId)
+  );
+  depositTxHash = await executeBatchDeposit(itemsToDeposit);
+} else {
+  console.log('[useBatchVote] No separate deposit needed - all items were new triples');
+}
+```
+
+#### Changement 3 : Calcul des frais centré sur l'utilisateur
+
+L'utilisateur choisit un montant TOTAL à dépenser. Les frais de création sont déduits automatiquement.
+
+```typescript
+// Validation : montant minimum = tripleBaseCost + minDeposit
+const minRequiredAmount = tripleBaseCost + minDeposit;
+if (item.amount < minRequiredAmount) {
+  throw new Error(`Montant insuffisant: minimum ${formatEther(minRequiredAmount)} TRUST`);
+}
+
+// Calcul du dépôt effectif
+const effectiveDeposit = item.amount - tripleBaseCost;
+// Exemple : user choisit 0.010, tripleBaseCost=0.001 → dépôt effectif = 0.009
+```
+
+### 12.3 Résultat
+
+| Scénario | Avant | Après |
+|----------|-------|-------|
+| Vote nouveau totem | 2 tx (create + deposit) | 1 tx (create avec deposit inclus) |
+| Vote totem existant | 1 tx (deposit) | 1 tx (deposit) - inchangé |
+| Montant payé | `tripleBaseCost + montantChoisi` | `montantChoisi` (tout inclus) |
+
+### 12.4 Fichiers modifiés
+
+| Fichier | Modifications |
+|---------|---------------|
+| `hooks/blockchain/useBatchVote.ts` | Logique createTriples avec dépôt inclus, filtrage itemsWithExistingTriples |
+| `types/voteCart.ts` | Interface `BatchVoteResult` avec `depositTxHash` optionnel |
+
+### 12.5 Bug corrigé : Double dépôt
+
+**Problème** : Après `executeCreateTriples`, le code mettait `isNewTotem: false` sur les items créés, puis filtrait `!item.isNewTotem` ce qui incluait ces items dans `depositBatch`.
+
+**Solution** : Utiliser `hasExistingTriples` calculé depuis le cart ORIGINAL au lieu de filtrer sur `updatedItems`.
+
+**Branche** : `fix/batch-vote-single-transaction`
+
+---
+
+## 13. Best Triples - État actuel vs Documentation
+
+### 13.1 Comparaison
+
+| Aspect | Documentation prévue | Implémentation actuelle |
+|--------|----------------------|------------------------|
+| **Format** | `[Sujet] - [Prédicat] - [Objet]` | `{Prénom} - {Totem}` |
+| **Prédicat** | Affiché | **Non affiché** |
+| **Pourcentage** | XX% TRUST | ✅ Implémenté |
+| **Tri** | Par total TRUST | ✅ Implémenté |
+
+### 13.2 Implémentation actuelle (FounderCenterPanel.tsx)
+
+```typescript
+// Ligne 368-369
+<span className="text-xs text-white truncate flex-1">
+  {founder.name.split(' ')[0]} - {totem.label}
+</span>
+```
+
+Affiche : `Joseph - Lion   25%`
+
+### 13.3 TODO : Ajouter le prédicat
+
+Pour être conforme à la doc, il faudrait modifier `bestTriples` pour inclure l'info du prédicat depuis les proposals.
+
+**Priorité** : Basse (fonctionnel, juste un détail d'affichage)
