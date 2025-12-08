@@ -45,4 +45,4 @@ private/
 secrets/
 
 # Claude internal docs (not needed in repo)
-Claude/trash/
+Claude/

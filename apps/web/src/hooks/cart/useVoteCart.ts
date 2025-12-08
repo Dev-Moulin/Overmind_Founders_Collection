@@ -282,13 +282,35 @@ export function useVoteCart(): UseVoteCartResult {
   /**
    * Initialize cart for a founder
    * Attempts to restore from localStorage if available
+   * Validates and adjusts amounts for items below minimum
    */
   const initCart = useCallback((founderId: Hex, founderName: string) => {
     // Try to load existing cart from localStorage
     const savedCart = loadCartFromStorage(founderId);
     if (savedCart) {
       console.log('[useVoteCart] Restored cart from localStorage:', savedCart.items.length, 'items');
-      setCart(savedCart);
+
+      // Validate and fix amounts for restored items
+      if (config) {
+        const minDepositWei = BigInt(config.minDeposit);
+        const tripleCostWei = BigInt(config.tripleCost);
+
+        const fixedItems = savedCart.items.map(item => {
+          const minRequired = item.isNewTotem
+            ? tripleCostWei + minDepositWei
+            : minDepositWei;
+
+          if (item.amount < minRequired) {
+            console.log(`[useVoteCart] Fixing amount for "${item.totemName}": ${formatEther(item.amount)} -> ${formatEther(minRequired)}`);
+            return { ...item, amount: minRequired };
+          }
+          return item;
+        });
+
+        setCart({ ...savedCart, items: fixedItems });
+      } else {
+        setCart(savedCart);
+      }
     } else {
       setCart({
         founderId,
@@ -296,26 +318,37 @@ export function useVoteCart(): UseVoteCartResult {
         items: [],
       });
     }
-  }, []);
+  }, [config]);
 
   /**
    * Add an item to the cart
    */
   const addItem = useCallback((input: AddToCartInput) => {
+    console.log('[useVoteCart] ========== ADD ITEM START ==========');
+    console.log('[useVoteCart] Input received:', input);
+
     setCart((prev) => {
       if (!prev) {
         console.warn('[useVoteCart] Cannot add item: cart not initialized');
         return prev;
       }
 
+      console.log('[useVoteCart] Current cart state:', {
+        founderId: prev.founderId,
+        founderName: prev.founderName,
+        itemCount: prev.items.length,
+      });
+
       // Check if item for this totem already exists
       const existingIndex = prev.items.findIndex(
         (item) => item.totemId === input.totemId
       );
+      console.log('[useVoteCart] Existing item index:', existingIndex);
 
       let amountWei: bigint;
       try {
         amountWei = parseEther(input.amount);
+        console.log('[useVoteCart] Amount parsed:', input.amount, '-> wei:', amountWei.toString());
       } catch {
         console.error('[useVoteCart] Invalid amount:', input.amount);
         return prev;
@@ -340,14 +373,28 @@ export function useVoteCart(): UseVoteCartResult {
         isNewTotem: input.isNewTotem ?? false,
       };
 
+      console.log('[useVoteCart] New item created:', {
+        id: newItem.id,
+        totemName: newItem.totemName,
+        termId: newItem.termId,
+        counterTermId: newItem.counterTermId,
+        direction: newItem.direction,
+        amount: newItem.amount.toString(),
+        isNewTotem: newItem.isNewTotem,
+        needsWithdraw: newItem.needsWithdraw,
+      });
+
       if (existingIndex >= 0) {
         // Update existing item
+        console.log('[useVoteCart] Updating existing item at index:', existingIndex);
         const newItems = [...prev.items];
         newItems[existingIndex] = { ...newItem, id: prev.items[existingIndex].id };
         return { ...prev, items: newItems };
       }
 
       // Add new item
+      console.log('[useVoteCart] Adding new item to cart. New count:', prev.items.length + 1);
+      console.log('[useVoteCart] ========== ADD ITEM END ==========');
       return { ...prev, items: [...prev.items, newItem] };
     });
   }, []);
@@ -541,11 +588,20 @@ export function useVoteCart(): UseVoteCartResult {
     }
 
     const minDepositWei = BigInt(config.minDeposit);
+    const tripleCostWei = BigInt(config.tripleCost);
 
     for (const item of cart.items) {
-      if (item.amount < minDepositWei) {
+      // For new totems, minimum = tripleCost + minDeposit
+      // For existing totems, minimum = minDeposit
+      const minRequired = item.isNewTotem
+        ? tripleCostWei + minDepositWei
+        : minDepositWei;
+
+      if (item.amount < minRequired) {
+        const missing = minRequired - item.amount;
+        const missingFormatted = parseFloat(formatEther(missing)).toFixed(4);
         errors.push(
-          `${item.totemName}: montant minimum requis ${config.formattedMinDeposit} TRUST`
+          `"${item.totemName}" : il manque ${missingFormatted} TRUST`
         );
       }
 

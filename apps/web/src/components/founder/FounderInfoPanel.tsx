@@ -73,7 +73,7 @@ export function FounderInfoPanel({
   const hasSocialLinks = Object.values(socialLinks).some(Boolean);
 
   return (
-    <div className="glass-card p-4 h-full flex flex-col relative overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+    <div className="glass-card p-4 h-full flex flex-col relative overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent" style={{ overscrollBehavior: 'contain' }}>
       {/* Close button */}
       <button
         onClick={onClose}

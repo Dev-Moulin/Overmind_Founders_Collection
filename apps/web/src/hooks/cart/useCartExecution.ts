@@ -109,7 +109,23 @@ export function useCartExecution(): UseCartExecutionResult {
    */
   const executeCart = useCallback(
     async (cart: VoteCart): Promise<CartExecutionResult> => {
+      console.log('[useCartExecution] ========== EXECUTE CART START ==========');
+      console.log('[useCartExecution] Cart received:', {
+        itemCount: cart?.items?.length || 0,
+        items: cart?.items?.map(item => ({
+          id: item.id,
+          totemName: item.totemName,
+          termId: item.termId,
+          counterTermId: item.counterTermId,
+          direction: item.direction,
+          amount: item.amount.toString(),
+          isNewTotem: item.isNewTotem,
+          needsWithdraw: item.needsWithdraw,
+        })),
+      });
+
       if (!cart || cart.items.length === 0) {
+        console.log('[useCartExecution] ❌ Cart is empty, aborting');
         const err: VoteCartError = {
           code: 'EMPTY_CART',
           message: 'Le panier est vide',
@@ -141,6 +157,7 @@ export function useCartExecution(): UseCartExecutionResult {
         const itemsNeedingWithdraw = cart.items.filter(
           (item) => item.needsWithdraw && item.currentPosition
         );
+        console.log('[useCartExecution] Items needing withdraw:', itemsNeedingWithdraw.length);
 
         // Step 2: Execute withdrawals if any
         if (itemsNeedingWithdraw.length > 0) {
@@ -201,7 +218,22 @@ export function useCartExecution(): UseCartExecutionResult {
           };
         });
 
-        console.log('[useCartExecution] Executing deposits:', depositItems.length, 'items');
+        console.log('[useCartExecution] ========== PREPARING DEPOSITS ==========');
+        console.log('[useCartExecution] Deposit items count:', depositItems.length);
+        depositItems.forEach((item, index) => {
+          const cartItem = cart.items[index];
+          console.log(`[useCartExecution] Deposit #${index + 1}:`, {
+            totemName: cartItem.totemName,
+            direction: cartItem.direction,
+            termId: cartItem.termId,
+            counterTermId: cartItem.counterTermId,
+            depositTermId: item.termId,
+            amount: item.amount.toString(),
+            amountETH: Number(item.amount) / 1e18,
+            isNewTotem: cartItem.isNewTotem,
+          });
+        });
+        console.log('[useCartExecution] ⚠️ IMPORTANT: If isNewTotem=true, the triple must be created FIRST!');
 
         try {
           const depositResult = await executeBatchDeposit(depositItems);

@@ -128,11 +128,20 @@ export function useBatchDeposit(): UseBatchDepositResult {
         // Get receiver address (user's wallet)
         const receiver = walletClient.account.address;
 
+        console.log('[useBatchDeposit] ========== BATCH DEPOSIT START ==========');
         console.log('[useBatchDeposit] Executing batch deposit:', {
           itemCount: items.length,
           totalAmount: totalAmount.toString(),
-          termIds,
+          totalAmountETH: Number(totalAmount) / 1e18,
+          receiver,
+          multiVaultAddress,
         });
+        console.log('[useBatchDeposit] Term IDs to deposit into:');
+        termIds.forEach((termId, index) => {
+          console.log(`  [${index + 1}] termId: ${termId}, amount: ${assets[index].toString()} (${Number(assets[index]) / 1e18} ETH)`);
+        });
+        console.log('[useBatchDeposit] ⚠️ NOTE: depositBatch deposits into EXISTING term IDs only!');
+        console.log('[useBatchDeposit] If a termId is for an atom (not a triple), the deposit goes to the atom, NOT a triple!');
 
         // Use SDK depositBatch function
         const config = {
@@ -148,7 +157,9 @@ export function useBatchDeposit(): UseBatchDepositResult {
 
         const transactionHash = await depositBatch(config, inputs);
 
-        console.log('[useBatchDeposit] Batch deposit successful:', transactionHash);
+        console.log('[useBatchDeposit] ✅ Batch deposit successful!');
+        console.log('[useBatchDeposit] Transaction hash:', transactionHash);
+        console.log('[useBatchDeposit] ========== BATCH DEPOSIT END ==========');
 
         return {
           transactionHash,

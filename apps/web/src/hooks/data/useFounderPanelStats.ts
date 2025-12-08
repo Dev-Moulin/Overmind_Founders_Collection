@@ -124,23 +124,14 @@ export function useFounderPanelStats(founderName: string): UseFounderPanelStatsR
     }
   }, [termIdsKey, refetchDeposits]);
 
-  // DEBUG: Log data only when it changes
-  useEffect(() => {
-    console.log('[useFounderPanelStats] DEBUG:', {
-      founderName,
-      triplesCount: triplesData?.triples?.length || 0,
-      termIds: termIds.slice(0, 3), // Show first 3 term IDs
-      termIdsRaw: termIds, // Full array for inspection
-      depositsCount: depositsData?.deposits?.length || 0,
-      // Show all unique sender_ids to debug wallet matching
-      uniqueSenderIds: [...new Set(depositsData?.deposits?.map(d => d.sender_id) || [])],
-      triplesLoading,
-      depositsLoading,
-      depositsSkipped: termIds.length === 0,
-      triplesError: triplesError?.message,
-      depositsError: depositsError?.message,
-    });
-  }, [triplesData, depositsData, termIds, founderName, triplesLoading, depositsLoading, triplesError, depositsError]);
+  // DEBUG: Disabled to reduce console noise
+  // useEffect(() => {
+  //   console.log('[useFounderPanelStats] DEBUG:', {
+  //     founderName,
+  //     triplesCount: triplesData?.triples?.length || 0,
+  //     depositsCount: depositsData?.deposits?.length || 0,
+  //   });
+  // }, [triplesData, depositsData, founderName]);
 
   // Calculate Total Market Cap = Σ(FOR + AGAINST)
   let totalMarketCap = 0n;

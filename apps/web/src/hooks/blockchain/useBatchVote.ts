@@ -223,8 +223,10 @@ export function useBatchVote(): UseBatchVoteResult {
       const minRequiredAmount = tripleBaseCost + minDeposit;
       for (const item of itemsNeedingTriple) {
         if (item.amount < minRequiredAmount) {
+          const missing = minRequiredAmount - item.amount;
+          const missingFormatted = parseFloat(formatEther(missing)).toFixed(4);
           throw new Error(
-            `Montant insuffisant pour "${item.totemName}": minimum requis ${formatEther(minRequiredAmount)} TRUST (frais: ${formatEther(tripleBaseCost)} + dépôt min: ${formatEther(minDeposit)})`
+            `"${item.totemName}" : il manque ${missingFormatted} TRUST`
           );
         }
       }

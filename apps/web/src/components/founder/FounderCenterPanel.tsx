@@ -11,7 +11,7 @@
  * @see Phase 10 in TODO_FIX_01_Discussion.md
  */
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { formatEther } from 'viem';
 import { useAccount } from 'wagmi';
 import { useTranslation } from 'react-i18next';
@@ -33,6 +33,17 @@ interface DisplayTotem {
   netScore: bigint;
   forVotes: string;
   againstVotes: string;
+}
+
+/** Best triple type - includes predicate for full triple display */
+interface BestTriple {
+  id: string;
+  subjectLabel: string;
+  predicateLabel: string;
+  objectLabel: string;
+  forVotes: string;
+  againstVotes: string;
+  totalTrust: bigint;
 }
 
 interface FounderCenterPanelProps {
@@ -73,9 +84,13 @@ export function FounderCenterPanel({
   const { totems: ofcTotems, loading: ofcLoading } = useAllOFCTotems();
   const { votes: userVotes, loading: votesLoading, refetch: refetchVotes } = useUserVotesForFounder(address, founder.name);
 
+  // Track the last refetchTrigger value to avoid duplicate refetches
+  const lastRefetchTrigger = useRef(0);
+
   // Refetch user votes when refetchTrigger changes (after cart validation)
   useEffect(() => {
-    if (refetchTrigger && refetchTrigger > 0) {
+    if (refetchTrigger && refetchTrigger > 0 && refetchTrigger !== lastRefetchTrigger.current) {
+      lastRefetchTrigger.current = refetchTrigger;
       refetchVotes();
     }
   }, [refetchTrigger, refetchVotes]);
@@ -101,7 +116,8 @@ export function FounderCenterPanel({
     // First, add all proposals (totems with votes for this founder)
     if (proposals) {
       proposals.forEach((proposal) => {
-        const id = proposal.object_id;
+        // Use object.term_id as the unique identifier (object_id is not returned by GraphQL)
+        const id = proposal.object.term_id;
         const netScore = BigInt(proposal.votes.netVotes);
 
         if (totemMap.has(id)) {
@@ -155,17 +171,25 @@ export function FounderCenterPanel({
     });
   }, [proposals, ofcTotems]);
 
-  // Best triples = top totems sorted by total TRUST
-  const bestTriples = useMemo(() => {
-    return allTotems
-      .filter(t => t.hasVotes)
-      .sort((a, b) => {
-        const totalA = BigInt(a.forVotes) + BigInt(a.againstVotes);
-        const totalB = BigInt(b.forVotes) + BigInt(b.againstVotes);
-        return totalB > totalA ? 1 : totalB < totalA ? -1 : 0;
-      })
+  // Best triples = top proposals sorted by total TRUST (includes predicate info)
+  const bestTriples = useMemo((): BestTriple[] => {
+    if (!proposals) return [];
+
+    return proposals
+      .map((proposal) => ({
+        id: proposal.term_id,
+        subjectLabel: proposal.subject.label,
+        predicateLabel: proposal.predicate.label,
+        objectLabel: proposal.object.label,
+        objectId: proposal.object.term_id,
+        forVotes: proposal.votes.forVotes,
+        againstVotes: proposal.votes.againstVotes,
+        totalTrust: BigInt(proposal.votes.forVotes) + BigInt(proposal.votes.againstVotes),
+      }))
+      .filter((t) => t.totalTrust > 0n)
+      .sort((a, b) => (b.totalTrust > a.totalTrust ? 1 : b.totalTrust < a.totalTrust ? -1 : 0))
       .slice(0, 10);
-  }, [allTotems]);
+  }, [proposals]);
 
   // Calculate total TRUST for percentage
   const totalTrust = useMemo(() => {
@@ -215,7 +239,7 @@ export function FounderCenterPanel({
         </div>
 
         {/* Section 1 Content */}
-        <div className="h-[140px] xl:h-[180px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+        <div className="h-[140px] xl:h-[180px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent" style={{ overscrollBehavior: 'contain' }}>
           {loading ? (
             <div className="grid grid-cols-2 gap-2">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -315,7 +339,7 @@ export function FounderCenterPanel({
         </div>
 
         {/* Section 2 Content */}
-        <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+        <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent" style={{ overscrollBehavior: 'contain' }}>
           {section2Tab === 'myVotes' ? (
             // My Votes - User's votes on this founder
             isConnected ? (
@@ -356,7 +380,7 @@ export function FounderCenterPanel({
                   return (
                     <button
                       key={totem.id || `best-${index}`}
-                      onClick={() => onSelectTotem?.(totem.id, totem.label)}
+                      onClick={() => onSelectTotem?.(totem.id, totem.objectLabel)}
                       className={`w-full text-left p-2 rounded-lg transition-all ${
                         totem.id === selectedTotemId
                           ? 'bg-slate-500/30 ring-1 ring-slate-500/50'
@@ -365,7 +389,7 @@ export function FounderCenterPanel({
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-white truncate flex-1">
-                          {founder.name.split(' ')[0]} - {totem.label}
+                          {totem.subjectLabel} → {totem.predicateLabel} → {totem.objectLabel}
                         </span>
                         <span className="text-xs text-slate-400 ml-2">
                           {percentage}%
