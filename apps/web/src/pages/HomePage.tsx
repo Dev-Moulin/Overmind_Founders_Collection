@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAccount } from 'wagmi';
 import { useTranslation } from 'react-i18next';
-import { WalletConnectButton } from '../components/ConnectButton';
-import { FounderHomeCard, FounderHomeCardSkeleton } from '../components/FounderHomeCard';
-import { FounderExpandedView } from '../components/FounderExpandedView';
-import { useFoundersForHomePage, type FounderForHomePage } from '../hooks/useFoundersForHomePage';
+import { WalletConnectButton } from '../components/common/ConnectButton';
+import { FounderHomeCard, FounderHomeCardSkeleton } from '../components/founder';
+import { FounderExpandedView } from '../components/founder';
+import { useFoundersForHomePage, type FounderForHomePage } from '../hooks';
 
 export function HomePage() {
   const { t } = useTranslation();

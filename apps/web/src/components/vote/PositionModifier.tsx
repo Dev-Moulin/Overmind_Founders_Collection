@@ -13,7 +13,7 @@ import { useState, useMemo } from 'react';
 import { formatEther } from 'viem';
 import type { Hex } from 'viem';
 import { PresetButtons } from './PresetButtons';
-import { usePreviewRedeem } from '../../hooks/usePreviewRedeem';
+import { usePreviewRedeem } from '../../hooks';
 
 interface Position {
   direction: 'for' | 'against';

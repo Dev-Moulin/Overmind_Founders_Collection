@@ -7,7 +7,7 @@
  */
 
 // Main component (will be updated as we extract)
-export { VotePanel } from '../VotePanel';
+export { VotePanel } from './VotePanel';
 
 // Sub-components
 export { NotConnected } from './NotConnected';
@@ -17,8 +17,8 @@ export { ClaimExistsWarning } from './ClaimExistsWarning';
 export { PredicateSelector } from './PredicateSelector';
 export { TrustAmountInput } from './TrustAmountInput';
 export { TotemSelector } from './TotemSelector';
-export { SuccessNotification } from './SuccessNotification';
-export { ErrorNotification } from './ErrorNotification';
+export { SuccessNotification } from '../common/SuccessNotification';
+export { ErrorNotification } from '../common/ErrorNotification';
 export { SubmitButton } from './SubmitButton';
 
 // Phase 4 - Cart & Preview components

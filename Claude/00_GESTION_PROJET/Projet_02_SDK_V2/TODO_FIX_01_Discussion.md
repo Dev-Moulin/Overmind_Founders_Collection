@@ -626,3 +626,215 @@ function Component() {
   return <span>{t('section.key')}</span>;
 }
 ```
+
+---
+
+## 9. RÉORGANISATION STRUCTURE (PLANIFIÉE)
+
+### 9.1 Constat
+
+**Date** : 8 décembre 2025
+
+Suite à l'analyse du projet, une sur-ingénierie a été identifiée :
+- **38 hooks** dans un seul dossier plat `/hooks/`
+- **46 composants** répartis dans quelques sous-dossiers
+
+Pour un site de vote, c'est excessif et rend la maintenance difficile.
+
+### 9.2 Structure actuelle des Hooks
+
+```
+hooks/
+├── index.ts                      # Exports centralisés
+├── useVote.ts                    # Vote simple
+├── useVoteCart.ts                # Panier de votes
+├── useVoteSubmit.ts              # Soumission vote
+├── useVoteStats.ts               # Stats de vote
+├── useVoteGraph.ts               # Graphe de vote
+├── useVoteMarketStats.ts         # Stats marché
+├── useVotesTimeline.ts           # Timeline votes
+├── useBatchVote.ts               # Vote batch
+├── useBatchDeposit.ts            # Dépôt batch
+├── useBatchRedeem.ts             # Retrait batch
+├── useBatchTriples.ts            # Triples batch
+├── useCartExecution.ts           # Exécution panier
+├── useUserVotes.ts               # Votes utilisateur
+├── useUserVotesForFounder.ts     # Votes user/founder
+├── useFounderProposals.ts        # Propositions founder
+├── useFoundersForHomePage.ts     # Founders homepage
+├── useFounderSubscription.ts     # Subscription founder
+├── useFounderPanelStats.ts       # Stats panneau
+├── useTotemData.ts               # Data totem
+├── useTotemVoters.ts             # Voters totem
+├── useTopTotems.ts               # Top totems
+├── useAllOFCTotems.ts            # Tous totems OFC
+├── useIntuition.ts               # Protocol INTUITION
+├── useProtocolConfig.ts          # Config protocol
+├── usePreviewDeposit.ts          # Preview dépôt
+├── usePreviewRedeem.ts           # Preview retrait
+├── usePositionFromContract.ts    # Position contrat
+├── useProactiveClaimCheck.ts     # Check claim
+├── useWithdraw.ts                # Retrait
+├── useAdminActions.ts            # Actions admin
+├── useAdminAtoms.ts              # Atoms admin
+├── useNetwork.ts                 # Network
+├── useWhitelist.ts               # Whitelist
+└── useWindowFocus.ts             # Focus window
+```
+
+### 9.3 Structure proposée des Hooks
+
+```
+hooks/
+├── index.ts                      # Exports centralisés
+│
+├── blockchain/                   # Interactions blockchain
+│   ├── useVote.ts
+│   ├── useWithdraw.ts
+│   ├── useBatchVote.ts
+│   ├── useBatchDeposit.ts
+│   ├── useBatchRedeem.ts
+│   ├── useBatchTriples.ts
+│   ├── useIntuition.ts
+│   ├── usePreviewDeposit.ts
+│   ├── usePreviewRedeem.ts
+│   └── usePositionFromContract.ts
+│
+├── data/                         # Données (GraphQL/API)
+│   ├── useFounderProposals.ts
+│   ├── useFoundersForHomePage.ts
+│   ├── useFounderPanelStats.ts
+│   ├── useFounderSubscription.ts
+│   ├── useUserVotes.ts
+│   ├── useUserVotesForFounder.ts
+│   ├── useVoteStats.ts
+│   ├── useVotesTimeline.ts
+│   ├── useVoteGraph.ts
+│   ├── useVoteMarketStats.ts
+│   ├── useTopTotems.ts
+│   ├── useAllOFCTotems.ts
+│   ├── useTotemData.ts
+│   └── useTotemVoters.ts
+│
+├── config/                       # Configuration
+│   ├── useProtocolConfig.ts
+│   ├── useNetwork.ts
+│   └── useWhitelist.ts
+│
+├── cart/                         # Panier de votes
+│   ├── useVoteCart.ts
+│   ├── useCartExecution.ts
+│   └── useProactiveClaimCheck.ts
+│
+├── admin/                        # Administration
+│   ├── useAdminActions.ts
+│   └── useAdminAtoms.ts
+│
+└── utils/                        # Utilitaires
+    ├── useWindowFocus.ts
+    └── useVoteSubmit.ts
+```
+
+### 9.4 Structure proposée des Composants
+
+```
+components/
+├── index.ts                      # Exports centralisés
+│
+├── layout/                       # Mise en page
+│   ├── Layout.tsx
+│   ├── Header.tsx
+│   ├── Footer.tsx
+│   ├── NetworkGuard.tsx
+│   └── NetworkSwitch.tsx
+│
+├── common/                       # Réutilisables
+│   ├── ConnectButton.tsx
+│   ├── LanguageSwitcher.tsx
+│   ├── RefreshIndicator.tsx
+│   ├── SuccessNotification.tsx   # (déplacer de vote/)
+│   └── ErrorNotification.tsx     # (déplacer de vote/)
+│
+├── founder/                      # Vue founder
+│   ├── FounderExpandedView.tsx   # (déplacer du root)
+│   ├── FounderHomeCard.tsx       # (déplacer du root)
+│   ├── FounderInfoPanel.tsx
+│   ├── FounderCenterPanel.tsx
+│   └── VoteTotemPanel.tsx
+│
+├── vote/                         # Composants vote
+│   ├── VotePanel.tsx             # (déplacer du root)
+│   ├── VoteCartPanel.tsx
+│   ├── VotePreview.tsx
+│   ├── VoteMarket.tsx
+│   ├── PredicateSelector.tsx
+│   ├── TotemSelector.tsx
+│   ├── TrustAmountInput.tsx
+│   ├── PresetButtons.tsx
+│   ├── SubmitButton.tsx
+│   ├── CartBadge.tsx
+│   ├── PositionModifier.tsx
+│   ├── NotConnected.tsx
+│   ├── ClaimExistsWarning.tsx
+│   ├── RecentActivity.tsx
+│   └── MyVotesItem.tsx
+│
+├── modal/                        # Modals
+│   ├── ClaimExistsModal.tsx      # (déplacer du root)
+│   └── WithdrawModal.tsx         # (déplacer du root)
+│
+├── graph/                        # Graphiques (déjà OK)
+│   ├── TradingChart.tsx
+│   ├── VoteGraph.tsx
+│   ├── TopTotemsRadar.tsx
+│   └── RelationsRadar.tsx
+│
+└── admin/                        # Admin (déjà OK)
+    └── ... (8 fichiers)
+```
+
+### 9.5 Consolidations potentielles
+
+| Hooks actuels | Proposition |
+|---------------|-------------|
+| `useVoteStats.ts` + `useVoteMarketStats.ts` | Fusionner si données similaires |
+| `useUserVotes.ts` + `useUserVotesForFounder.ts` | Paramétrer `useUserVotes` pour accepter un founderName optionnel |
+| `useBatchVote.ts` + `useBatchDeposit.ts` + `useBatchRedeem.ts` | Évaluer si un hook unifié `useBatchOperations` est pertinent |
+
+### 9.6 Statut
+
+- [x] Validation de la structure proposée
+- [x] Création des sous-dossiers hooks
+- [x] Déplacement des hooks avec mise à jour des imports
+- [x] Création des sous-dossiers composants
+- [x] Déplacement des composants avec mise à jour des imports
+- [x] Mise à jour du fichier index.ts des hooks
+- [x] Build vérifié - ✅ SUCCÈS
+
+**Complété le** : 8 décembre 2025
+
+### 9.7 Structure finale implémentée
+
+**Hooks** (35 fichiers répartis en 6 sous-dossiers) :
+```
+hooks/
+├── index.ts              # Exports centralisés
+├── blockchain/           # 10 hooks
+├── data/                 # 15 hooks
+├── config/               # 3 hooks
+├── cart/                 # 3 hooks
+├── admin/                # 2 hooks
+└── utils/                # 2 hooks
+```
+
+**Composants** (46 fichiers répartis en 7 sous-dossiers) :
+```
+components/
+├── layout/               # 5 composants
+├── common/               # 5 composants
+├── founder/              # 5 composants
+├── vote/                 # 15 composants
+├── modal/                # 2 composants
+├── graph/                # 4 composants
+└── admin/                # 10 composants
+```

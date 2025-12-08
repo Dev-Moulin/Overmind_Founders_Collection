@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useAccount } from 'wagmi';
 import { ADMIN_WALLET } from '../config/constants';
-import { useAdminAtoms } from '../hooks/useAdminAtoms';
-import { useAdminActions } from '../hooks/useAdminActions';
+import { useAdminAtoms } from '../hooks';
+import { useAdminActions } from '../hooks';
 import {
   FoundersTab,
   PredicatesTab,

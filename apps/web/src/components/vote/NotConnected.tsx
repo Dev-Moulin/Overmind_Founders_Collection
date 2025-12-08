@@ -1,4 +1,4 @@
-import { WalletConnectButton } from '../ConnectButton';
+import { WalletConnectButton } from '../common/ConnectButton';
 
 /**
  * NotConnected - Écran affiché quand l'utilisateur n'est pas connecté

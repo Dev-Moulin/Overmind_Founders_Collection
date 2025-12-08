@@ -11,15 +11,15 @@
  * @see Phase 10 in TODO_FIX_01_Discussion.md
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { formatEther } from 'viem';
 import { useAccount } from 'wagmi';
 import { useTranslation } from 'react-i18next';
-import type { FounderForHomePage } from '../../hooks/useFoundersForHomePage';
-import { useFounderProposals } from '../../hooks/useFounderProposals';
-import { useVotesTimeline } from '../../hooks/useVotesTimeline';
-import { useAllOFCTotems } from '../../hooks/useAllOFCTotems';
-import { useUserVotesForFounder } from '../../hooks/useUserVotesForFounder';
+import type { FounderForHomePage } from '../../hooks';
+import { useFounderProposals } from '../../hooks';
+import { useVotesTimeline } from '../../hooks/data/useVotesTimeline';
+import { useAllOFCTotems } from '../../hooks';
+import { useUserVotesForFounder } from '../../hooks';
 import { TradingChart, type Timeframe } from '../graph/TradingChart';
 import { MyVotesItem, MyVotesSkeleton } from '../vote/MyVotesItem';
 
@@ -39,6 +39,8 @@ interface FounderCenterPanelProps {
   founder: FounderForHomePage;
   onSelectTotem?: (totemId: string, totemLabel: string) => void;
   selectedTotemId?: string;
+  /** Trigger to refetch user votes (increment to refetch) */
+  refetchTrigger?: number;
 }
 
 /**
@@ -63,12 +65,20 @@ export function FounderCenterPanel({
   founder,
   onSelectTotem,
   selectedTotemId,
+  refetchTrigger,
 }: FounderCenterPanelProps) {
   const { t } = useTranslation();
   const { isConnected, address } = useAccount();
   const { proposals, loading: proposalsLoading } = useFounderProposals(founder.name);
   const { totems: ofcTotems, loading: ofcLoading } = useAllOFCTotems();
-  const { votes: userVotes, loading: votesLoading } = useUserVotesForFounder(address, founder.name);
+  const { votes: userVotes, loading: votesLoading, refetch: refetchVotes } = useUserVotesForFounder(address, founder.name);
+
+  // Refetch user votes when refetchTrigger changes (after cart validation)
+  useEffect(() => {
+    if (refetchTrigger && refetchTrigger > 0) {
+      refetchVotes();
+    }
+  }, [refetchTrigger, refetchVotes]);
 
   // Section 1: Totems / Création
   const [section1Tab, setSection1Tab] = useState<'totems' | 'creation'>('totems');

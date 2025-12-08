@@ -13,13 +13,17 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useAccount, useBalance } from 'wagmi';
+import { useQuery } from '@apollo/client';
 import { useTranslation } from 'react-i18next';
-import type { FounderForHomePage } from '../../hooks/useFoundersForHomePage';
-import { useProtocolConfig } from '../../hooks/useProtocolConfig';
-import { useVoteCart } from '../../hooks/useVoteCart';
+import type { Hex } from 'viem';
+import type { FounderForHomePage } from '../../hooks';
+import { useProtocolConfig } from '../../hooks';
+import { useVoteCartContext } from '../../hooks/cart/useVoteCart';
+import { useProactiveClaimCheck } from '../../hooks';
+import { GET_ATOMS_BY_LABELS } from '../../lib/graphql/queries';
 import { PresetButtonsCompact } from '../vote/PresetButtons';
-import { SuccessNotification } from '../vote/SuccessNotification';
-import { ErrorNotification } from '../vote/ErrorNotification';
+import { SuccessNotification } from '../common/SuccessNotification';
+import { ErrorNotification } from '../common/ErrorNotification';
 import predicatesData from '../../../../../packages/shared/src/data/predicates.json';
 import type { Predicate } from '../../types/predicate';
 
@@ -48,7 +52,35 @@ export function VoteTotemPanel({
   const {
     itemCount,
     formattedNetCost,
-  } = useVoteCart();
+    addItem,
+  } = useVoteCartContext();
+  // Note: initCart is called by FounderExpandedView which provides the context
+
+  // Fetch predicate atomIds from chain
+  const predicateLabels = predicates.map(p => p.label);
+  const { data: predicatesAtomData } = useQuery<{ atoms: Array<{ term_id: string; label: string }> }>(
+    GET_ATOMS_BY_LABELS,
+    {
+      variables: { labels: predicateLabels },
+      fetchPolicy: 'cache-first',
+    }
+  );
+
+  // Map predicates with their atomIds
+  const predicatesWithAtomIds = useMemo(() => {
+    if (!predicatesAtomData?.atoms) return predicates.map(p => ({ ...p, atomId: null, isOnChain: false }));
+
+    const atomIdMap = new Map<string, string>();
+    predicatesAtomData.atoms.forEach((atom) => {
+      atomIdMap.set(atom.label, atom.term_id);
+    });
+
+    return predicates.map(p => ({
+      ...p,
+      atomId: atomIdMap.get(p.label) || null,
+      isOnChain: atomIdMap.has(p.label),
+    }));
+  }, [predicates, predicatesAtomData]);
 
   // Form state
   const [selectedPredicateId, setSelectedPredicateId] = useState<string>(predicates[0]?.id || '');
@@ -69,22 +101,76 @@ export function VoteTotemPanel({
     [predicates, selectedPredicateId]
   );
 
+  // Get selected predicate with atomId
+  const selectedPredicateWithAtom = useMemo(
+    () => predicatesWithAtomIds.find((p) => p.id === selectedPredicateId),
+    [predicatesWithAtomIds, selectedPredicateId]
+  );
+
+  // Check if triple already exists (to get termId/counterTermId)
+  const {
+    proactiveClaimInfo,
+  } = useProactiveClaimCheck({
+    founderAtomId: founder.atomId,
+    selectedPredicateWithAtom,
+    selectedTotemId: selectedTotemId || '',
+    totemMode: 'existing', // VoteTotemPanel only handles existing totems
+  });
+
   const isFormValid = useMemo(() => {
     if (!selectedTotemId) return false;
     if (!selectedPredicateId) return false;
     if (!trustAmount || parseFloat(trustAmount) <= 0) return false;
     if (!isDepositValid(trustAmount)) return false;
+    if (voteDirection === 'withdraw') return true; // Withdraw doesn't need predicate atomId
+    if (!selectedPredicateWithAtom?.atomId) return false; // Need predicate atomId for votes
     return true;
-  }, [selectedTotemId, selectedPredicateId, trustAmount, isDepositValid]);
+  }, [selectedTotemId, selectedPredicateId, trustAmount, isDepositValid, voteDirection, selectedPredicateWithAtom]);
 
-  // Handle add to cart - simplified for Phase 9
-  // Full cart integration requires termId lookup which is handled by VotePanel
+  // Handle add to cart - Full integration with useVoteCart
   const handleAddToCart = () => {
     if (!isFormValid) return;
+    if (voteDirection === 'withdraw') {
+      // Withdraw not supported in cart mode yet
+      setError(t('founderExpanded.withdrawNotInCart') || 'Withdraw non disponible dans le panier');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
 
-    // For now, show info message - full integration in next phase
-    setSuccess('Vote préparé ! Utilisez le panneau complet pour soumettre.');
-    setTimeout(() => setSuccess(null), 3000);
+    if (!selectedTotemId || !selectedPredicateWithAtom?.atomId) {
+      setError('Données manquantes pour ajouter au panier');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    // For new triples (no proactiveClaimInfo), we need to create termId on-chain
+    // For existing triples, we use the existing termId/counterTermId
+    const isNewTotem = !proactiveClaimInfo;
+
+    try {
+      addItem({
+        totemId: selectedTotemId as Hex,
+        totemName: selectedTotemLabel || 'Unknown',
+        predicateId: selectedPredicateWithAtom.atomId as Hex,
+        termId: (proactiveClaimInfo?.termId || selectedTotemId) as Hex, // Use termId if exists, else totemId as placeholder
+        counterTermId: (proactiveClaimInfo?.counterTermId || selectedTotemId) as Hex, // Same logic
+        direction: voteDirection as 'for' | 'against',
+        amount: trustAmount,
+        isNewTotem,
+      });
+
+      setSuccess(t('founderExpanded.addedToCart') || 'Ajouté au panier !');
+      setTimeout(() => setSuccess(null), 3000);
+
+      // Reset amount after adding
+      if (protocolConfig?.formattedMinDeposit) {
+        setTrustAmount(protocolConfig.formattedMinDeposit);
+      }
+    } catch (err) {
+      console.error('[VoteTotemPanel] Error adding to cart:', err);
+      setError('Erreur lors de l\'ajout au panier');
+      setTimeout(() => setError(null), 3000);
+    }
   };
 
   if (!isConnected) {

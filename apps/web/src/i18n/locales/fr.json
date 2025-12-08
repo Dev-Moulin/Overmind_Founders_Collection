@@ -129,7 +129,12 @@
     "emptyCart": "Panier vide",
     "addVotesHint": "Ajoutez des votes au panier pour les valider en batch",
     "validating": "Validation...",
-    "validateCart": "Valider le panier"
+    "validateCart": "Valider le panier",
+    "creation": "Création",
+    "createNewTotem": "Créer un nouveau totem",
+    "comingSoon": "Bientôt disponible",
+    "addedToCart": "Ajouté au panier !",
+    "withdrawNotInCart": "Retrait non disponible en mode panier"
   },
   "homePage": {
     "title": "INTUITION",

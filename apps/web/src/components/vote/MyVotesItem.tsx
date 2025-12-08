@@ -11,7 +11,7 @@
  * @see Phase 10 - Etape 5 in TODO_FIX_01_Discussion.md
  */
 
-import type { UserVoteWithDetails } from '../../hooks/useUserVotesForFounder';
+import type { UserVoteWithDetails } from '../../hooks';
 
 interface MyVotesItemProps {
   vote: UserVoteWithDetails;

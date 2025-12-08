@@ -1,5 +1,5 @@
-import { formatVoteAmount } from '../../hooks/useFounderProposals';
-import type { ExistingClaimInfo } from '../ClaimExistsModal';
+import { formatVoteAmount } from '../../hooks';
+import type { ExistingClaimInfo } from '../modal/ClaimExistsModal';
 
 /**
  * ClaimExistsWarning - Affiche une alerte quand un claim existe déjà

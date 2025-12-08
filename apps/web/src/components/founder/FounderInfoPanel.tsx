@@ -12,14 +12,14 @@
  */
 
 import { useTranslation } from 'react-i18next';
-import type { FounderForHomePage } from '../../hooks/useFoundersForHomePage';
+import type { FounderForHomePage } from '../../hooks';
 import { getFounderImageUrl } from '../../utils/founderImage';
 import { VoteMarketCompact } from '../vote/VoteMarket';
-import { RefreshIndicator } from '../RefreshIndicator';
+import { RefreshIndicator } from '../common/RefreshIndicator';
 import { TopTotemsRadar } from '../graph/TopTotemsRadar';
 import { RelationsRadar } from '../graph/RelationsRadar';
-import { useTopTotems } from '../../hooks/useTopTotems';
-import { useFounderPanelStats } from '../../hooks/useFounderPanelStats';
+import { useTopTotems } from '../../hooks';
+import { useFounderPanelStats } from '../../hooks';
 
 interface FounderInfoPanelProps {
   founder: FounderForHomePage;

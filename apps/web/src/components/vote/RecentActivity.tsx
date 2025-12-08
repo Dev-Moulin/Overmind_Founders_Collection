@@ -1,4 +1,4 @@
-import { formatVoteAmount } from '../../hooks/useFounderProposals';
+import { formatVoteAmount } from '../../hooks';
 import { getTimeAgo } from '../../utils';
 
 /**

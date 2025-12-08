@@ -14,7 +14,7 @@
 
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { TopTotem } from '../../hooks/useTopTotems';
+import type { TopTotem } from '../../hooks';
 
 interface RelationsRadarProps {
   /** Founder name (displayed at center) */

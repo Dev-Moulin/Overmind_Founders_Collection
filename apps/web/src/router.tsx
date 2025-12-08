@@ -1,6 +1,6 @@
 import { createBrowserRouter, Outlet } from 'react-router-dom';
-import { Layout } from './components/Layout';
-import { NetworkGuard } from './components/NetworkGuard';
+import { Layout } from './components/layout/Layout';
+import { NetworkGuard } from './components/layout/NetworkGuard';
 import { HomePage } from './pages/HomePage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { AdminAuditPage } from './pages/AdminAuditPage';

@@ -14,7 +14,7 @@
 import { useRef, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { GraphCanvas, useSelection, lightTheme, darkTheme } from 'reagraph';
-import type { GraphNode, GraphEdge } from '../../hooks/useVoteGraph';
+import type { GraphNode, GraphEdge } from '../../hooks';
 
 /**
  * Color palette for node types

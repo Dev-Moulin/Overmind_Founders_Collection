@@ -23,7 +23,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
-import type { TopTotem } from '../../hooks/useTopTotems';
+import type { TopTotem } from '../../hooks';
 
 interface TopTotemsRadarProps {
   /** Top totems data */
@@ -289,4 +289,4 @@ export function TopTotemsRadar({
 /**
  * TopTotemsRadar with data fetching
  */
-export { useTopTotems } from '../../hooks/useTopTotems';
+export { useTopTotems } from '../../hooks';

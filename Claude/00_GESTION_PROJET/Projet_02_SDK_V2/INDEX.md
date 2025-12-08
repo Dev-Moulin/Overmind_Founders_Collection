@@ -335,11 +335,31 @@ Documentation de recherche sur le SDK INTUITION V2 pour la refonte du système d
 ---
 
 **Créé** : 28/11/2025
-**Mis à jour** : 05/12/2025 - **PROJET TERMINÉ** - 10 phases complétées + i18n internationalization complete
+**Mis à jour** : 08/12/2025 - Phase 10 complétée + Réorganisation structure en cours
 
 ---
 
-## Dernières mises à jour (5 décembre 2025)
+## Dernières mises à jour (8 décembre 2025)
+
+### Réorganisation Structure (en cours)
+
+Suite à l'identification d'une sur-ingénierie (38 hooks, 46 composants), une réorganisation de la structure est planifiée.
+
+**Objectif** : Organiser les hooks et composants par domaine/responsabilité pour :
+- Identifier les doublons potentiels
+- Faciliter la maintenance
+- Améliorer la lisibilité du code
+
+**Hooks identifiés pour consolidation potentielle** :
+- `useVoteStats.ts` et `useVoteMarketStats.ts`
+- `useUserVotes.ts` et `useUserVotesForFounder.ts`
+- `useBatchVote.ts`, `useBatchDeposit.ts`, `useBatchRedeem.ts`
+
+**Voir** : [TODO_FIX_01_Discussion.md](./TODO_FIX_01_Discussion.md#9-réorganisation-structure-planifiée)
+
+---
+
+## Mises à jour précédentes (5 décembre 2025)
 
 ### Internationalisation (i18n) complète
 

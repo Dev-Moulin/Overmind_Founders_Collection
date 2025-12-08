@@ -132,7 +132,9 @@
     "validateCart": "Validate cart",
     "creation": "Creation",
     "createNewTotem": "Create a new totem",
-    "comingSoon": "Coming soon"
+    "comingSoon": "Coming soon",
+    "addedToCart": "Added to cart!",
+    "withdrawNotInCart": "Withdraw not available in cart mode"
   },
   "homePage": {
     "title": "INTUITION",

@@ -8,7 +8,7 @@
 
 import { formatEther } from 'viem';
 import { useTranslation } from 'react-i18next';
-import { useBatchVote } from '../../hooks/useBatchVote';
+import { useBatchVote } from '../../hooks';
 import type { VoteCart, VoteCartItem, VoteCartCostSummary } from '../../types/voteCart';
 
 interface VoteCartPanelProps {

@@ -15,7 +15,7 @@
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useVoteMarketStats } from '../../hooks/useVoteMarketStats';
+import { useVoteMarketStats } from '../../hooks';
 
 interface VoteMarketProps {
   /** Founder name to show stats for */

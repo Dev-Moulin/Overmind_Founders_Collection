@@ -14,8 +14,8 @@ import {
   type BatchTripleItem,
   type TripleValidation,
   type BatchTripleCost,
-} from '../../hooks/useBatchTriples';
-import { useProtocolConfig } from '../../hooks/useProtocolConfig';
+} from '../../hooks';
+import { useProtocolConfig } from '../../hooks';
 
 /**
  * Form item with UI state
