@@ -63,7 +63,8 @@ export function useTopTotems(
     const totemMap = new Map<string, TopTotem>();
 
     proposals.forEach((proposal) => {
-      const totemId = proposal.object_id;
+      // Use object.term_id since object_id is not in GraphQL response
+      const totemId = proposal.object.term_id;
       const trustFor = weiToEth(proposal.votes.forVotes);
       const trustAgainst = weiToEth(proposal.votes.againstVotes);
 

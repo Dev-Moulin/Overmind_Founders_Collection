@@ -188,7 +188,7 @@ export function VoteTotemPanel({
   }
 
   return (
-    <div className="glass-card p-4 h-full flex flex-col">
+    <div className="glass-card p-4 h-full flex flex-col overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
       {/* Header with cart button */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-white">Vote Totem</h3>

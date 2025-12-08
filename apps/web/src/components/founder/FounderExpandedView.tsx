@@ -121,11 +121,11 @@ function FounderExpandedViewInner({ founder, onClose }: FounderExpandedViewProps
       onClick={handleBackdropClick}
       style={{ margin: 0 }}
     >
-      {/* Main container - 3-panel layout (+25% size) */}
-      <div className="w-full max-w-[1600px] h-[95vh] flex flex-col lg:flex-row gap-4 animate-fade-in">
+      {/* Main container - 3-panel layout responsive */}
+      <div className="w-full max-w-[1600px] h-[95vh] max-h-[95vh] flex flex-col lg:flex-row gap-3 xl:gap-4 animate-fade-in overflow-hidden">
 
-        {/* Left Panel - Founder Info (1/5 on desktop) */}
-        <div className="lg:w-1/5 shrink-0 min-w-[220px]">
+        {/* Left Panel - Founder Info (+20% wider for graphs) */}
+        <div className="lg:w-[384px] xl:w-[432px] 2xl:w-[480px] shrink-0 h-full min-h-0">
           <FounderInfoPanel
             founder={founder}
             onClose={onClose}
@@ -137,8 +137,8 @@ function FounderExpandedViewInner({ founder, onClose }: FounderExpandedViewProps
           />
         </div>
 
-        {/* Center Panel - Totems Grid (2/5 on desktop) */}
-        <div className="lg:w-2/5 flex-1 min-h-0">
+        {/* Center Panel - Totems Grid (flexible) */}
+        <div className="flex-1 min-w-0 min-h-0 h-full">
           <FounderCenterPanel
             founder={founder}
             onSelectTotem={handleSelectTotem}
@@ -147,8 +147,8 @@ function FounderExpandedViewInner({ founder, onClose }: FounderExpandedViewProps
           />
         </div>
 
-        {/* Right Panel - Vote Action (2/5 on desktop) */}
-        <div className="lg:w-2/5 shrink-0">
+        {/* Right Panel - Vote Action (adaptive width) */}
+        <div className="lg:w-[320px] xl:w-[360px] 2xl:w-[400px] shrink-0 h-full min-h-0">
           <VoteTotemPanel
             founder={founder}
             selectedTotemId={selectedTotemId}

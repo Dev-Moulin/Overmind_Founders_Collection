@@ -173,21 +173,21 @@ export function FounderCenterPanel({
   }, [bestTriples]);
 
   return (
-    <div className="glass-card p-4 h-full flex flex-col">
+    <div className="glass-card p-4 h-full flex flex-col overflow-hidden">
       {/* Trading Chart Section - Always visible at top */}
-      <div className="mb-4">
+      <div className="mb-3 shrink-0">
         <TradingChart
           data={timelineData}
           timeframe={timeframe}
           onTimeframeChange={setTimeframe}
-          height={150}
+          height={120}
           loading={timelineLoading}
           title="Vote Activity"
         />
       </div>
 
       {/* SECTION 1: Totems / Création */}
-      <div className="mb-4">
+      <div className="mb-3 shrink-0">
         {/* Section 1 Tabs */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex bg-white/5 rounded-lg p-0.5">
@@ -215,7 +215,7 @@ export function FounderCenterPanel({
         </div>
 
         {/* Section 1 Content */}
-        <div className="h-[180px] overflow-y-auto">
+        <div className="h-[140px] xl:h-[180px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
           {loading ? (
             <div className="grid grid-cols-2 gap-2">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -315,7 +315,7 @@ export function FounderCenterPanel({
         </div>
 
         {/* Section 2 Content */}
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
           {section2Tab === 'myVotes' ? (
             // My Votes - User's votes on this founder
             isConnected ? (
