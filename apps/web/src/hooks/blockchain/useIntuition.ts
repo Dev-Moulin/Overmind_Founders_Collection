@@ -158,14 +158,19 @@ export function useIntuition() {
    */
   const getOrCreateAtom = useCallback(
     async (value: string, depositAmount?: string): Promise<{ termId: Hex; created: boolean }> => {
+      console.log('[useIntuition] getOrCreateAtom called for:', value);
+
       // First, check if atom already exists
       const existingId = await findAtomByLabel(value);
       if (existingId) {
+        console.log('[useIntuition] Atom already exists:', { value, termId: existingId });
         return { termId: existingId, created: false };
       }
 
       // Create new atom
+      console.log('[useIntuition] Atom does not exist, creating new atom:', value);
       const result = await createAtom(value, depositAmount);
+      console.log('[useIntuition] New atom created:', { value, termId: result.termId });
       return { termId: result.termId, created: true };
     },
     [findAtomByLabel, createAtom]
@@ -285,6 +290,14 @@ export function useIntuition() {
       objectId: Hex,
       depositAmount: string
     ): Promise<CreateTripleResult> => {
+      console.log('[useIntuition] ========== CREATE TRIPLE START ==========');
+      console.log('[useIntuition] Creating triple with:', {
+        subjectId,
+        predicateId,
+        objectId,
+        depositAmount,
+      });
+
       if (!walletClient || !publicClient) {
         throw new Error('Wallet not connected');
       }
@@ -349,12 +362,21 @@ export function useIntuition() {
       });
 
       // Execute the transaction
+      console.log('[useIntuition] Sending createTriples transaction...');
       const txHash = await walletClient.writeContract(request);
+      console.log('[useIntuition] Transaction sent! Hash:', txHash);
 
       // Wait for transaction receipt
-      await publicClient.waitForTransactionReceipt({ hash: txHash });
+      console.log('[useIntuition] Waiting for transaction receipt...');
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+      console.log('[useIntuition] Transaction confirmed!', {
+        status: receipt.status,
+        blockNumber: receipt.blockNumber,
+      });
 
       // For now, return the transaction hash - we'll parse events later if needed
+      console.log('[useIntuition] ✅ Triple created successfully!');
+      console.log('[useIntuition] ========== CREATE TRIPLE END ==========');
       return {
         transactionHash: txHash,
         tripleId: subjectId, // Placeholder - actual tripleId would come from event parsing

@@ -89,13 +89,6 @@ export function VoteTotemPanel({
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize amount with min deposit
-  useEffect(() => {
-    if (protocolConfig?.formattedMinDeposit && trustAmount === '') {
-      setTrustAmount(protocolConfig.formattedMinDeposit);
-    }
-  }, [protocolConfig?.formattedMinDeposit]);
-
   const selectedPredicate = useMemo(
     () => predicates.find((p) => p.id === selectedPredicateId),
     [predicates, selectedPredicateId]
@@ -117,6 +110,52 @@ export function VoteTotemPanel({
     totemMode: 'existing', // VoteTotemPanel only handles existing totems
   });
 
+  // Compute if this is a new triple (no proactiveClaimInfo means triple doesn't exist yet)
+  const isNewTotem = !proactiveClaimInfo;
+
+  // Calculate minimum required amount based on whether it's a new triple
+  const minRequiredAmount = useMemo(() => {
+    if (!protocolConfig) return '0.001';
+    if (isNewTotem) {
+      // New triple: tripleCost + minDeposit
+      const total = parseFloat(protocolConfig.formattedTripleCost) + parseFloat(protocolConfig.formattedMinDeposit);
+      return total.toFixed(4);
+    }
+    // Existing triple: just minDeposit
+    return protocolConfig.formattedMinDeposit;
+  }, [protocolConfig, isNewTotem]);
+
+  // Initialize amount with minimum required
+  useEffect(() => {
+    if (minRequiredAmount && trustAmount === '') {
+      setTrustAmount(minRequiredAmount);
+    }
+  }, [minRequiredAmount]);
+
+  // Update amount if it's below minimum when switching to a new totem
+  useEffect(() => {
+    if (protocolConfig && trustAmount) {
+      const currentAmount = parseFloat(trustAmount);
+      const minAmount = parseFloat(minRequiredAmount);
+      if (currentAmount < minAmount) {
+        setTrustAmount(minRequiredAmount);
+      }
+    }
+  }, [minRequiredAmount, protocolConfig]);
+
+  // Reset amount to minimum when totem changes AND we know if it's new or existing
+  // This ensures the correct minimum is used after proactiveClaimCheck completes
+  useEffect(() => {
+    if (selectedTotemId && minRequiredAmount) {
+      const currentAmount = parseFloat(trustAmount || '0');
+      const minAmount = parseFloat(minRequiredAmount);
+      // Only update if current amount is below minimum
+      if (currentAmount < minAmount) {
+        setTrustAmount(minRequiredAmount);
+      }
+    }
+  }, [selectedTotemId, selectedPredicateId, minRequiredAmount]);
+
   const isFormValid = useMemo(() => {
     if (!selectedTotemId) return false;
     if (!selectedPredicateId) return false;
@@ -129,7 +168,25 @@ export function VoteTotemPanel({
 
   // Handle add to cart - Full integration with useVoteCart
   const handleAddToCart = () => {
-    if (!isFormValid) return;
+    console.log('[VoteTotemPanel] ========== ADD TO CART START ==========');
+    console.log('[VoteTotemPanel] Form state:', {
+      isFormValid,
+      selectedTotemId,
+      selectedTotemLabel,
+      selectedPredicateId,
+      selectedPredicateLabel: selectedPredicateWithAtom?.label,
+      selectedPredicateAtomId: selectedPredicateWithAtom?.atomId,
+      voteDirection,
+      trustAmount,
+      founderName: founder.name,
+      founderAtomId: founder.atomId,
+    });
+    console.log('[VoteTotemPanel] Proactive claim info:', proactiveClaimInfo);
+
+    if (!isFormValid) {
+      console.log('[VoteTotemPanel] Form NOT valid, aborting');
+      return;
+    }
     if (voteDirection === 'withdraw') {
       // Withdraw not supported in cart mode yet
       setError(t('founderExpanded.withdrawNotInCart') || 'Withdraw non disponible dans le panier');
@@ -138,6 +195,7 @@ export function VoteTotemPanel({
     }
 
     if (!selectedTotemId || !selectedPredicateWithAtom?.atomId) {
+      console.log('[VoteTotemPanel] Missing data:', { selectedTotemId, predicateAtomId: selectedPredicateWithAtom?.atomId });
       setError('Données manquantes pour ajouter au panier');
       setTimeout(() => setError(null), 3000);
       return;
@@ -147,18 +205,24 @@ export function VoteTotemPanel({
     // For existing triples, we use the existing termId/counterTermId
     const isNewTotem = !proactiveClaimInfo;
 
-    try {
-      addItem({
-        totemId: selectedTotemId as Hex,
-        totemName: selectedTotemLabel || 'Unknown',
-        predicateId: selectedPredicateWithAtom.atomId as Hex,
-        termId: (proactiveClaimInfo?.termId || selectedTotemId) as Hex, // Use termId if exists, else totemId as placeholder
-        counterTermId: (proactiveClaimInfo?.counterTermId || selectedTotemId) as Hex, // Same logic
-        direction: voteDirection as 'for' | 'against',
-        amount: trustAmount,
-        isNewTotem,
-      });
+    const cartItem = {
+      totemId: selectedTotemId as Hex,
+      totemName: selectedTotemLabel || 'Unknown',
+      predicateId: selectedPredicateWithAtom.atomId as Hex,
+      termId: (proactiveClaimInfo?.termId || selectedTotemId) as Hex,
+      counterTermId: (proactiveClaimInfo?.counterTermId || selectedTotemId) as Hex,
+      direction: voteDirection as 'for' | 'against',
+      amount: trustAmount,
+      isNewTotem,
+    };
 
+    console.log('[VoteTotemPanel] Cart item to add:', cartItem);
+    console.log('[VoteTotemPanel] isNewTotem:', isNewTotem, '(triple exists on chain:', !!proactiveClaimInfo, ')');
+
+    try {
+      addItem(cartItem);
+
+      console.log('[VoteTotemPanel] Item added to cart successfully!');
       setSuccess(t('founderExpanded.addedToCart') || 'Ajouté au panier !');
       setTimeout(() => setSuccess(null), 3000);
 
@@ -171,6 +235,7 @@ export function VoteTotemPanel({
       setError('Erreur lors de l\'ajout au panier');
       setTimeout(() => setError(null), 3000);
     }
+    console.log('[VoteTotemPanel] ========== ADD TO CART END ==========');
   };
 
   if (!isConnected) {
@@ -188,7 +253,7 @@ export function VoteTotemPanel({
   }
 
   return (
-    <div className="glass-card p-4 h-full flex flex-col overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+    <div className="glass-card p-4 h-full flex flex-col overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent" style={{ overscrollBehavior: 'contain' }}>
       {/* Header with cart button */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-white">Vote Totem</h3>
@@ -210,7 +275,7 @@ export function VoteTotemPanel({
       {error && <ErrorNotification message={error} onClose={() => setError(null)} />}
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto space-y-4">
+      <div className="flex-1 overflow-y-auto space-y-4" style={{ overscrollBehavior: 'contain' }}>
         {/* Selected Totem */}
         <div>
           <label className="block text-xs text-white/60 mb-1">{t('founderExpanded.selectedTotem')}</label>

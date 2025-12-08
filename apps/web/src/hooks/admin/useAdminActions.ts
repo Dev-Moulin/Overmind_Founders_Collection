@@ -98,22 +98,53 @@ export function useAdminActions({
 
   const handleCreateTotem = useCallback(
     async (label: string, ofcCategoryId: string) => {
-      if (!isReady || !isAdmin) return;
+      console.log('[useAdminActions] ========== CREATE TOTEM START ==========');
+      console.log('[useAdminActions] Creating totem:', { label, ofcCategoryId });
+
+      if (!isReady || !isAdmin) {
+        console.log('[useAdminActions] Not ready or not admin, aborting');
+        return;
+      }
       setCreatingItem(label);
       setCreateError(null);
       try {
         const category = categoriesConfig.categories.find((c) => c.id === ofcCategoryId);
         if (!category) throw new Error(`Catégorie OFC invalide: ${ofcCategoryId}`);
+        console.log('[useAdminActions] Category found:', category);
 
+        // Step 1: Create/get totem atom
+        console.log('[useAdminActions] Step 1: getOrCreateAtom for totem:', label);
         const totemResult = await getOrCreateAtom(label);
+        console.log('[useAdminActions] Totem atom result:', totemResult);
+
+        // Step 2: Create/get "has category" predicate
+        console.log('[useAdminActions] Step 2: getOrCreateAtom for predicate:', categoriesConfig.predicate.label);
         const predicateResult = await getOrCreateAtom(categoriesConfig.predicate.label);
+        console.log('[useAdminActions] Predicate result:', predicateResult);
+
+        // Step 3: Create/get category atom
+        console.log('[useAdminActions] Step 3: getOrCreateAtom for category:', category.label);
         const categoryResult = await getOrCreateAtom(category.label);
+        console.log('[useAdminActions] Category atom result:', categoryResult);
+
+        // Step 4: Create triple [Totem] -> [has category] -> [Category]
+        console.log('[useAdminActions] Step 4: createTriple');
+        console.log('[useAdminActions] Triple structure:', {
+          subject: `${label} (${totemResult.termId})`,
+          predicate: `${categoriesConfig.predicate.label} (${predicateResult.termId})`,
+          object: `${category.label} (${categoryResult.termId})`,
+        });
+        console.log('[useAdminActions] ⚠️ NOTE: This creates [Totem] -> [has category] -> [Category]');
+        console.log('[useAdminActions] ⚠️ NOTE: This does NOT create [Founder] -> [has totem] -> [Totem]');
+        console.log('[useAdminActions] ⚠️ NOTE: The founder-totem triple must be created by user when voting!');
+
         const tripleResult = await createTriple(
           totemResult.termId,
           predicateResult.termId,
           categoryResult.termId,
           '0.001'
         );
+        console.log('[useAdminActions] Triple created:', tripleResult);
 
         setCreatedItems((prev) =>
           new Map(prev).set(label, {
@@ -121,8 +152,11 @@ export function useAdminActions({
             txHash: tripleResult.transactionHash,
           })
         );
+        console.log('[useAdminActions] ✅ Totem creation complete!');
+        console.log('[useAdminActions] ========== CREATE TOTEM END ==========');
         await Promise.all([refetchTotems(), refetchCategoryTriples()]);
       } catch (err) {
+        console.error('[useAdminActions] ❌ Error creating totem:', err);
         setCreateError(
           err instanceof Error ? err.message : "Erreur lors de la création de l'objet"
         );

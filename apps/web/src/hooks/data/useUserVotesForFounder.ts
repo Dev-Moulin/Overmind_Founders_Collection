@@ -13,7 +13,7 @@
  * @see Phase 10 - Etape 5 in TODO_FIX_01_Discussion.md
  */
 
-import { useMemo, useEffect } from 'react';
+import { useMemo } from 'react';
 import { useQuery } from '@apollo/client';
 import { formatEther } from 'viem';
 import {
@@ -216,24 +216,16 @@ export function useUserVotesForFounder(
     return votes;
   }, [depositsData?.deposits, triplesMap]);
 
-  // DEBUG: Log data
-  useEffect(() => {
-    console.log('[useUserVotesForFounder] DEBUG:', {
-      walletAddress: normalizedAddress,
-      founderName,
-      depositsCount: depositsData?.deposits?.length || 0,
-      triplesCount: triplesData?.triples?.length || 0,
-      triplesMapSize: triplesMap.size,
-      matchedVotesCount: allVotes.length,
-      sampleVotes: allVotes.slice(0, 3).map(v => ({
-        term_id: v.term_id,
-        subject: v.term.subject.label,
-        predicate: v.term.predicate.label,
-        object: v.term.object.label,
-        amount: v.signedAmount,
-      })),
-    });
-  }, [depositsData?.deposits, triplesData?.triples, triplesMap, allVotes, normalizedAddress, founderName]);
+  // DEBUG: Log only when data actually changes (disabled in production)
+  // useEffect(() => {
+  //   if (process.env.NODE_ENV === 'development') {
+  //     console.log('[useUserVotesForFounder] DEBUG:', {
+  //       walletAddress: normalizedAddress,
+  //       founderName,
+  //       matchedVotesCount: allVotes.length,
+  //     });
+  //   }
+  // }, [allVotes.length, normalizedAddress, founderName]);
 
   // Separate FOR and AGAINST votes
   const forVotes = allVotes.filter((v) => v.isPositive);

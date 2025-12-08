@@ -101,8 +101,8 @@ export function useProactiveClaimCheck({
         subjectLabel: triple.subject.label,
         predicateLabel: triple.predicate.label,
         objectLabel: triple.object.label,
-        forVotes: vault?.total_assets || '0', // Use total_assets (wei amount), not total_shares
-        againstVotes: counterTerm?.total_assets || '0', // AGAINST votes from counter_term
+        forVotes: vault?.total_assets || '0',
+        againstVotes: counterTerm?.total_assets || '0',
       };
       setProactiveClaimInfo(newInfo);
     } else if (claimCheckData?.triples?.length === 0) {

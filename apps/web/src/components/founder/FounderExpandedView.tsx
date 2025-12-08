@@ -88,6 +88,15 @@ function FounderExpandedViewInner({ founder, onClose }: FounderExpandedViewProps
     return () => window.removeEventListener('keydown', handleEscape);
   }, [onClose]);
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
+
   // Handle backdrop click to close
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -117,9 +126,9 @@ function FounderExpandedViewInner({ founder, onClose }: FounderExpandedViewProps
 
   return (
     <div
-      className="fixed inset-0 z-50 m-0 bg-black/40 backdrop-blur-md flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 m-0 bg-black/40 backdrop-blur-md flex items-center justify-center p-4 overflow-hidden"
       onClick={handleBackdropClick}
-      style={{ margin: 0 }}
+      style={{ margin: 0, overscrollBehavior: 'contain' }}
     >
       {/* Main container - 3-panel layout responsive */}
       <div className="w-full max-w-[1600px] h-[95vh] max-h-[95vh] flex flex-col lg:flex-row gap-3 xl:gap-4 animate-fade-in overflow-hidden">
@@ -187,7 +196,7 @@ function FounderExpandedViewInner({ founder, onClose }: FounderExpandedViewProps
               </div>
 
               {/* Content */}
-              <div className="flex-1 overflow-y-auto p-4">
+              <div className="flex-1 overflow-y-auto p-4" style={{ overscrollBehavior: 'contain' }}>
                 <VoteCartPanel
                   cart={cart}
                   costSummary={costSummary}
