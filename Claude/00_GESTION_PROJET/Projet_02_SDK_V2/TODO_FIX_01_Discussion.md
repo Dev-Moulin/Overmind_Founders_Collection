@@ -942,3 +942,81 @@ const matchedVotes = deposits.filter(d => triplesMap.has(d.term_id));
 3. **Approche deux requêtes** est plus robuste que les queries complexes avec nested filters
 
 **Branche** : `fix/graphql-nested-filters`
+
+---
+
+## 11. FIX RECHARTS + FOUNDER TAGS - 8 décembre 2025
+
+### 11.1 Ajout des Tags Fondateur (from blockchain)
+
+**Objectif** : Afficher les tags associés à chaque fondateur entre son nom et sa description dans le FounderInfoPanel.
+
+**Implémentation** :
+
+1. **Requête GraphQL** `GET_FOUNDER_TAGS` dans `queries.ts` :
+```graphql
+query GetFounderTags($founderName: String!) {
+  triples(
+    where: {
+      subject: { label: { _eq: $founderName } }
+      predicate: { label: { _eq: "has tag" } }
+    }
+    order_by: { created_at: desc }
+  ) {
+    term_id
+    object { term_id, label }
+  }
+}
+```
+
+2. **Hook** `useFounderTags.ts` créé dans `hooks/data/`
+   - Déduplique les tags par label
+   - Retourne `{ tags, loading, error }`
+
+3. **Affichage** dans `FounderInfoPanel.tsx`
+   - Max 5 tags affichés
+   - Style : `bg-slate-500/20 text-slate-300 border-slate-500/30`
+   - Badge `+X` si plus de 5 tags
+
+### 11.2 Fix Recharts Warning "width(-1) height(-1)"
+
+**Problème** : Le `ResponsiveContainer` de recharts affichait un warning dans la console car il ne pouvait pas mesurer les dimensions du conteneur pendant l'animation d'ouverture du panel.
+
+**Solution** : Remplacer `ResponsiveContainer` par une gestion manuelle des dimensions :
+
+1. **`useRef`** pour référencer le conteneur
+2. **`ResizeObserver`** pour détecter quand les dimensions sont valides
+3. **`requestAnimationFrame`** pour s'assurer que le DOM est prêt
+4. **Dimensions directes** passées à `RadarChart` au lieu de `100%`
+
+```typescript
+// Avant
+<ResponsiveContainer width="100%" height="100%">
+  <RadarChart ... />
+</ResponsiveContainer>
+
+// Après
+<RadarChart
+  width={dimensions.width}
+  height={dimensions.height}
+  ...
+/>
+```
+
+**Fichier modifié** : `TopTotemsRadar.tsx`
+- Supprimé import `ResponsiveContainer`
+- Ajouté `containerRef`, `dimensions`, `measureContainer`
+- Restructuré le rendu avec `renderContent()` pour garder le `ref` toujours présent
+
+### 11.3 Fichiers créés/modifiés
+
+| Fichier | Action |
+|---------|--------|
+| `hooks/data/useFounderTags.ts` | **CRÉÉ** - Hook pour fetch tags |
+| `hooks/index.ts` | Export ajouté |
+| `lib/graphql/queries.ts` | Requête `GET_FOUNDER_TAGS` ajoutée |
+| `types/founder.ts` | `tags?: string[]` ajouté à `FounderData` |
+| `components/founder/FounderInfoPanel.tsx` | Affichage tags + import hook |
+| `components/graph/TopTotemsRadar.tsx` | Fix dimensions recharts |
+
+**Branche** : `feature/founder-tags-recharts-fix`

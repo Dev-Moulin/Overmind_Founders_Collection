@@ -12,6 +12,7 @@ export interface FounderData {
   github?: string | null;
   image?: string;
   atomId?: string; // INTUITION Atom ID (Hex) - populated after on-chain creation
+  tags?: string[]; // Tags describing the founder's role/expertise
 }
 
 /**

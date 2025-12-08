@@ -122,6 +122,9 @@ export { useVoteMarketStats } from './data/useVoteMarketStats';
 // Hook for votes timeline
 export { useVotesTimeline as useVotesTimelineHook } from './data/useVotesTimeline';
 
+// Hook for founder tags
+export { useFounderTags, type FounderTag } from './data/useFounderTags';
+
 // ============================================================================
 // CONFIG - Protocol and network configuration
 // ============================================================================

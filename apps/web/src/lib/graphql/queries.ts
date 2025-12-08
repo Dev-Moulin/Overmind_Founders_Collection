@@ -963,3 +963,26 @@ export const GET_FOUNDER_TRIPLES_WITH_DETAILS = gql`
     }
   }
 `;
+
+/**
+ * Get tags for a specific founder
+ *
+ * Returns all triples where the founder is subject and predicate is "has tag"
+ */
+export const GET_FOUNDER_TAGS = gql`
+  query GetFounderTags($founderName: String!) {
+    triples(
+      where: {
+        subject: { label: { _eq: $founderName } }
+        predicate: { label: { _eq: "has tag" } }
+      }
+      order_by: { created_at: desc }
+    ) {
+      term_id
+      object {
+        term_id
+        label
+      }
+    }
+  }
+`;

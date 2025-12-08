@@ -11,6 +11,7 @@
  * @see Phase 9 in TODO_Implementation.md
  */
 
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FounderForHomePage } from '../../hooks';
 import { getFounderImageUrl } from '../../utils/founderImage';
@@ -20,6 +21,9 @@ import { TopTotemsRadar } from '../graph/TopTotemsRadar';
 import { RelationsRadar } from '../graph/RelationsRadar';
 import { useTopTotems } from '../../hooks';
 import { useFounderPanelStats } from '../../hooks';
+import { useFounderTags } from '../../hooks';
+
+type GraphTab = 'topTotems' | 'voteGraph';
 
 interface FounderInfoPanelProps {
   founder: FounderForHomePage;
@@ -44,11 +48,20 @@ export function FounderInfoPanel({
   const { t } = useTranslation();
   const imageUrl = getFounderImageUrl(founder);
 
-  // Fetch top totems for radar chart
+  // Graph tab state
+  const [graphTab, setGraphTab] = useState<GraphTab>('topTotems');
+
+  // Fetch top 5 totems for radar chart
   const { topTotems, loading: totemsLoading } = useTopTotems(founder.name, 5);
+
+  // Fetch ALL totems for relations graph (no limit)
+  const { topTotems: allTotems, loading: allTotemsLoading } = useTopTotems(founder.name, 100);
 
   // Fetch panel stats (Market Cap, Holders, Claims)
   const { stats, loading: statsLoading } = useFounderPanelStats(founder.name);
+
+  // Fetch founder tags from blockchain
+  const { tags, loading: tagsLoading } = useFounderTags(founder.name);
 
   // Extract social links from founder data
   const socialLinks = {
@@ -60,7 +73,7 @@ export function FounderInfoPanel({
   const hasSocialLinks = Object.values(socialLinks).some(Boolean);
 
   return (
-    <div className="glass-card p-4 h-full flex flex-col relative">
+    <div className="glass-card p-4 h-full flex flex-col relative overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
       {/* Close button */}
       <button
         onClick={onClose}
@@ -90,7 +103,7 @@ export function FounderInfoPanel({
       </h2>
 
       {/* Real-time indicator */}
-      <div className="flex justify-center mb-3">
+      <div className="flex justify-center mb-2">
         <RefreshIndicator
           secondsSinceUpdate={secondsSinceUpdate}
           isConnected={isConnected}
@@ -98,6 +111,25 @@ export function FounderInfoPanel({
           isLoading={isLoading}
         />
       </div>
+
+      {/* Tags from blockchain */}
+      {!tagsLoading && tags.length > 0 && (
+        <div className="flex flex-wrap justify-center gap-1.5 mb-3">
+          {tags.slice(0, 5).map((tag) => (
+            <span
+              key={tag.id}
+              className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-slate-500/20 text-slate-300 border border-slate-500/30"
+            >
+              {tag.label}
+            </span>
+          ))}
+          {tags.length > 5 && (
+            <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-white/10 text-white/50">
+              +{tags.length - 5}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Full Bio (with fallback to short bio) */}
       {(founder.fullBio || founder.shortBio) && (
@@ -184,24 +216,48 @@ export function FounderInfoPanel({
         </div>
       </div>
 
-      {/* Top Totems Radar Chart */}
-      <div className="mt-4">
-        <TopTotemsRadar
-          totems={topTotems}
-          loading={totemsLoading}
-          height={200}
-        />
-      </div>
+      {/* Graph Tabs */}
+      <div className="mt-4 shrink-0">
+        {/* Tab buttons */}
+        <div className="flex gap-1 mb-2">
+          <button
+            onClick={() => setGraphTab('topTotems')}
+            className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              graphTab === 'topTotems'
+                ? 'bg-white/15 text-white'
+                : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/70'
+            }`}
+          >
+            Top Totems
+          </button>
+          <button
+            onClick={() => setGraphTab('voteGraph')}
+            className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              graphTab === 'voteGraph'
+                ? 'bg-white/15 text-white'
+                : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/70'
+            }`}
+          >
+            Vote Graph
+          </button>
+        </div>
 
-      {/* Relations Radar Graph */}
-      <div className="mt-4">
-        <RelationsRadar
-          founderName={founder.name}
-          founderImage={imageUrl}
-          totems={topTotems}
-          loading={totemsLoading}
-          height={220}
-        />
+        {/* Graph content */}
+        {graphTab === 'topTotems' ? (
+          <TopTotemsRadar
+            totems={topTotems}
+            loading={totemsLoading}
+            height={340}
+          />
+        ) : (
+          <RelationsRadar
+            founderName={founder.name}
+            founderImage={imageUrl}
+            totems={allTotems}
+            loading={allTotemsLoading}
+            height={360}
+          />
+        )}
       </div>
 
       {/* Spacer */}

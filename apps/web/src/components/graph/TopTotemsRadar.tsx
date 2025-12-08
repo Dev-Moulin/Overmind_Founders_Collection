@@ -11,7 +11,7 @@
  * @see Phase 10 - Étape 3 in TODO_FIX_01_Discussion.md
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   RadarChart,
@@ -19,7 +19,6 @@ import {
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
-  ResponsiveContainer,
   Tooltip,
   Legend,
 } from 'recharts';
@@ -126,6 +125,40 @@ export function TopTotemsRadar({
   height = 250,
 }: TopTotemsRadarProps) {
   const { t } = useTranslation();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Track container dimensions for RadarChart (avoiding ResponsiveContainer issues)
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+  const measureContainer = useCallback(() => {
+    if (containerRef.current) {
+      const { clientWidth, clientHeight } = containerRef.current;
+      if (clientWidth > 0 && clientHeight > 0) {
+        setDimensions({ width: clientWidth, height: clientHeight });
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    // Use requestAnimationFrame to ensure DOM is ready
+    const rafId = requestAnimationFrame(() => {
+      measureContainer();
+    });
+
+    // Use ResizeObserver to handle resize
+    const observer = new ResizeObserver(() => {
+      measureContainer();
+    });
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      observer.disconnect();
+    };
+  }, [measureContainer]);
 
   // Transform data for recharts
   const chartData = useMemo(() => {
@@ -145,15 +178,14 @@ export function TopTotemsRadar({
     return max > 0 ? max * 1.1 : 1; // Add 10% padding
   }, [totems]);
 
-  // Empty state
-  if (!loading && totems.length === 0) {
-    return (
-      <div className="space-y-2">
-        <h4 className="text-sm font-medium text-white/70">Top Totems</h4>
-        <div
-          className="flex items-center justify-center bg-white/5 rounded-lg"
-          style={{ height }}
-        >
+  const hasValidSize = dimensions.width > 0 && dimensions.height > 0;
+
+  // Determine what to render inside the container
+  const renderContent = () => {
+    // Empty state
+    if (!loading && totems.length === 0) {
+      return (
+        <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <svg
               className="w-10 h-10 mx-auto text-white/20 mb-2"
@@ -177,31 +209,22 @@ export function TopTotemsRadar({
             <p className="text-white/40 text-sm">{t('common.noData')}</p>
           </div>
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="space-y-2">
-        <h4 className="text-sm font-medium text-white/70">Top Totems</h4>
-        <div
-          className="flex items-center justify-center bg-white/5 rounded-lg"
-          style={{ height }}
-        >
+    // Loading state
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center h-full">
           <div className="animate-spin w-6 h-6 border-2 border-slate-500 border-t-transparent rounded-full" />
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
-  // Need at least 3 points for a proper radar
-  if (totems.length < 3) {
-    return (
-      <div className="space-y-2">
-        <h4 className="text-sm font-medium text-white/70">Top Totems</h4>
-        <div className="bg-white/5 rounded-lg p-3" style={{ minHeight: height }}>
+    // Need at least 3 points for a proper radar - show list instead
+    if (totems.length < 3) {
+      return (
+        <div className="p-3 h-full overflow-auto">
           <div className="space-y-2">
             {totems.map((totem, index) => (
               <div
@@ -218,69 +241,86 @@ export function TopTotemsRadar({
             ))}
           </div>
         </div>
-      </div>
+      );
+    }
+
+    // Waiting for dimensions
+    if (!hasValidSize) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-spin w-6 h-6 border-2 border-slate-500 border-t-transparent rounded-full" />
+        </div>
+      );
+    }
+
+    // Render radar chart
+    return (
+      <RadarChart
+        width={dimensions.width}
+        height={dimensions.height}
+        data={chartData}
+        margin={{ top: 20, right: 30, bottom: 20, left: 30 }}
+      >
+        <PolarGrid
+          stroke="#374151"
+          strokeOpacity={0.5}
+        />
+        <PolarAngleAxis
+          dataKey="totem"
+          tick={{
+            fill: '#9ca3af',
+            fontSize: 11,
+          }}
+        />
+        <PolarRadiusAxis
+          angle={90}
+          domain={[0, maxValue]}
+          tick={false}
+          axisLine={false}
+        />
+        <Tooltip content={<CustomTooltip />} />
+        <Legend
+          verticalAlign="bottom"
+          height={24}
+          formatter={(value) => (
+            <span className="text-xs text-white/60">{value}</span>
+          )}
+        />
+
+        {/* FOR area (blue) */}
+        <Radar
+          name="FOR"
+          dataKey="for"
+          stroke="#3b82f6"
+          strokeWidth={2}
+          fill="#3b82f6"
+          fillOpacity={0.3}
+          animationDuration={750}
+        />
+
+        {/* AGAINST area (orange) */}
+        <Radar
+          name="AGAINST"
+          dataKey="against"
+          stroke="#f97316"
+          strokeWidth={2}
+          fill="#f97316"
+          fillOpacity={0.3}
+          animationDuration={750}
+        />
+      </RadarChart>
     );
-  }
+  };
 
   return (
     <div className="space-y-2">
       <h4 className="text-sm font-medium text-white/70">Top Totems</h4>
-      <div className="bg-gray-900/30 rounded-lg" style={{ height }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <RadarChart
-            data={chartData}
-            margin={{ top: 20, right: 30, bottom: 20, left: 30 }}
-          >
-            <PolarGrid
-              stroke="#374151"
-              strokeOpacity={0.5}
-            />
-            <PolarAngleAxis
-              dataKey="totem"
-              tick={{
-                fill: '#9ca3af',
-                fontSize: 11,
-              }}
-            />
-            <PolarRadiusAxis
-              angle={90}
-              domain={[0, maxValue]}
-              tick={{ fill: '#6b7280', fontSize: 9 }}
-              tickFormatter={(value) => formatTrust(value)}
-              axisLine={false}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend
-              verticalAlign="bottom"
-              height={24}
-              formatter={(value) => (
-                <span className="text-xs text-white/60">{value}</span>
-              )}
-            />
-
-            {/* FOR area (blue) */}
-            <Radar
-              name="FOR"
-              dataKey="for"
-              stroke="#3b82f6"
-              strokeWidth={2}
-              fill="#3b82f6"
-              fillOpacity={0.3}
-              animationDuration={750}
-            />
-
-            {/* AGAINST area (orange) */}
-            <Radar
-              name="AGAINST"
-              dataKey="against"
-              stroke="#f97316"
-              strokeWidth={2}
-              fill="#f97316"
-              fillOpacity={0.3}
-              animationDuration={750}
-            />
-          </RadarChart>
-        </ResponsiveContainer>
+      <div
+        ref={containerRef}
+        className="bg-gray-900/30 rounded-lg"
+        style={{ height }}
+      >
+        {renderContent()}
       </div>
     </div>
   );
