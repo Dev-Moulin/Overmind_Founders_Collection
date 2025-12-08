@@ -569,7 +569,7 @@ Afficher les **3 totems** avec le plus de TRUST total (FOR + AGAINST), triés pa
 ---
 
 **Dernière mise à jour** : 8 décembre 2025
-**Statut** : ✅ PHASE 10 COMPLÉTÉE - Toutes les étapes terminées
+**Statut** : ✅ PHASE 10 COMPLÉTÉE - Toutes les étapes terminées + Fix GraphQL nested filters
 
 ---
 
@@ -838,3 +838,107 @@ components/
 ├── graph/                # 4 composants
 └── admin/                # 10 composants
 ```
+
+---
+
+## 10. FIX GRAPHQL NESTED FILTERS - My Votes & Panel Stats
+
+### 10.1 Problème identifié (8 décembre 2025)
+
+**Symptômes** :
+- "My Votes" affichait 0 votes malgré des votes existants
+- "Total Holders" affichait 0 alors qu'il y avait des voteurs
+
+**Causes racines** :
+
+#### Cause 1 : Inline fragments non supportés par Hasura
+```graphql
+# ❌ NE FONCTIONNE PAS - Hasura ne supporte pas les inline fragments sur deposits.term
+deposits {
+  term {
+    ... on triples {
+      subject { label }
+      predicate { label }
+      object { label }
+    }
+  }
+}
+```
+Résultat : `subject`, `predicate`, `object` toujours `undefined`
+
+#### Cause 2 : Matching case-sensitive des adresses wallet
+```graphql
+# ❌ NE TROUVE RIEN - Adresse en lowercase vs checksummed en DB
+where: { sender_id: { _eq: "0xefc86f..." } }  # lowercase
+# DB contient : "0xEfC86f5FAbe767daac9358D0ba2dfD9AC7d29948" (checksummed)
+```
+
+### 10.2 Solution implémentée
+
+**Approche à deux requêtes avec jointure côté client** :
+
+```typescript
+// Requête 1 : Dépôts de l'utilisateur (sans détails term)
+const GET_USER_DEPOSITS_SIMPLE = gql`
+  query GetUserDepositsSimple($walletAddress: String!) {
+    deposits(
+      where: { sender_id: { _ilike: $walletAddress } }  # ← _ilike pour case-insensitive
+      order_by: { created_at: desc }
+    ) {
+      id, sender_id, term_id, vault_type, shares, assets_after_fees, ...
+    }
+  }
+`;
+
+// Requête 2 : Triples du fondateur avec détails
+const GET_FOUNDER_TRIPLES_WITH_DETAILS = gql`
+  query GetFounderTriplesWithDetails($founderName: String!) {
+    triples(
+      where: {
+        subject: { label: { _eq: $founderName } }
+        predicate: { label: { _in: ["has totem", "embodies"] } }
+      }
+    ) {
+      term_id
+      subject { term_id, label, image, emoji }
+      predicate { term_id, label, image, emoji }
+      object { term_id, label, image, emoji }
+    }
+  }
+`;
+
+// Jointure côté client
+const triplesMap = new Map(triples.map(t => [t.term_id, t]));
+const matchedVotes = deposits.filter(d => triplesMap.has(d.term_id));
+```
+
+### 10.3 Fichiers modifiés
+
+| Fichier | Modifications |
+|---------|---------------|
+| `hooks/data/useUserVotesForFounder.ts` | Réécrit avec approche deux requêtes |
+| `hooks/data/useFounderPanelStats.ts` | Utilisait déjà deux requêtes (OK) |
+| `lib/graphql/queries.ts` | Ajout `GET_USER_DEPOSITS_SIMPLE` et `GET_FOUNDER_TRIPLES_WITH_DETAILS` |
+| `lib/graphql/types.ts` | Mise à jour interfaces (subject/predicate/object optionnels) |
+
+### 10.4 Résultats
+
+**Avant** :
+- `depositsCount: 0` / `matchedVotesCount: 0`
+- "My Votes" vide
+- "Total Holders: 0"
+
+**Après** :
+- `depositsCount: 232` (tous les dépôts de l'utilisateur)
+- `triplesCount: 5` (triples du fondateur)
+- `matchedVotesCount: 7` (votes correspondants)
+- "My Votes" affiche les 7 votes avec format images inline ✅
+- "Total Holders: 1" (1 voteur unique) ✅
+
+### 10.5 Leçons apprises
+
+1. **Hasura ne supporte pas les inline fragments** sur les relations polymorphes comme `deposits.term`
+2. **Toujours utiliser `_ilike`** pour les comparaisons d'adresses Ethereum (case-insensitive)
+3. **Approche deux requêtes** est plus robuste que les queries complexes avec nested filters
+
+**Branche** : `fix/graphql-nested-filters`

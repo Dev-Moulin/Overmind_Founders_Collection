@@ -795,17 +795,16 @@ export const GET_TOTEM_VOTERS = gql`
  * Returns deposits on triples where the subject is the founder,
  * including subject, predicate, and object images for display.
  * Format: [Img Subject] Subject - [Img Predicate] Predicate - [Img Object] Object  +X.XXX
+ *
+ * NOTE: Due to Hasura limitations with nested filters on polymorphic relations,
+ * we fetch all triple deposits for the user and filter by founder client-side.
+ * The filtering is done in useUserVotesForFounder hook.
  */
 export const GET_USER_VOTES_FOR_FOUNDER = gql`
-  query GetUserVotesForFounder($walletAddress: String!, $founderName: String!) {
+  query GetUserVotesForFounder($walletAddress: String!) {
     deposits(
       where: {
-        sender_id: { _eq: $walletAddress }
-        term: {
-          subject: { label: { _eq: $founderName } }
-          predicate: { label: { _in: ["has totem", "embodies"] } }
-        }
-        vault_type: { _in: ["triple_positive", "triple_negative"] }
+        sender_id: { _ilike: $walletAddress }
       }
       order_by: { created_at: desc }
     ) {
@@ -818,24 +817,26 @@ export const GET_USER_VOTES_FOR_FOUNDER = gql`
       created_at
       transaction_hash
       term {
-        term_id
-        subject {
-          term_id
-          label
-          image
-          emoji
-        }
-        predicate {
-          term_id
-          label
-          image
-          emoji
-        }
-        object {
-          term_id
-          label
-          image
-          emoji
+        id
+        ... on triples {
+          subject {
+            term_id
+            label
+            image
+            emoji
+          }
+          predicate {
+            term_id
+            label
+            image
+            emoji
+          }
+          object {
+            term_id
+            label
+            image
+            emoji
+          }
         }
       }
     }
@@ -849,6 +850,10 @@ export const GET_USER_VOTES_FOR_FOUNDER = gql`
  * - Total Market Cap = Σ(FOR + AGAINST) on all founder's triples
  * - Total Holders = count distinct sender_id
  * - Claims = count of distinct triples
+ *
+ * NOTE: Due to Hasura limitations with nested filters on polymorphic relations,
+ * we use term_id filtering for deposits. The hook first gets triples by founder,
+ * then uses those term_ids to filter deposits.
  */
 export const GET_FOUNDER_PANEL_STATS = gql`
   query GetFounderPanelStats($founderName: String!) {
@@ -867,17 +872,94 @@ export const GET_FOUNDER_PANEL_STATS = gql`
         total_assets
       }
     }
-    # Get all deposits to count unique holders
+  }
+`;
+
+/**
+ * Get deposits for specific term IDs
+ *
+ * Used to count unique holders for a founder's triples.
+ * Called after GET_FOUNDER_PANEL_STATS to get the term_ids.
+ *
+ * Note: term_ids are from triples, so deposits will only be triple deposits.
+ * We include vault_type in response to filter client-side if needed.
+ */
+export const GET_DEPOSITS_BY_TERM_IDS = gql`
+  query GetDepositsByTermIds($termIds: [String!]!) {
     deposits(
       where: {
-        term: {
-          subject: { label: { _eq: $founderName } }
-          predicate: { label: { _in: ["has totem", "embodies"] } }
-        }
-        vault_type: { _in: ["triple_positive", "triple_negative"] }
+        term_id: { _in: $termIds }
       }
     ) {
       sender_id
+      vault_type
+    }
+  }
+`;
+
+/**
+ * Get user deposits (simple version without term details)
+ *
+ * Used by useUserVotesForFounder hook.
+ * Returns basic deposit info, then we join with triples client-side.
+ *
+ * NOTE: Uses _ilike for case-insensitive wallet matching since
+ * the DB stores checksummed addresses but frontend normalizes to lowercase.
+ */
+export const GET_USER_DEPOSITS_SIMPLE = gql`
+  query GetUserDepositsSimple($walletAddress: String!) {
+    deposits(
+      where: { sender_id: { _ilike: $walletAddress } }
+      order_by: { created_at: desc }
+    ) {
+      id
+      sender_id
+      term_id
+      vault_type
+      shares
+      assets_after_fees
+      created_at
+      transaction_hash
+    }
+  }
+`;
+
+/**
+ * Get founder's triples with full subject/predicate/object details
+ *
+ * Used by useUserVotesForFounder hook to get triple info for display.
+ * Returns all triples where this founder is the subject with "has totem" or "embodies" predicates.
+ *
+ * NOTE: Due to Hasura limitations with inline fragments on deposits.term,
+ * we query triples directly and join with deposits client-side.
+ */
+export const GET_FOUNDER_TRIPLES_WITH_DETAILS = gql`
+  query GetFounderTriplesWithDetails($founderName: String!) {
+    triples(
+      where: {
+        subject: { label: { _eq: $founderName } }
+        predicate: { label: { _in: ["has totem", "embodies"] } }
+      }
+    ) {
+      term_id
+      subject {
+        term_id
+        label
+        image
+        emoji
+      }
+      predicate {
+        term_id
+        label
+        image
+        emoji
+      }
+      object {
+        term_id
+        label
+        image
+        emoji
+      }
     }
   }
 `;

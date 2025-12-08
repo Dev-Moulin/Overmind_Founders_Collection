@@ -359,6 +359,9 @@ export interface FounderStats {
 
 /**
  * Deposit with triple details for user votes display
+ *
+ * Note: The `term` field uses GraphQL inline fragments to access triple-specific fields.
+ * For atom deposits, subject/predicate/object will be undefined.
  */
 export interface DepositWithTriple {
   id: string;
@@ -370,20 +373,21 @@ export interface DepositWithTriple {
   created_at: string;
   transaction_hash: string;
   term: {
-    term_id: string;
-    subject: {
+    id: string;
+    // Triple-specific fields (only present for triple deposits via inline fragment)
+    subject?: {
       term_id: string;
       label: string;
       image?: string;
       emoji?: string;
     };
-    predicate: {
+    predicate?: {
       term_id: string;
       label: string;
       image?: string;
       emoji?: string;
     };
-    object: {
+    object?: {
       term_id: string;
       label: string;
       image?: string;
@@ -412,7 +416,14 @@ export interface GetFounderPanelStatsResult {
       total_assets: string;
     } | null;
   }>;
+}
+
+/**
+ * Result type for GET_DEPOSITS_BY_TERM_IDS query
+ */
+export interface GetDepositsByTermIdsResult {
   deposits: Array<{
     sender_id: string;
+    vault_type: string;
   }>;
 }
