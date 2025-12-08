@@ -4,14 +4,32 @@
  * Transforms founder deposits into time-series data for visualization
  * Supports multiple timeframes: 12H, 24H, 7D, All
  *
+ * Uses two-query approach because Hasura doesn't support filtering deposits
+ * by term.subject directly. We:
+ * 1. Get all term_ids for founder's triples
+ * 2. Get deposits for those term_ids
+ *
  * @see Phase 10 in TODO_FIX_01_Discussion.md
  */
 
 import { useMemo } from 'react';
 import { useQuery } from '@apollo/client';
 import { formatEther } from 'viem';
-import { GET_FOUNDER_RECENT_VOTES } from '../../lib/graphql/queries';
+import {
+  GET_FOUNDER_TRIPLES_WITH_DETAILS,
+  GET_DEPOSITS_FOR_TIMELINE,
+} from '../../lib/graphql/queries';
 import type { Timeframe, VoteDataPoint } from '../../components/graph/TradingChart';
+
+/**
+ * Triple info from query
+ */
+interface TripleInfo {
+  term_id: string;
+  subject: { term_id: string; label: string };
+  predicate: { term_id: string; label: string };
+  object: { term_id: string; label: string };
+}
 
 /**
  * Raw deposit data from GraphQL
@@ -20,17 +38,11 @@ interface RawDeposit {
   id: string;
   sender_id: string;
   term_id: string;
-  vault_type: 'triple_positive' | 'triple_negative';
+  vault_type: string;
   shares: string;
   assets_after_fees: string;
   created_at: string;
   transaction_hash: string;
-  term: {
-    term_id: string;
-    subject: { label: string };
-    predicate: { label: string };
-    object: { label: string };
-  };
 }
 
 /**
@@ -123,28 +135,61 @@ function formatDate(timestamp: number, timeframe: Timeframe): string {
  *
  * @param founderName - Name of the founder to fetch data for
  * @param timeframe - Selected timeframe (12H, 24H, 7D, All)
- * @param totemId - Optional totem ID to filter data
+ * @param selectedTotemId - Optional totem object ID to filter data (the object.term_id of the triple)
  * @returns Timeline data for TradingChart
  */
 export function useVotesTimeline(
   founderName: string,
   timeframe: Timeframe = '24H',
-  totemId?: string
+  selectedTotemId?: string
 ): UseVotesTimelineResult {
   // Fetch more data for All timeframe
   const limit = timeframe === 'All' ? 500 : 100;
 
-  const { data, loading, error, refetch } = useQuery<{
-    deposits: RawDeposit[];
-  }>(GET_FOUNDER_RECENT_VOTES, {
-    variables: { founderName, limit },
+  // Query 1: Get founder's triples to get term_ids
+  const {
+    data: triplesData,
+    loading: triplesLoading,
+    error: triplesError,
+  } = useQuery<{ triples: TripleInfo[] }>(GET_FOUNDER_TRIPLES_WITH_DETAILS, {
+    variables: { founderName },
     skip: !founderName,
+    fetchPolicy: 'cache-and-network',
+  });
+
+  // Extract term_ids from triples
+  const termIds = useMemo(() => {
+    if (!triplesData?.triples) return [];
+    return triplesData.triples.map((t) => t.term_id);
+  }, [triplesData?.triples]);
+
+  // Create a map from triple term_id to object term_id (totem ID)
+  // This allows filtering deposits by selected totem
+  const tripleToObjectMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (triplesData?.triples) {
+      for (const triple of triplesData.triples) {
+        map.set(triple.term_id, triple.object.term_id);
+      }
+    }
+    return map;
+  }, [triplesData?.triples]);
+
+  // Query 2: Get deposits for those term_ids
+  const {
+    data: depositsData,
+    loading: depositsLoading,
+    error: depositsError,
+    refetch: refetchDeposits,
+  } = useQuery<{ deposits: RawDeposit[] }>(GET_DEPOSITS_FOR_TIMELINE, {
+    variables: { termIds, limit },
+    skip: termIds.length === 0,
     fetchPolicy: 'cache-and-network',
   });
 
   // Process and aggregate data
   const { chartData, stats } = useMemo(() => {
-    if (!data?.deposits || data.deposits.length === 0) {
+    if (!depositsData?.deposits || depositsData.deposits.length === 0) {
       return {
         chartData: [],
         stats: {
@@ -161,11 +206,16 @@ export function useVotesTimeline(
     const bucketCount = getBucketCount(timeframe);
     const cutoff = now - duration;
 
-    // Filter by timeframe and optionally by totem
-    let filteredDeposits = data.deposits.filter((d) => {
+    // Filter by timeframe and optionally by selected totem
+    // Note: We filter by totem using tripleToObjectMap to match deposit.term_id to object.term_id
+    let filteredDeposits = depositsData.deposits.filter((d) => {
       const timestamp = new Date(d.created_at).getTime();
       if (timeframe !== 'All' && timestamp < cutoff) return false;
-      if (totemId && d.term?.term_id !== totemId) return false;
+      // Filter by selected totem: check if the triple's object matches selectedTotemId
+      if (selectedTotemId) {
+        const objectId = tripleToObjectMap.get(d.term_id);
+        if (objectId !== selectedTotemId) return false;
+      }
       return true;
     });
 
@@ -268,13 +318,17 @@ export function useVotesTimeline(
         voteCount: filteredDeposits.length,
       },
     };
-  }, [data, timeframe, totemId]);
+  }, [depositsData, timeframe, selectedTotemId, tripleToObjectMap]);
+
+  // Combined loading and error states
+  const loading = triplesLoading || depositsLoading;
+  const error = triplesError || depositsError;
 
   return {
     data: chartData,
     loading,
     error: error ? new Error(error.message) : null,
-    refetch,
+    refetch: refetchDeposits,
     stats,
   };
 }

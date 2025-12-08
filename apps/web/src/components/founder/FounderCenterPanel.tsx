@@ -103,11 +103,11 @@ export function FounderCenterPanel({
 
   const loading = proposalsLoading || ofcLoading;
 
-  // Trading chart data
+  // Trading chart data - filtered by selected totem if any
   const {
     data: timelineData,
     loading: timelineLoading,
-  } = useVotesTimeline(founder.name, timeframe);
+  } = useVotesTimeline(founder.name, timeframe, selectedTotemId);
 
   // Merge proposals (with votes) and OFC totems (may not have votes)
   const allTotems = useMemo((): DisplayTotem[] => {

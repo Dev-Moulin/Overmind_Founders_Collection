@@ -965,6 +965,36 @@ export const GET_FOUNDER_TRIPLES_WITH_DETAILS = gql`
 `;
 
 /**
+ * Get deposits for timeline (with full details)
+ *
+ * Used by useVotesTimeline to get deposits for founder's triples.
+ * First we get term_ids from GET_FOUNDER_TRIPLES_WITH_DETAILS,
+ * then we get deposits for those term_ids with this query.
+ *
+ * Different from GET_DEPOSITS_BY_TERM_IDS which only returns sender_id for counting.
+ */
+export const GET_DEPOSITS_FOR_TIMELINE = gql`
+  query GetDepositsForTimeline($termIds: [String!]!, $limit: Int = 100) {
+    deposits(
+      where: {
+        term_id: { _in: $termIds }
+      }
+      order_by: { created_at: desc }
+      limit: $limit
+    ) {
+      id
+      sender_id
+      term_id
+      vault_type
+      shares
+      assets_after_fees
+      created_at
+      transaction_hash
+    }
+  }
+`;
+
+/**
  * Get tags for a specific founder
  *
  * Returns all triples where the founder is subject and predicate is "has tag"
