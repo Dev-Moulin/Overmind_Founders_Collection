@@ -11,7 +11,7 @@
  * @see Phase 10 in TODO_FIX_01_Discussion.md
  */
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { formatEther } from 'viem';
 import { useAccount } from 'wagmi';
 import { useTranslation } from 'react-i18next';
@@ -100,6 +100,49 @@ export function FounderCenterPanel({
   // Section 2: My Votes / Best Triples
   const [section2Tab, setSection2Tab] = useState<'myVotes' | 'bestTriples'>('myVotes');
   const [timeframe, setTimeframe] = useState<Timeframe>('24H');
+
+  // Resizable divider state - height of section 1 in pixels
+  const [section1Height, setSection1Height] = useState(160);
+  const [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Handle resize drag
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+
+      const containerRect = containerRef.current.getBoundingClientRect();
+      // Calculate position relative to container, accounting for chart height (~156px) and padding
+      const chartAndPaddingHeight = 156;
+      const relativeY = e.clientY - containerRect.top - chartAndPaddingHeight;
+
+      // Calculate max height dynamically: container height - chart - section2 minimum (100px) - margins
+      const maxHeight = containerRect.height - chartAndPaddingHeight - 100;
+
+      // Clamp between min (60px) and dynamic max
+      const newHeight = Math.max(60, Math.min(maxHeight, relativeY));
+      setSection1Height(newHeight);
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
 
   const loading = proposalsLoading || ofcLoading;
 
@@ -197,7 +240,7 @@ export function FounderCenterPanel({
   }, [bestTriples]);
 
   return (
-    <div className="glass-card p-4 h-full flex flex-col overflow-hidden">
+    <div ref={containerRef} className="glass-card p-4 h-full flex flex-col overflow-hidden">
       {/* Trading Chart Section - Always visible at top */}
       <div className="mb-3 shrink-0">
         <TradingChart
@@ -211,7 +254,7 @@ export function FounderCenterPanel({
       </div>
 
       {/* SECTION 1: Totems / Création */}
-      <div className="mb-3 shrink-0">
+      <div className="shrink-0" style={{ height: section1Height }}>
         {/* Section 1 Tabs */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex bg-white/5 rounded-lg p-0.5">
@@ -238,8 +281,8 @@ export function FounderCenterPanel({
           </div>
         </div>
 
-        {/* Section 1 Content */}
-        <div className="h-[140px] xl:h-[180px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent" style={{ overscrollBehavior: 'contain' }}>
+        {/* Section 1 Content - height adapts to section1Height minus tabs (~32px) */}
+        <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent" style={{ height: section1Height - 32, overscrollBehavior: 'contain' }}>
           {loading ? (
             <div className="grid grid-cols-2 gap-2">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -307,13 +350,25 @@ export function FounderCenterPanel({
         </div>
       </div>
 
-      {/* Divider */}
-      <div className="border-t border-white/10 my-2" />
+      {/* Resizable Divider - Fade blur effect: glass-card top → blur middle → transparent bottom */}
+      <div
+        className="group relative flex items-center justify-center cursor-row-resize shrink-0 h-8"
+        onMouseDown={handleMouseDown}
+      >
+        {/* Top fade: glass-card color to blur (hides totems) */}
+        <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-[#0f172a]/80 to-white/5 backdrop-blur-md" />
+        {/* Bottom fade: blur to transparent (blends with My Votes) */}
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-b from-white/5 to-transparent backdrop-blur-sm" />
+        {/* Drag handle indicator */}
+        <div className={`relative z-10 w-10 h-1.5 rounded-full transition-colors ${
+          isDragging ? 'bg-white/50' : 'bg-white/25 group-hover:bg-white/40'
+        }`} />
+      </div>
 
       {/* SECTION 2: My Votes / Best Triples */}
-      <div className="flex-1 min-h-0 flex flex-col">
+      <div className="flex-1 min-h-0 flex flex-col pt-1">
         {/* Section 2 Tabs */}
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex bg-white/5 rounded-lg p-0.5">
             <button
               onClick={() => setSection2Tab('myVotes')}
