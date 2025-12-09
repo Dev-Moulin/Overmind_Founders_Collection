@@ -1,4 +1,4 @@
-import { filterValidTriples, type RawTriple, type ValidTriple } from './tripleGuards';
+import { filterTriplesWithValidObject, type RawTriple } from './tripleGuards';
 
 /**
  * Triple data structure from INTUITION GraphQL API
@@ -70,20 +70,22 @@ export interface AggregatedTotem {
 export function aggregateTriplesByObject(triples: Triple[]): AggregatedTotem[] {
   const grouped: Record<string, AggregatedTotem> = {};
 
-  // Filter valid triples first using centralized utility
-  const validTriples = filterValidTriples(triples as RawTriple[], 'aggregateVotes') as ValidTriple[];
+  // Filter triples with valid object (we only need object for aggregation)
+  const validTriples = filterTriplesWithValidObject(triples as RawTriple[], 'aggregateVotes');
 
   validTriples.forEach((triple) => {
-    // object and predicate are guaranteed non-null by filterValidTriples
-    const objectId = triple.object.term_id;
+    // object is guaranteed non-null by filterTriplesWithValidObject
+    const objectId = triple.object!.term_id;
 
     // Initialize totem entry if not exists
     if (!grouped[objectId]) {
       grouped[objectId] = {
         objectId: objectId,
         object: {
-          id: triple.object.term_id,
-          ...triple.object
+          id: triple.object!.term_id,
+          label: triple.object!.label,
+          image: triple.object!.image,
+          description: triple.object!.description,
         },
         claims: [],
         netScore: 0n,
@@ -101,7 +103,7 @@ export function aggregateTriplesByObject(triples: Triple[]): AggregatedTotem[] {
     // Add claim to totem
     grouped[objectId].claims.push({
       tripleId: triple.term_id,
-      predicate: triple.predicate.label,
+      predicate: triple.predicate?.label ?? 'unknown',
       netScore: netScore,
       trustFor: trustFor,
       trustAgainst: trustAgainst,
