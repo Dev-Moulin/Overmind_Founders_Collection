@@ -15,13 +15,16 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAccount, useBalance } from 'wagmi';
 import { useQuery } from '@apollo/client';
 import { useTranslation } from 'react-i18next';
-import type { Hex } from 'viem';
+import type { Hex, Address } from 'viem';
 import type { FounderForHomePage } from '../../hooks';
 import { useProtocolConfig } from '../../hooks';
 import { useVoteCartContext } from '../../hooks/cart/useVoteCart';
 import { useProactiveClaimCheck } from '../../hooks';
+import { usePositionBothSides } from '../../hooks/blockchain/usePositionFromContract';
+import { useWithdraw } from '../../hooks/blockchain/useWithdraw';
 import { GET_ATOMS_BY_LABELS } from '../../lib/graphql/queries';
 import { PresetButtonsCompact } from '../vote/PresetButtons';
+import { PositionModifier } from '../vote/PositionModifier';
 import { SuccessNotification } from '../common/SuccessNotification';
 import { ErrorNotification } from '../common/ErrorNotification';
 import predicatesData from '../../../../../packages/shared/src/data/predicates.json';
@@ -113,6 +116,27 @@ export function VoteTotemPanel({
   // Compute if this is a new triple (no proactiveClaimInfo means triple doesn't exist yet)
   const isNewTotem = !proactiveClaimInfo;
 
+  // Check user's position on this triple (FOR and AGAINST sides)
+  const {
+    forShares,
+    againstShares,
+    hasAnyPosition,
+    positionDirection,
+    isLoading: positionLoading,
+    refetch: refetchPosition,
+  } = usePositionBothSides(
+    address as Address | undefined,
+    proactiveClaimInfo?.termId as Hex | undefined,
+    proactiveClaimInfo?.counterTermId as Hex | undefined
+  );
+
+  // Withdraw hook
+  const {
+    withdraw,
+    isLoading: withdrawLoading,
+    reset: resetWithdraw,
+  } = useWithdraw();
+
   // Calculate minimum required amount based on whether it's a new triple
   const minRequiredAmount = useMemo(() => {
     if (!protocolConfig) return '0.001';
@@ -165,6 +189,92 @@ export function VoteTotemPanel({
     if (!selectedPredicateWithAtom?.atomId) return false; // Need predicate atomId for votes
     return true;
   }, [selectedTotemId, selectedPredicateId, trustAmount, isDepositValid, voteDirection, selectedPredicateWithAtom]);
+
+  // Get current user shares based on position direction
+  const currentUserShares = positionDirection === 'for' ? forShares : againstShares;
+
+  // Handle withdraw from PositionModifier
+  const handleWithdraw = async (shares: bigint, _percentage: number) => {
+    if (!proactiveClaimInfo) {
+      setError('Position non trouvée');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    // Determine which termId to use based on position direction
+    const termIdToUse = positionDirection === 'for'
+      ? proactiveClaimInfo.termId
+      : proactiveClaimInfo.counterTermId;
+
+    console.log('[VoteTotemPanel] Withdraw:', {
+      termId: termIdToUse,
+      shares: shares.toString(),
+      isPositive: positionDirection === 'for',
+    });
+
+    const txHash = await withdraw(
+      termIdToUse as Hex,
+      shares,
+      positionDirection === 'for',
+      0n // minAssets (slippage protection)
+    );
+
+    if (txHash) {
+      setSuccess(t('withdraw.success') || 'Retrait effectué !');
+      setTimeout(() => setSuccess(null), 3000);
+      // Refetch position after successful withdraw
+      refetchPosition();
+      resetWithdraw();
+    }
+  };
+
+  // Handle add more from PositionModifier (adds to cart)
+  const handleAddMore = (amount: string, direction: 'for' | 'against') => {
+    if (!selectedTotemId || !selectedPredicateWithAtom?.atomId || !proactiveClaimInfo) {
+      setError('Données manquantes');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    const cartItem = {
+      totemId: selectedTotemId as Hex,
+      totemName: selectedTotemLabel || 'Unknown',
+      predicateId: selectedPredicateWithAtom.atomId as Hex,
+      termId: proactiveClaimInfo.termId as Hex,
+      counterTermId: proactiveClaimInfo.counterTermId as Hex,
+      direction,
+      amount,
+      isNewTotem: false,
+    };
+
+    try {
+      addItem(cartItem);
+      setSuccess(t('founderExpanded.addedToCart') || 'Ajouté au panier !');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      console.error('[VoteTotemPanel] Error adding to cart:', err);
+      setError('Erreur lors de l\'ajout au panier');
+      setTimeout(() => setError(null), 3000);
+    }
+  };
+
+  // Handle switch side from PositionModifier
+  const handleSwitchSide = async (newDirection: 'for' | 'against') => {
+    // First withdraw current position, then add opposite to cart
+    if (!proactiveClaimInfo || currentUserShares <= 0n) {
+      setError('Pas de position à changer');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    // Withdraw 100% of current position
+    await handleWithdraw(currentUserShares, 100);
+
+    // Then the user can vote in the new direction via the normal flow
+    setVoteDirection(newDirection);
+    setSuccess(`Position retirée. Vous pouvez maintenant voter ${newDirection.toUpperCase()}`);
+    setTimeout(() => setSuccess(null), 5000);
+  };
 
   // Handle add to cart - Full integration with useVoteCart
   const handleAddToCart = () => {
@@ -355,67 +465,96 @@ export function VoteTotemPanel({
           </div>
         </div>
 
-        {/* Amount Input */}
-        <div>
-          <label className="block text-xs text-white/60 mb-1">
-            {t('founderExpanded.amountTrust')}
-          </label>
-          <input
-            type="text"
-            value={trustAmount}
-            onChange={(e) => setTrustAmount(e.target.value)}
-            placeholder={protocolConfig?.formattedMinDeposit || '0.0001'}
-            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-slate-500"
+        {/* Show PositionModifier when in withdraw mode AND user has a position */}
+        {voteDirection === 'withdraw' && hasAnyPosition && proactiveClaimInfo && positionDirection ? (
+          <PositionModifier
+            termId={proactiveClaimInfo.termId as Hex}
+            position={{
+              direction: positionDirection,
+              shares: currentUserShares,
+            }}
+            minDeposit={protocolConfig?.formattedMinDeposit || '0.0001'}
+            balance={balanceData?.formatted}
+            onAddMore={handleAddMore}
+            onWithdraw={handleWithdraw}
+            onSwitchSide={handleSwitchSide}
+            disabled={withdrawLoading || positionLoading}
           />
-          {!configLoading && balanceData && (
-            <PresetButtonsCompact
-              onChange={setTrustAmount}
-              minAmount={protocolConfig?.formattedMinDeposit || '0.0001'}
-              maxAmount={balanceData.formatted}
-              className="mt-2"
-            />
-          )}
-        </div>
-
-        {/* Preview */}
-        {selectedTotemLabel && (
-          <div className="bg-white/5 rounded-lg p-3">
-            <div className="text-xs text-white/60 mb-1">
-              {voteDirection === 'withdraw' ? t('founderExpanded.withdrawPreview') : t('founderExpanded.votePreview')}
-            </div>
-            <p className="text-sm text-white">
-              <span className="text-slate-400">{founder.name}</span>
-              {' '}{selectedPredicate?.label || '...'}{' '}
-              <span className="text-slate-400">{selectedTotemLabel}</span>
+        ) : voteDirection === 'withdraw' && !hasAnyPosition && !positionLoading ? (
+          /* No position to withdraw */
+          <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4 text-center">
+            <p className="text-orange-300 text-sm mb-2">
+              {t('founderExpanded.noPositionToWithdraw') || 'Vous n\'avez pas de position sur ce totem'}
             </p>
-            <p className="text-xs text-white/50 mt-1">
-              {voteDirection === 'for' ? '👍 FOR' : voteDirection === 'against' ? '👎 AGAINST' : `🔄 ${t('founderExpanded.withdraw').toUpperCase()}`} - {trustAmount || '0'} TRUST
+            <p className="text-white/50 text-xs">
+              {t('founderExpanded.voteFirstToWithdraw') || 'Votez FOR ou AGAINST d\'abord pour pouvoir retirer'}
             </p>
           </div>
+        ) : (
+          /* Normal vote flow - Amount Input */
+          <>
+            <div>
+              <label className="block text-xs text-white/60 mb-1">
+                {t('founderExpanded.amountTrust')}
+              </label>
+              <input
+                type="text"
+                value={trustAmount}
+                onChange={(e) => setTrustAmount(e.target.value)}
+                placeholder={protocolConfig?.formattedMinDeposit || '0.0001'}
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-slate-500"
+              />
+              {!configLoading && balanceData && (
+                <PresetButtonsCompact
+                  onChange={setTrustAmount}
+                  minAmount={protocolConfig?.formattedMinDeposit || '0.0001'}
+                  maxAmount={balanceData.formatted}
+                  className="mt-2"
+                />
+              )}
+            </div>
+
+            {/* Preview */}
+            {selectedTotemLabel && (
+              <div className="bg-white/5 rounded-lg p-3">
+                <div className="text-xs text-white/60 mb-1">
+                  {t('founderExpanded.votePreview')}
+                </div>
+                <p className="text-sm text-white">
+                  <span className="text-slate-400">{founder.name}</span>
+                  {' '}{selectedPredicate?.label || '...'}{' '}
+                  <span className="text-slate-400">{selectedTotemLabel}</span>
+                </p>
+                <p className="text-xs text-white/50 mt-1">
+                  {voteDirection === 'for' ? '👍 FOR' : '👎 AGAINST'} - {trustAmount || '0'} TRUST
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
 
-      {/* Action Button */}
-      <div className="mt-4 pt-4 border-t border-white/10">
-        <button
-          onClick={handleAddToCart}
-          disabled={!isFormValid}
-          className={`w-full py-3 rounded-lg font-medium transition-colors ${
-            isFormValid
-              ? voteDirection === 'withdraw'
-                ? 'bg-orange-600 hover:bg-orange-700 text-white'
-                : 'bg-slate-600 hover:bg-slate-700 text-white'
-              : 'bg-white/10 text-white/40 cursor-not-allowed'
-          }`}
-        >
-          {voteDirection === 'withdraw' ? t('founderExpanded.withdrawMyPosition') : t('founderExpanded.addToCart')}
-        </button>
-        {itemCount > 0 && (
-          <p className="text-center text-xs text-white/50 mt-2">
-            {itemCount} {t('founderExpanded.votesInCart')} ({formattedNetCost} TRUST)
-          </p>
-        )}
-      </div>
+      {/* Action Button - only show for FOR/AGAINST, not withdraw (PositionModifier has its own buttons) */}
+      {voteDirection !== 'withdraw' && (
+        <div className="mt-4 pt-4 border-t border-white/10">
+          <button
+            onClick={handleAddToCart}
+            disabled={!isFormValid}
+            className={`w-full py-3 rounded-lg font-medium transition-colors ${
+              isFormValid
+                ? 'bg-slate-600 hover:bg-slate-700 text-white'
+                : 'bg-white/10 text-white/40 cursor-not-allowed'
+            }`}
+          >
+            {t('founderExpanded.addToCart')}
+          </button>
+          {itemCount > 0 && (
+            <p className="text-center text-xs text-white/50 mt-2">
+              {itemCount} {t('founderExpanded.votesInCart')} ({formattedNetCost} TRUST)
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

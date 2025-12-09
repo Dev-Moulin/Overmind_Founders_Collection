@@ -10,6 +10,7 @@
 import { useMemo } from 'react';
 import { formatEther } from 'viem';
 import { useFounderProposals } from './useFounderProposals';
+import { filterValidTriples, type RawTriple } from '../../utils/tripleGuards';
 
 export interface TopTotem {
   id: string;
@@ -56,17 +57,24 @@ export function useTopTotems(
 ): UseTopTotemsReturn {
   const { proposals, loading, error } = useFounderProposals(founderName);
 
-  const topTotems = useMemo((): TopTotem[] => {
+  // Filter valid proposals first (removes those with null object/subject/predicate)
+  const validProposals = useMemo(() => {
     if (!proposals || proposals.length === 0) return [];
+    return filterValidTriples(proposals as RawTriple[], 'useTopTotems');
+  }, [proposals]);
+
+  const topTotems = useMemo((): TopTotem[] => {
+    if (validProposals.length === 0) return [];
 
     // Aggregate votes by totem (object_id)
     const totemMap = new Map<string, TopTotem>();
 
-    proposals.forEach((proposal) => {
+    validProposals.forEach((proposal) => {
       // Use object.term_id since object_id is not in GraphQL response
+      // proposal.object is guaranteed non-null by filterValidTriples
       const totemId = proposal.object.term_id;
-      const trustFor = weiToEth(proposal.votes.forVotes);
-      const trustAgainst = weiToEth(proposal.votes.againstVotes);
+      const trustFor = weiToEth(proposal.votes?.forVotes || '0');
+      const trustAgainst = weiToEth(proposal.votes?.againstVotes || '0');
 
       if (totemMap.has(totemId)) {
         // Aggregate if same totem appears with different predicates
@@ -92,7 +100,7 @@ export function useTopTotems(
     return Array.from(totemMap.values())
       .sort((a, b) => b.totalTrust - a.totalTrust)
       .slice(0, limit);
-  }, [proposals, limit]);
+  }, [validProposals, limit]);
 
   return {
     topTotems,

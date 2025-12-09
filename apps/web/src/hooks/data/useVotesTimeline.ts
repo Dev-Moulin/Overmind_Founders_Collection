@@ -20,15 +20,16 @@ import {
   GET_DEPOSITS_FOR_TIMELINE,
 } from '../../lib/graphql/queries';
 import type { Timeframe, VoteDataPoint } from '../../components/graph/TradingChart';
+import { filterValidTriples, type RawTriple } from '../../utils/tripleGuards';
 
 /**
- * Triple info from query
+ * Triple info from query (may have null fields due to data integrity issues)
  */
-interface TripleInfo {
+interface TripleInfo extends RawTriple {
   term_id: string;
-  subject: { term_id: string; label: string };
-  predicate: { term_id: string; label: string };
-  object: { term_id: string; label: string };
+  subject: { term_id: string; label: string } | null;
+  predicate: { term_id: string; label: string } | null;
+  object: { term_id: string; label: string } | null;
 }
 
 /**
@@ -157,23 +158,27 @@ export function useVotesTimeline(
     fetchPolicy: 'cache-and-network',
   });
 
-  // Extract term_ids from triples
-  const termIds = useMemo(() => {
+  // Filter valid triples first (removes those with null object/subject/predicate)
+  const validTriples = useMemo(() => {
     if (!triplesData?.triples) return [];
-    return triplesData.triples.map((t) => t.term_id);
+    return filterValidTriples(triplesData.triples as RawTriple[], 'useVotesTimeline');
   }, [triplesData?.triples]);
+
+  // Extract term_ids from valid triples only
+  const termIds = useMemo(() => {
+    return validTriples.map((t) => t.term_id);
+  }, [validTriples]);
 
   // Create a map from triple term_id to object term_id (totem ID)
   // This allows filtering deposits by selected totem
   const tripleToObjectMap = useMemo(() => {
     const map = new Map<string, string>();
-    if (triplesData?.triples) {
-      for (const triple of triplesData.triples) {
-        map.set(triple.term_id, triple.object.term_id);
-      }
+    for (const triple of validTriples) {
+      // triple.object is guaranteed non-null by filterValidTriples
+      map.set(triple.term_id, triple.object.term_id);
     }
     return map;
-  }, [triplesData?.triples]);
+  }, [validTriples]);
 
   // Query 2: Get deposits for those term_ids
   const {

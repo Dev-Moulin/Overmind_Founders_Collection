@@ -22,6 +22,7 @@ import { useAllOFCTotems } from '../../hooks';
 import { useUserVotesForFounder } from '../../hooks';
 import { TradingChart, type Timeframe } from '../graph/TradingChart';
 import { MyVotesItem, MyVotesSkeleton } from '../vote/MyVotesItem';
+import { filterValidTriples, type RawTriple } from '../../utils/tripleGuards';
 
 /** Unified totem type for display */
 interface DisplayTotem {
@@ -146,6 +147,12 @@ export function FounderCenterPanel({
 
   const loading = proposalsLoading || ofcLoading;
 
+  // Filter valid proposals first (removes those with null object/subject/predicate)
+  const validProposals = useMemo(() => {
+    if (!proposals || proposals.length === 0) return [];
+    return filterValidTriples(proposals as RawTriple[], 'FounderCenterPanel');
+  }, [proposals]);
+
   // Trading chart data - filtered by selected totem if any
   const {
     data: timelineData,
@@ -156,32 +163,34 @@ export function FounderCenterPanel({
   const allTotems = useMemo((): DisplayTotem[] => {
     const totemMap = new Map<string, DisplayTotem>();
 
-    // First, add all proposals (totems with votes for this founder)
-    if (proposals) {
-      proposals.forEach((proposal) => {
-        // Use object.term_id as the unique identifier (object_id is not returned by GraphQL)
-        const id = proposal.object.term_id;
-        const netScore = BigInt(proposal.votes.netVotes);
+    // First, add all valid proposals (totems with votes for this founder)
+    // validProposals is already filtered by filterValidTriples - object is guaranteed non-null
+    validProposals.forEach((proposal) => {
+      // Use object.term_id as the unique identifier (object_id is not returned by GraphQL)
+      const id = proposal.object.term_id;
+      const netScore = BigInt(proposal.votes?.netVotes || '0');
 
-        if (totemMap.has(id)) {
-          // Aggregate votes if same totem appears multiple times
-          const existing = totemMap.get(id)!;
-          existing.netScore += netScore;
-          existing.forVotes = (BigInt(existing.forVotes) + BigInt(proposal.votes.forVotes)).toString();
-          existing.againstVotes = (BigInt(existing.againstVotes) + BigInt(proposal.votes.againstVotes)).toString();
-        } else {
-          totemMap.set(id, {
-            id,
-            label: proposal.object.label,
-            image: proposal.object.image,
-            hasVotes: true,
-            netScore,
-            forVotes: proposal.votes.forVotes,
-            againstVotes: proposal.votes.againstVotes,
-          });
-        }
-      });
-    }
+      const forVotes = proposal.votes?.forVotes || '0';
+      const againstVotes = proposal.votes?.againstVotes || '0';
+
+      if (totemMap.has(id)) {
+        // Aggregate votes if same totem appears multiple times
+        const existing = totemMap.get(id)!;
+        existing.netScore += netScore;
+        existing.forVotes = (BigInt(existing.forVotes) + BigInt(forVotes)).toString();
+        existing.againstVotes = (BigInt(existing.againstVotes) + BigInt(againstVotes)).toString();
+      } else {
+        totemMap.set(id, {
+          id,
+          label: proposal.object.label,
+          image: proposal.object.image,
+          hasVotes: true,
+          netScore,
+          forVotes,
+          againstVotes,
+        });
+      }
+    });
 
     // Then, add OFC totems that don't have votes yet
     ofcTotems.forEach((totem) => {
@@ -212,27 +221,30 @@ export function FounderCenterPanel({
       }
       return a.label.localeCompare(b.label);
     });
-  }, [proposals, ofcTotems]);
+  }, [validProposals, ofcTotems]);
 
   // Best triples = top proposals sorted by total TRUST (includes predicate info)
+  // Uses validProposals which is already filtered by filterValidTriples
   const bestTriples = useMemo((): BestTriple[] => {
-    if (!proposals) return [];
+    if (validProposals.length === 0) return [];
 
-    return proposals
+    return validProposals
+      // Only filter for votes (subject/predicate/object are guaranteed by validProposals)
+      .filter((proposal) => proposal.votes)
       .map((proposal) => ({
         id: proposal.term_id,
         subjectLabel: proposal.subject.label,
         predicateLabel: proposal.predicate.label,
         objectLabel: proposal.object.label,
         objectId: proposal.object.term_id,
-        forVotes: proposal.votes.forVotes,
-        againstVotes: proposal.votes.againstVotes,
-        totalTrust: BigInt(proposal.votes.forVotes) + BigInt(proposal.votes.againstVotes),
+        forVotes: proposal.votes!.forVotes,
+        againstVotes: proposal.votes!.againstVotes,
+        totalTrust: BigInt(proposal.votes!.forVotes) + BigInt(proposal.votes!.againstVotes),
       }))
       .filter((t) => t.totalTrust > 0n)
       .sort((a, b) => (b.totalTrust > a.totalTrust ? 1 : b.totalTrust < a.totalTrust ? -1 : 0))
       .slice(0, 10);
-  }, [proposals]);
+  }, [validProposals]);
 
   // Calculate total TRUST for percentage
   const totalTrust = useMemo(() => {
@@ -402,14 +414,16 @@ export function FounderCenterPanel({
                 <MyVotesSkeleton />
               ) : userVotes.length > 0 ? (
                 <div className="space-y-1.5">
-                  {userVotes.map((vote) => (
-                    <MyVotesItem
-                      key={vote.id}
-                      vote={vote}
-                      onClick={onSelectTotem}
-                      isSelected={vote.term.object.term_id === selectedTotemId}
-                    />
-                  ))}
+                  {userVotes
+                    .filter((vote) => vote.term?.object?.term_id)
+                    .map((vote) => (
+                      <MyVotesItem
+                        key={vote.id}
+                        vote={vote}
+                        onClick={onSelectTotem}
+                        isSelected={vote.term.object.term_id === selectedTotemId}
+                      />
+                    ))}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center py-4">

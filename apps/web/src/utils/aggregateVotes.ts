@@ -1,5 +1,8 @@
+import { filterValidTriples, type RawTriple, type ValidTriple } from './tripleGuards';
+
 /**
  * Triple data structure from INTUITION GraphQL API
+ * @deprecated Use ValidTriple from tripleGuards.ts instead
  */
 export interface Triple {
   term_id: string;
@@ -61,13 +64,17 @@ export interface AggregatedTotem {
  *
  * Result: Lion totem has NET score of 93 (45 + 28 + 20)
  *
- * @param triples - Array of triples from GraphQL query
+ * @param triples - Array of triples from GraphQL query (raw, may contain null fields)
  * @returns Array of aggregated totems sorted by NET score (descending)
  */
 export function aggregateTriplesByObject(triples: Triple[]): AggregatedTotem[] {
   const grouped: Record<string, AggregatedTotem> = {};
 
-  triples.forEach((triple) => {
+  // Filter valid triples first using centralized utility
+  const validTriples = filterValidTriples(triples as RawTriple[], 'aggregateVotes') as ValidTriple[];
+
+  validTriples.forEach((triple) => {
+    // object and predicate are guaranteed non-null by filterValidTriples
     const objectId = triple.object.term_id;
 
     // Initialize totem entry if not exists

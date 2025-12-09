@@ -20,6 +20,7 @@ import {
   GET_USER_DEPOSITS_SIMPLE,
   GET_FOUNDER_TRIPLES_WITH_DETAILS,
 } from '../../lib/graphql/queries';
+import { filterValidTriples, type RawTriple } from '../../utils/tripleGuards';
 
 /** Predicates used for founder-totem relationships */
 const FOUNDER_PREDICATES = ['has totem', 'embodies'];
@@ -165,16 +166,21 @@ export function useUserVotesForFounder(
     fetchPolicy: 'cache-and-network',
   });
 
+  // Filter valid triples first (removes those with null object/subject/predicate)
+  const validTriples = useMemo(() => {
+    if (!triplesData?.triples) return [];
+    return filterValidTriples(triplesData.triples as RawTriple[], 'useUserVotesForFounder');
+  }, [triplesData?.triples]);
+
   // Create a map of term_id -> triple info for fast lookup
   const triplesMap = useMemo(() => {
     const map = new Map<string, TripleInfo>();
-    if (triplesData?.triples) {
-      for (const triple of triplesData.triples) {
-        map.set(triple.term_id, triple);
-      }
+    for (const triple of validTriples) {
+      // Cast back to TripleInfo - filterValidTriples guarantees non-null fields
+      map.set(triple.term_id, triple as unknown as TripleInfo);
     }
     return map;
-  }, [triplesData?.triples]);
+  }, [validTriples]);
 
   // Join deposits with triples and create enriched votes
   const allVotes = useMemo((): UserVoteWithDetails[] => {
