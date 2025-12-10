@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FounderHomeCard, FounderHomeCardSkeleton } from '../components/founder';
 import { FounderExpandedView } from '../components/founder';
@@ -49,15 +49,9 @@ export function HomePage() {
           {t('homePage.title')}
           <span className="block text-slate-400">{t('homePage.subtitle')}</span>
         </h1>
-        <p className="text-lg text-white/70 max-w-2xl mx-auto mb-6">
+        <p className="text-lg text-white/70 max-w-2xl mx-auto">
           {t('homePage.description')}
         </p>
-
-        <div className="flex justify-center">
-          <Link to="/results" className="glass-button bg-slate-500/20 border-slate-500/30">
-            {t('homePage.results')}
-          </Link>
-        </div>
       </section>
 
       {/* Stats Section - Dynamic */}

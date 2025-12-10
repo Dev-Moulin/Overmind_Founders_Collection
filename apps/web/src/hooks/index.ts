@@ -110,6 +110,12 @@ export { useTotemData } from './data/useTotemData';
 // Hook for top totems
 export { useTopTotems, type TopTotem } from './data/useTopTotems';
 
+// Hook for top totems with wallet counts (for Results Page)
+export { useTopTotemsWithVoters, type TopTotemWithVoters } from './data/useTopTotemsWithVoters';
+
+// Hook for all founders results (for Results Page)
+export { useAllFoundersResults, type FounderResult, type TotemResult } from './data/useAllFoundersResults';
+
 // Hook for all OFC totems
 export { useAllOFCTotems } from './data/useAllOFCTotems';
 

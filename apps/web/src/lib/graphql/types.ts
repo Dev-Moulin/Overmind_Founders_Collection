@@ -423,6 +423,7 @@ export interface GetFounderPanelStatsResult {
  */
 export interface GetDepositsByTermIdsResult {
   deposits: Array<{
+    term_id: string;
     sender_id: string;
     vault_type: string;
   }>;

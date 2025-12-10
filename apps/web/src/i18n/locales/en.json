@@ -242,40 +242,35 @@
     "noResults": "No totems found matching your filters.",
     "loading": "Loading totems..."
   },
+  "results": {
+    "topTotems": {
+      "titleTrust": "Top Totems (TRUST)",
+      "titleWallets": "Top Totems (Votes)"
+    },
+    "carousel": {
+      "showWallets": "Show Net Votes",
+      "showTrust": "Show Total TRUST",
+      "votes": "Net Votes",
+      "trust": "Total TRUST"
+    }
+  },
   "resultsPage": {
-    "title": "INTUITION Results",
-    "subtitle": "Founders Totem",
-    "description": "Discover the winning totems for each founder in the collection",
+    "title": "Results",
+    "description": "Top 5 totems per founder - sorted by Total TRUST",
+    "backToHome": "← Back to home",
     "stats": {
       "founders": "Founders",
-      "proposals": "Proposals",
-      "winningTotems": "Winning Totems",
-      "totalClaims": "Total Claims"
+      "withTotems": "With Totems",
+      "totalTrust": "Total TRUST"
     },
-    "searchPlaceholder": "Search for a founder or totem...",
-    "sortBy": "Sort by:",
-    "sortOptions": {
-      "name": "Name",
-      "votes": "Votes",
-      "proposals": "Proposals"
-    },
-    "resultsCount": "{count} result",
-    "resultsCountPlural": "{count} results",
-    "reset": "Reset",
-    "noResults": {
-      "title": "No results found",
-      "description": "No founder matches your search",
-      "button": "Reset filters"
-    },
-    "statusNotice": "Real-time results - Voting in progress",
-    "loading": {
-      "title": "Loading...",
-      "description": "Fetching results from blockchain"
-    },
-    "error": {
-      "title": "Error",
-      "description": "Error loading results: {message}",
-      "button": "← Back to home"
+    "gridTitle": "Top 5 Totems per Founder",
+    "totems": "totems",
+    "vote": "Vote",
+    "noTotems": "No totems yet",
+    "loadingError": "Loading error",
+    "legend": {
+      "for": "FOR",
+      "against": "AGAINST"
     }
   },
   "myVotesPage": {

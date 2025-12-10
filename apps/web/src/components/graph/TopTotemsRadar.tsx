@@ -6,6 +6,10 @@
  * - Blue area = FOR votes
  * - Orange area = AGAINST votes
  *
+ * Supports two display modes:
+ * - 'trust': Shows TRUST values (ETH deposited)
+ * - 'wallets': Shows wallet counts (1 wallet = 1 vote)
+ *
  * Uses recharts RadarChart component
  *
  * @see Phase 10 - Étape 3 in TODO_FIX_01_Discussion.md
@@ -24,6 +28,9 @@ import {
 } from 'recharts';
 import type { TopTotem } from '../../hooks';
 
+/** Display mode for the radar chart */
+export type RadarMode = 'trust' | 'wallets';
+
 interface TopTotemsRadarProps {
   /** Top totems data */
   totems: TopTotem[];
@@ -33,6 +40,8 @@ interface TopTotemsRadarProps {
   onTotemClick?: (totemId: string, totemLabel: string) => void;
   /** Height of the chart */
   height?: number;
+  /** Display mode: 'trust' for TRUST values, 'wallets' for wallet counts */
+  mode?: RadarMode;
 }
 
 /**
@@ -49,6 +58,16 @@ function formatTrust(value: number): string {
     return value.toFixed(4);
   }
   return '0';
+}
+
+/**
+ * Format wallet count for display
+ */
+function formatWallets(value: number): string {
+  if (value >= 1000) {
+    return `${(value / 1000).toFixed(1)}k`;
+  }
+  return value.toString();
 }
 
 /**
@@ -116,15 +135,26 @@ function CustomRadarTooltip({
   payload,
   coordinate,
   viewBox,
+  mode = 'trust',
 }: {
   active?: boolean;
   payload?: Array<{
     value: number;
     name: string;
-    payload: { totem: string; for: number; against: number; fullLabel: string; rawFor?: number; rawAgainst?: number };
+    payload: {
+      totem: string;
+      for: number;
+      against: number;
+      fullLabel: string;
+      rawFor?: number;
+      rawAgainst?: number;
+      rawWalletsFor?: number;
+      rawWalletsAgainst?: number;
+    };
   }>;
   coordinate?: { x: number; y: number };
   viewBox?: { cx: number; cy: number; width: number; height: number };
+  mode?: RadarMode;
 }) {
   if (!active || !payload || payload.length === 0) return null;
 
@@ -132,8 +162,13 @@ function CustomRadarTooltip({
   if (!data) return null;
 
   // Use raw values for display if available (before sqrt normalization)
-  const forValue = data.rawFor ?? data.for;
-  const againstValue = data.rawAgainst ?? data.against;
+  const isTrustMode = mode === 'trust';
+  const forValue = isTrustMode
+    ? (data.rawFor ?? data.for)
+    : (data.rawWalletsFor ?? data.for);
+  const againstValue = isTrustMode
+    ? (data.rawAgainst ?? data.against)
+    : (data.rawWalletsAgainst ?? data.against);
   const net = forValue - againstValue;
 
   // Calculate quadrant-based positioning
@@ -154,6 +189,9 @@ function CustomRadarTooltip({
     ...(isLeft ? { right: 8 } : { left: 8 }),
   };
 
+  const formatValue = isTrustMode ? formatTrust : formatWallets;
+  const unitLabel = isTrustMode ? 'TRUST' : 'wallets';
+
   return (
     <div style={positionStyle}>
       <div className="bg-gray-900/95 border border-white/10 rounded-lg p-3 shadow-xl">
@@ -165,7 +203,7 @@ function CustomRadarTooltip({
               <span className="text-xs text-white/70">FOR</span>
             </span>
             <span className="text-xs font-medium text-blue-400">
-              {formatTrust(forValue)} TRUST
+              {formatValue(forValue)} {unitLabel}
             </span>
           </div>
           <div className="flex items-center justify-between gap-4">
@@ -174,14 +212,14 @@ function CustomRadarTooltip({
               <span className="text-xs text-white/70">AGAINST</span>
             </span>
             <span className="text-xs font-medium text-orange-400">
-              {formatTrust(againstValue)} TRUST
+              {formatValue(againstValue)} {unitLabel}
             </span>
           </div>
           <div className="border-t border-white/10 pt-1 mt-1">
             <div className="flex items-center justify-between gap-4">
               <span className="text-xs text-white/50">Net</span>
               <span className={`text-xs font-medium ${net >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {net >= 0 ? '+' : ''}{formatTrust(net)}
+                {net >= 0 ? '+' : ''}{formatValue(Math.abs(net))}
               </span>
             </div>
           </div>
@@ -199,9 +237,11 @@ export function TopTotemsRadar({
   loading = false,
   onTotemClick,
   height = 250,
+  mode = 'trust',
 }: TopTotemsRadarProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
+  const isTrustMode = mode === 'trust';
 
   // Track container dimensions for RadarChart (avoiding ResponsiveContainer issues)
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -243,22 +283,32 @@ export function TopTotemsRadar({
       return { chartData: [], maxValue: 1 };
     }
 
+    // Get values based on mode
+    const getForValue = (t: TopTotem) => isTrustMode ? t.trustFor : t.walletsFor;
+    const getAgainstValue = (t: TopTotem) => isTrustMode ? t.trustAgainst : t.walletsAgainst;
+
     // Find max for normalization
-    const rawMax = Math.max(...totems.map((t) => Math.max(t.trustFor, t.trustAgainst)), 0.001);
+    const rawMax = Math.max(...totems.map((t) => Math.max(getForValue(t), getAgainstValue(t))), 0.001);
 
     // Apply sqrt normalization to compress extreme values
     // sqrt(0.55) ≈ 0.74, sqrt(0.05) ≈ 0.22 → ratio 3.4:1 instead of 11:1
-    const normalizedData = totems.map((totem) => ({
-      totem: truncateLabel(totem.label),
-      fullLabel: totem.label,
-      totemId: totem.id,
-      // Normalized values for chart display
-      for: Math.sqrt(totem.trustFor / rawMax) * rawMax,
-      against: Math.sqrt(totem.trustAgainst / rawMax) * rawMax,
-      // Keep raw values for tooltip
-      rawFor: totem.trustFor,
-      rawAgainst: totem.trustAgainst,
-    }));
+    const normalizedData = totems.map((totem) => {
+      const forVal = getForValue(totem);
+      const againstVal = getAgainstValue(totem);
+      return {
+        totem: truncateLabel(totem.label),
+        fullLabel: totem.label,
+        totemId: totem.id,
+        // Normalized values for chart display
+        for: Math.sqrt(forVal / rawMax) * rawMax,
+        against: Math.sqrt(againstVal / rawMax) * rawMax,
+        // Keep raw values for tooltip (both modes)
+        rawFor: totem.trustFor,
+        rawAgainst: totem.trustAgainst,
+        rawWalletsFor: totem.walletsFor,
+        rawWalletsAgainst: totem.walletsAgainst,
+      };
+    });
 
     // Recalculate max after normalization
     const normalizedMax = Math.max(
@@ -270,7 +320,7 @@ export function TopTotemsRadar({
       chartData: normalizedData,
       maxValue: normalizedMax * 1.1, // Add 10% padding
     };
-  }, [totems]);
+  }, [totems, isTrustMode]);
 
   const hasValidSize = dimensions.width > 0 && dimensions.height > 0;
 
@@ -317,22 +367,27 @@ export function TopTotemsRadar({
 
     // Need at least 3 points for a proper radar - show list instead
     if (totems.length < 3) {
+      const formatValue = isTrustMode ? formatTrust : formatWallets;
       return (
         <div className="p-3 h-full overflow-auto">
           <div className="space-y-2">
-            {totems.map((totem, index) => (
-              <div
-                key={totem.id || `totem-${index}`}
-                className="flex items-center justify-between p-2 bg-white/5 rounded cursor-pointer hover:bg-white/10 transition-colors"
-                onClick={() => onTotemClick?.(totem.id, totem.label)}
-              >
-                <span className="text-sm text-white truncate">{totem.label}</span>
-                <div className="flex gap-2 text-xs">
-                  <span className="text-blue-400">+{formatTrust(totem.trustFor)}</span>
-                  <span className="text-orange-400">-{formatTrust(totem.trustAgainst)}</span>
+            {totems.map((totem, index) => {
+              const forVal = isTrustMode ? totem.trustFor : totem.walletsFor;
+              const againstVal = isTrustMode ? totem.trustAgainst : totem.walletsAgainst;
+              return (
+                <div
+                  key={totem.id || `totem-${index}`}
+                  className="flex items-center justify-between p-2 bg-white/5 rounded cursor-pointer hover:bg-white/10 transition-colors"
+                  onClick={() => onTotemClick?.(totem.id, totem.label)}
+                >
+                  <span className="text-sm text-white truncate">{totem.label}</span>
+                  <div className="flex gap-2 text-xs">
+                    <span className="text-blue-400">+{formatValue(forVal)}</span>
+                    <span className="text-orange-400">-{formatValue(againstVal)}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       );
@@ -387,7 +442,7 @@ export function TopTotemsRadar({
             axisLine={false}
           />
           <Tooltip
-            content={<CustomRadarTooltip viewBox={{ cx: dimensions.width / 2, cy: dimensions.height / 2, width: dimensions.width, height: dimensions.height }} />}
+            content={<CustomRadarTooltip viewBox={{ cx: dimensions.width / 2, cy: dimensions.height / 2, width: dimensions.width, height: dimensions.height }} mode={mode} />}
             wrapperStyle={{ visibility: 'visible', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}
             trigger="hover"
           />
@@ -429,16 +484,84 @@ export function TopTotemsRadar({
     );
   };
 
+  // Dynamic title based on mode
+  const title = isTrustMode
+    ? t('results.topTotems.titleTrust', 'Top Totems (TRUST)')
+    : t('results.topTotems.titleWallets', 'Top Totems (Votes)');
+
+  // Render flat list for wallets mode (simple ranking)
+  const renderWalletsList = () => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-spin w-6 h-6 border-2 border-slate-500 border-t-transparent rounded-full" />
+        </div>
+      );
+    }
+
+    if (totems.length === 0) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <p className="text-white/40 text-sm">{t('common.noData')}</p>
+        </div>
+      );
+    }
+
+    // Sort by netVotes for wallets mode
+    const sortedTotems = [...totems].sort((a, b) => b.netVotes - a.netVotes);
+    const maxNetVotes = Math.max(...sortedTotems.map((t) => Math.abs(t.netVotes)), 1);
+
+    return (
+      <div className="p-2 h-full overflow-auto space-y-1.5">
+        {sortedTotems.map((totem, index) => {
+          const barWidth = Math.abs(totem.netVotes) / maxNetVotes * 100;
+          const isPositive = totem.netVotes >= 0;
+
+          return (
+            <div
+              key={totem.id || `totem-${index}`}
+              className="relative bg-white/5 rounded p-2 cursor-pointer hover:bg-white/10 transition-colors"
+              onClick={() => onTotemClick?.(totem.id, totem.label)}
+            >
+              {/* Background bar */}
+              <div
+                className={`absolute inset-y-0 left-0 rounded opacity-20 ${
+                  isPositive ? 'bg-blue-500' : 'bg-orange-500'
+                }`}
+                style={{ width: `${barWidth}%` }}
+              />
+              {/* Content */}
+              <div className="relative flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <span className="text-white/40 text-xs w-4">{index + 1}.</span>
+                  <span className="text-sm text-white truncate">{totem.label}</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs shrink-0">
+                  <span className="text-blue-400">{totem.walletsFor}</span>
+                  <span className="text-white/30">/</span>
+                  <span className="text-orange-400">{totem.walletsAgainst}</span>
+                  <span className={`font-medium ml-1 ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                    {isPositive ? '+' : ''}{totem.netVotes}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-2">
-      <h4 className="text-sm font-medium text-white/70">Top Totems</h4>
+      <h4 className="text-sm font-medium text-white/70">{title}</h4>
       <div
         ref={containerRef}
         className="bg-gray-900/30 rounded-lg outline-none focus:outline-none **:outline-none"
         style={{ height }}
         tabIndex={-1}
       >
-        {renderContent()}
+        {isTrustMode ? renderContent() : renderWalletsList()}
       </div>
     </div>
   );

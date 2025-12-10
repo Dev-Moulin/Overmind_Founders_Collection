@@ -74,6 +74,7 @@ export const router = createBrowserRouter([
       //   path: 'my-votes',
       //   element: <MyVotesPage />,
       // },
+      // Results route removed - results now integrated in FounderHomeCard on HomePage
       {
         path: 'admin/audit',
         element: <AdminAuditPage />,

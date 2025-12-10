@@ -891,6 +891,7 @@ export const GET_DEPOSITS_BY_TERM_IDS = gql`
         term_id: { _in: $termIds }
       }
     ) {
+      term_id
       sender_id
       vault_type
     }

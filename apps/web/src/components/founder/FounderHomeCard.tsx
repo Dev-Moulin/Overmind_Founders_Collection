@@ -1,7 +1,9 @@
-import { formatEther } from 'viem';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FounderForHomePage } from '../../hooks';
+import { useTopTotems } from '../../hooks';
 import { getFounderImageUrl } from '../../utils/founderImage';
+import { TopTotemsRadar, type RadarMode } from '../graph/TopTotemsRadar';
 
 interface FounderHomeCardProps {
   founder: FounderForHomePage;
@@ -11,28 +13,22 @@ interface FounderHomeCardProps {
 
 /**
  * Compact founder card for HomePage grid
- * Shows photo, name, winning totem (if any), and action buttons
+ * Shows photo, name, Top 5 totems radar (with carousel for votes/trust), and action buttons
  */
 export function FounderHomeCard({ founder, onSelect, isSelected }: FounderHomeCardProps) {
   const { t } = useTranslation();
   const imageUrl = getFounderImageUrl(founder);
 
+  // Carousel state: 'wallets' = Net Votes (default), 'trust' = Total TRUST
+  const [radarMode, setRadarMode] = useState<RadarMode>('wallets');
+
+  // Fetch top totems for this founder
+  const { topTotems, loading: totemsLoading } = useTopTotems(founder.name, 5);
+
   const handleCardClick = () => {
     if (onSelect) {
       onSelect(founder.id);
     }
-  };
-
-  // Format net score for display
-  const formatScore = (score: bigint): string => {
-    const ethValue = parseFloat(formatEther(score));
-    if (ethValue >= 1000) {
-      return `${(ethValue / 1000).toFixed(1)}k`;
-    }
-    if (ethValue >= 1) {
-      return ethValue.toFixed(1);
-    }
-    return ethValue.toFixed(3);
   };
 
   return (
@@ -70,41 +66,60 @@ export function FounderHomeCard({ founder, onSelect, isSelected }: FounderHomeCa
         </div>
       </div>
 
-      {/* Winning Totem */}
-      <div className="flex-1 mb-4">
-        {founder.winningTotem ? (
-          <div className="bg-slate-500/10 rounded-lg p-4 border border-slate-500/20">
-            <div className="flex items-center justify-between">
-              <p className="text-base font-medium text-white truncate flex-1">
-                {founder.winningTotem.label}
-              </p>
-              {/* Trend indicator */}
-              {founder.winningTotem.trend === 'up' && (
-                <span className="text-green-400 text-base ml-2" title="Tendance haussière (>60% FOR)">
-                  ↑
-                </span>
-              )}
-              {founder.winningTotem.trend === 'down' && (
-                <span className="text-red-400 text-base ml-2" title="Tendance baissière (<40% FOR)">
-                  ↓
-                </span>
-              )}
-            </div>
-            <div className="flex items-center justify-between mt-2 text-sm">
-              <span className="text-slate-400">{formatScore(founder.winningTotem.netScore)} TRUST</span>
-              <span className="text-white/40">{founder.proposalCount} prop.</span>
-            </div>
-          </div>
+      {/* Top Totems Radar with Carousel */}
+      <div className="flex-1 mb-2">
+        {/* Radar Chart */}
+        {topTotems.length > 0 || totemsLoading ? (
+          <TopTotemsRadar
+            totems={topTotems}
+            loading={totemsLoading}
+            mode={radarMode}
+            height={220}
+          />
         ) : (
-          <div className="bg-white/5 rounded-lg p-4 border border-white/10 text-center">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 text-center h-[220px] flex items-center justify-center">
             <p className="text-sm text-white/40">{t('common.noTotem')}</p>
           </div>
         )}
       </div>
 
-      {/* Click indicator */}
-      <div className="text-center text-sm text-white/30 mt-auto pt-2">
-        {t('common.clickToVote')}
+      {/* Mode selector dots - clearly separated from vote button */}
+      <div className="flex justify-center items-center gap-3 py-2 border-t border-white/10">
+        <button
+          onClick={(e) => { e.stopPropagation(); setRadarMode('wallets'); }}
+          className={`flex items-center gap-1.5 px-2 py-1 rounded transition-all ${
+            radarMode === 'wallets'
+              ? 'bg-slate-500/30 scale-105'
+              : 'hover:bg-white/10 opacity-50 hover:opacity-80'
+          }`}
+          title={t('results.carousel.votes', 'Net Votes')}
+        >
+          <span className={`rounded-full transition-all ${
+            radarMode === 'wallets' ? 'w-2.5 h-2.5 bg-slate-400' : 'w-2 h-2 bg-white/30'
+          }`} />
+          <span className="text-xs text-white/60">Votes</span>
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); setRadarMode('trust'); }}
+          className={`flex items-center gap-1.5 px-2 py-1 rounded transition-all ${
+            radarMode === 'trust'
+              ? 'bg-slate-500/30 scale-105'
+              : 'hover:bg-white/10 opacity-50 hover:opacity-80'
+          }`}
+          title={t('results.carousel.trust', 'Total TRUST')}
+        >
+          <span className={`rounded-full transition-all ${
+            radarMode === 'trust' ? 'w-2.5 h-2.5 bg-slate-400' : 'w-2 h-2 bg-white/30'
+          }`} />
+          <span className="text-xs text-white/60">TRUST</span>
+        </button>
+      </div>
+
+      {/* Vote button - visually distinct */}
+      <div className="mt-auto pt-2">
+        <div className="text-center py-2 bg-slate-500/20 hover:bg-slate-500/30 rounded-lg transition-colors border border-slate-500/30">
+          <span className="text-sm text-slate-300 font-medium">{t('common.clickToVote')}</span>
+        </div>
       </div>
     </div>
   );

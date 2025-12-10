@@ -2,9 +2,24 @@
 
 > Route: `/results`
 > Fichier: `apps/web/src/pages/ResultsPage.tsx`
-> Statut: Partiellement implementee
+> Statut: **SUPPRIMEE** (10 decembre 2025)
 
-## Objectif
+## Decision
+
+La page Results separee a ete supprimee. Les resultats sont maintenant integres directement dans la HomePage via les `FounderHomeCard`.
+
+Chaque card affiche :
+- **Top 5 Totems** du fondateur
+- **Deux modes** : Net Votes (wallets) et Total TRUST (radar)
+- **Carousel** pour basculer entre les vues
+
+Voir [01_HomePage.md](./01_HomePage.md) pour les details de l'implementation.
+
+---
+
+## Ancienne spec (historique)
+
+### Objectif original
 
 Vue d'ensemble des resultats pour tous les fondateurs avec podium et stats.
 

@@ -647,8 +647,82 @@ function calculateCartCost(cart: VoteCart, config: MultivaultConfig) {
 | ~~**8**~~ | ~~Batch Triples~~ | Phase 2 | ~~Basse~~ | ✅ Fait |
 | ~~**9**~~ | ~~Refonte UI 3 Panneaux~~ | Phases 4-7 | ~~Basse~~ | ✅ Fait |
 | ~~**10**~~ | ~~Graphe de Visualisation~~ | - | ~~Nice to have~~ | ✅ Fait |
+| **11** | **Results Page** | - | Haute | 🔄 En cours |
 
-**PROJET TERMINÉ !** Toutes les 10 phases ont été implémentées.
+**Phases 1-10 complétées !** Phase 11 (Results Page) en cours.
+
+---
+
+## Phase 11: Results Page - Top 5 Totems par Fondateur
+
+**Date** : 10 décembre 2025
+**Objectif** : Afficher les résultats des votes pour tous les fondateurs
+
+### 11.1 Concept
+
+Deux métriques par totem :
+1. **Net Votes** = Nb wallets FOR - Nb wallets AGAINST (consensus communautaire, 1 wallet = 1 voix)
+2. **Total TRUST** = FOR + AGAINST (force de conviction / engagement)
+
+### 11.2 Tâches
+
+- [x] **11.1** Analyser le code existant réutilisable ✅
+  - `useTopTotems.ts` - Calcule TRUST FOR/AGAINST, agrège par totem
+  - `useFoundersForHomePage.ts` - Retourne les 42 fondateurs avec winning totem
+  - `useFounderPanelStats.ts` - Pattern 2 queries (triples + deposits) pour count wallets
+  - `GET_DEPOSITS_BY_TERM_IDS` - Query pour récupérer `sender_id` et `vault_type`
+  - `GET_ALL_PROPOSALS` - Tous les triples avec votes
+
+- [ ] **11.2** Créer `useTopTotemsWithVoters.ts`
+  - Ajouter `walletsFor` et `walletsAgainst` (count distinct sender_id)
+  - Garder `trustFor` et `trustAgainst`
+  - Trier par `netVotes` (wallets FOR - wallets AGAINST)
+
+- [ ] **11.3** Créer `useAllFoundersResults.ts`
+  - Agréger les résultats pour tous les 42 fondateurs
+  - Retourner Top 5 totems par fondateur
+
+- [ ] **11.4** Créer composants UI
+  - `pages/ResultsPage.tsx` - Page principale avec grille
+  - `components/results/FounderResultCard.tsx` - Card par fondateur
+  - `components/results/TotemResultsChart.tsx` - Bar chart empilé (recharts)
+
+- [ ] **11.5** Intégration
+  - Ajouter route `/results` dans `router.tsx`
+  - Ajouter traductions i18n (en.json, fr.json)
+
+### 11.3 Données GraphQL nécessaires
+
+```graphql
+# Pour compter les wallets uniques par totem
+query GetVotersPerTriple($termId: String!) {
+  deposits(where: { term_id: { _eq: $termId } }) {
+    sender_id
+    vault_type  # "triple_positive" (FOR) ou "triple_negative" (AGAINST)
+    assets_after_fees
+  }
+}
+```
+
+### 11.4 Structure des données
+
+```typescript
+interface TopTotemWithVoters {
+  id: string;
+  label: string;
+  image?: string;
+  // TRUST metrics
+  trustFor: number;
+  trustAgainst: number;
+  totalTrust: number;
+  netTrust: number;
+  // Wallet metrics
+  walletsFor: number;
+  walletsAgainst: number;
+  totalWallets: number;
+  netVotes: number;  // walletsFor - walletsAgainst (TRI PRINCIPAL)
+}
+```
 
 ---
 

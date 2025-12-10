@@ -336,8 +336,87 @@ Documentation de recherche sur le SDK INTUITION V2 pour la refonte du système d
 
 ---
 
+## 🆕 RESULTS PAGE - Spécification (10 décembre 2025)
+
+### Objectif
+
+Afficher les résultats des votes pour tous les fondateurs avec leur **Top 5 totems**.
+
+### Métriques à afficher (par totem)
+
+| Métrique | Calcul | Description |
+|----------|--------|-------------|
+| **Net Votes** | Nb wallets FOR - Nb wallets AGAINST | Consensus communautaire (1 wallet = 1 voix) |
+| **Total TRUST** | FOR TRUST + AGAINST TRUST | Force de conviction / engagement financier |
+
+### Pourquoi deux métriques ?
+
+- **Net Votes** = consensus démocratique (chaque wallet compte également)
+- **Total TRUST** = conviction financière (skin in the game)
+
+Un totem peut avoir :
+- +40 Net Votes mais 100 TRUST total (beaucoup de petits votes)
+- +10 Net Votes mais 5000 TRUST total (quelques gros votes convaincus)
+
+Les deux informations sont importantes pour comprendre le résultat.
+
+### Format d'affichage
+
+**Layout** : Grille de cards (comme HomePage)
+
+**Chaque card fondateur contient** :
+1. Photo + nom du fondateur
+2. Top 5 totems (triés par Net Votes)
+3. Deux graphiques Bar Chart empilés :
+   - Chart 1 : Net Votes (wallets FOR vs AGAINST)
+   - Chart 2 : Total TRUST (FOR TRUST vs AGAINST TRUST)
+
+### Exemple visuel (une card)
+
+```
+┌─────────────────────────────────────────────┐
+│ [Photo] Vitalik Buterin                     │
+├─────────────────────────────────────────────┤
+│ TOP 5 TOTEMS                                │
+│                                             │
+│ 1. Owl      ████████████ 45  ███ 12  (+33)  │  ← FOR vert, AGAINST rouge
+│ 2. Phoenix  █████████ 38     ██ 8   (+30)   │
+│ 3. Lion     ██████ 25        █ 5    (+20)   │
+│ 4. Eagle    ████ 18          ███ 10 (+8)    │
+│ 5. Wolf     ███ 15           ███ 12 (+3)    │
+│                                             │
+│ [Chart: Net Votes]  [Chart: Total TRUST]    │
+└─────────────────────────────────────────────┘
+```
+
+### Données nécessaires
+
+Pour chaque totem, on a besoin de :
+- `walletsFor` : nombre de wallets uniques ayant voté FOR
+- `walletsAgainst` : nombre de wallets uniques ayant voté AGAINST
+- `trustFor` : montant total TRUST voté FOR
+- `trustAgainst` : montant total TRUST voté AGAINST
+
+### Hook existant à adapter
+
+`useTopTotems.ts` existe déjà mais calcule uniquement le TRUST. Il faut l'adapter pour inclure le **count de wallets**.
+
+### Fichiers à créer/modifier
+
+| Fichier | Action |
+|---------|--------|
+| `pages/ResultsPage.tsx` | **CRÉER** - Page principale |
+| `components/results/FounderResultCard.tsx` | **CRÉER** - Card par fondateur |
+| `components/results/TotemResultsChart.tsx` | **CRÉER** - Bar chart empilé |
+| `hooks/data/useTopTotemsWithVoters.ts` | **CRÉER** - Hook avec count wallets |
+| `hooks/data/useAllFoundersResults.ts` | **CRÉER** - Agrégation tous fondateurs |
+| `router.tsx` | **MODIFIER** - Ajouter route /results |
+| `i18n/locales/*.json` | **MODIFIER** - Traductions |
+
+---
+
 **Créé** : 28/11/2025
-**Mis à jour** : 10/12/2025 - Clarification catégories dynamiques + Fix graphiques radar
+**Mis à jour** : 10/12/2025 - Clarification catégories dynamiques + Fix graphiques radar + Spec ResultsPage
 
 ---
 

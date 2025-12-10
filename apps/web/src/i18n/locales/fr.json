@@ -242,40 +242,35 @@
     "noResults": "No totems found matching your filters.",
     "loading": "Loading totems..."
   },
+  "results": {
+    "topTotems": {
+      "titleTrust": "Top Totems (TRUST)",
+      "titleWallets": "Top Totems (Votes)"
+    },
+    "carousel": {
+      "showWallets": "Voir Net Votes",
+      "showTrust": "Voir Total TRUST",
+      "votes": "Net Votes",
+      "trust": "Total TRUST"
+    }
+  },
   "resultsPage": {
-    "title": "Résultats INTUITION",
-    "subtitle": "Founders Totem",
-    "description": "Découvrez les totems gagnants pour chaque fondateur de la collection",
+    "title": "Résultats",
+    "description": "Top 5 totems par fondateur - triés par Total TRUST",
+    "backToHome": "← Retour à l'accueil",
     "stats": {
       "founders": "Fondateurs",
-      "proposals": "Propositions",
-      "winningTotems": "Totems gagnants",
-      "totalClaims": "Claims totaux"
+      "withTotems": "Avec Totems",
+      "totalTrust": "TRUST Total"
     },
-    "searchPlaceholder": "Rechercher un fondateur ou un totem...",
-    "sortBy": "Trier par:",
-    "sortOptions": {
-      "name": "Nom",
-      "votes": "Votes",
-      "proposals": "Propositions"
-    },
-    "resultsCount": "{count} résultat",
-    "resultsCountPlural": "{count} résultats",
-    "reset": "Réinitialiser",
-    "noResults": {
-      "title": "Aucun résultat trouvé",
-      "description": "Aucun fondateur ne correspond à votre recherche",
-      "button": "Réinitialiser les filtres"
-    },
-    "statusNotice": "Résultats en temps réel - Vote en cours",
-    "loading": {
-      "title": "Chargement...",
-      "description": "Récupération des résultats depuis la blockchain"
-    },
-    "error": {
-      "title": "Erreur",
-      "description": "Erreur lors du chargement des résultats: {message}",
-      "button": "← Retour à l'accueil"
+    "gridTitle": "Top 5 Totems par Fondateur",
+    "totems": "totems",
+    "vote": "Voter",
+    "noTotems": "Pas encore de totems",
+    "loadingError": "Erreur de chargement",
+    "legend": {
+      "for": "FOR",
+      "against": "AGAINST"
     }
   },
   "myVotesPage": {

@@ -2,11 +2,12 @@
 
 > Route: `/`
 > Fichier: `apps/web/src/pages/HomePage.tsx`
-> Statut: Partiellement implementee
+> Statut: **Implementee** (mise a jour 10 decembre 2025)
 
 ## Objectif
 
-Landing page qui presente le projet et affiche la grille des 42 fondateurs.
+Page principale interactive affichant la grille des 42 fondateurs avec leurs Top 5 Totems.
+Click sur une card ouvre le `FounderExpandedView` pour voter.
 
 ## Wireframe
 
@@ -14,127 +15,126 @@ Landing page qui presente le projet et affiche la grille des 42 fondateurs.
 +-------------------------------------------------------------+
 | +----------------------------------------------------------+|
 | | HEADER                                      [Connect]     ||
-| | Overmind Founders Collection                              ||
 | +----------------------------------------------------------+|
 |                                                              |
 | +----------------------------------------------------------+|
 | |               HERO SECTION                                ||
-| |                                                           ||
-| |        Overmind Founders Collection                       ||
-| |                                                           ||
-| |   Vote for the totems that represent the 42 founders      ||
-| |          of INTUITION using $TRUST tokens                 ||
-| |                                                           ||
-| |         [View All Totems]  [How it works?]                ||
+| |           INTUITION Founders Totem                        ||
+| +----------------------------------------------------------+|
+|                                                              |
+| +----------------------------------------------------------+|
+| |                   STATS SECTION                           ||
+| |  [42 Founders] [On-chain] [Proposals] [With Totem]        ||
 | +----------------------------------------------------------+|
 |                                                              |
 | +----------------------------------------------------------+|
 | |                   FOUNDERS GRID                           ||
-| | +--------+ +--------+ +--------+ +--------+               ||
-| | | Photo  | | Photo  | | Photo  | | Photo  |               ||
-| | |        | |        | |        | |        |  ...          ||
-| | | Name   | | Name   | | Name   | | Name   |               ||
-| | | Role   | | Role   | | Role   | | Role   |               ||
-| | |--------| |--------| |--------| |--------|               ||
-| | | Lion   | | Kiwi   | | Eagle  | | TBD    |               ||
-| | |150 TR  | |80 TR   | |60 TR   | |0 TR    |               ||
-| | |--------| |--------| |--------| |--------|               ||
-| | |[Vote]  | |[Vote]  | |[Vote]  | |[Propose|               ||
-| | |[Propose| |[Propose| |[Propose| |        |               ||
-| | +--------+ +--------+ +--------+ +--------+               ||
-| |                                                           ||
-| |           ... (42 cards in responsive grid)               ||
-| +----------------------------------------------------------+|
-|                                                              |
-| +----------------------------------------------------------+|
-| | FOOTER                                                    ||
-| | Made with love by Overmind | Powered by INTUITION         ||
+| | +----------------+ +----------------+ +----------------+  ||
+| | | Photo  | Name  | | Photo  | Name  | | Photo  | Name  |  ||
+| | |        | Bio   | |        | Bio   | |        | Bio   |  ||
+| | |----------------|+|----------------|+|----------------|  ||
+| | | Top Totems     | | Top Totems     | | Top Totems     |  ||
+| | | (Votes/TRUST)  | | (Votes/TRUST)  | | (Votes/TRUST)  |  ||
+| | | 1. Phoenix +3  | | [Radar Chart]  | | [Liste vide]   |  ||
+| | | 2. Lion    +2  | |                | |                |  ||
+| | | 3. Eagle   +1  | |                | |                |  ||
+| | |----------------|+|----------------|+|----------------|  ||
+| | | [Votes][TRUST] | | [Votes][TRUST] | | [Votes][TRUST] |  ||
+| | |----------------|+|----------------|+|----------------|  ||
+| | | [Click to vote]| | [Click to vote]| | [Click to vote]|  ||
+| | +----------------+ +----------------+ +----------------+  ||
 | +----------------------------------------------------------+|
 +-------------------------------------------------------------+
 ```
 
 ## Composants
 
-### Header
-- **Logo/Title** : "Overmind Founders Collection"
-- **ConnectButton** : RainbowKit button (wallet connection)
-- **Navigation** : Links vers "Vote", "My Votes", "Results"
+### FounderHomeCard
+- **Header** : Photo (76x76) + Nom + Bio courte
+- **Badge** : Indicateur d'activite recente (si > 0)
+- **Top Totems** : Visualisation des 5 meilleurs totems
+  - Mode **Votes** (defaut) : Liste classee par Net Votes (walletsFor - walletsAgainst)
+  - Mode **TRUST** : Radar chart FOR/AGAINST
+- **Selecteur de mode** : Boutons "Votes" et "TRUST" avec effet de zoom
+- **Bouton Vote** : "Click to vote" - ouvre FounderExpandedView
 
-### Hero Section
-- **Title** : Grand titre avec emojis
-- **Subtitle** : Explication courte du projet
-- **CTA Buttons** :
-  - "View All Totems" -> VotePage
-  - "How it works?" -> Ouvre modal explicative
-
-### Founders Grid
-- **FounderCard** (x42) :
-  - Photo du fondateur
-  - Nom
-  - Role/titre
-  - **Winning Totem** (si existant) :
-    - Emoji du totem
-    - Nom du totem
-    - Total TRUST NET
-  - **Actions** :
-    - Bouton "Vote" -> VotePage avec filtre sur ce fondateur
-    - Bouton "Propose" -> ProposePage avec ce fondateur preselectionne
-
-### Footer
-- **Credits** : Overmind
-- **Links** : GitHub, INTUITION, Base
+### TopTotemsRadar (dans `components/graph/`)
+- **Mode `wallets`** : Liste avec barres horizontales
+  - Rang (1, 2, 3...)
+  - Nom du totem
+  - Wallets FOR / AGAINST
+  - Net Votes (+X ou -X) en vert/rouge
+- **Mode `trust`** : Radar chart recharts
+  - Axes = totems
+  - Zone bleue = FOR
+  - Zone orange = AGAINST
+  - Normalisation sqrt pour compresser les valeurs extremes
 
 ## Donnees
 
+### Interface TopTotem
 ```typescript
-interface FounderCardData {
-  founderId: Hex;
+interface TopTotem {
+  id: string;
+  label: string;
+  image?: string;
+  trustFor: number;        // FOR en TRUST (ETH)
+  trustAgainst: number;    // AGAINST en TRUST
+  totalTrust: number;      // FOR + AGAINST
+  netScore: number;        // FOR - AGAINST
+  walletsFor: number;      // Nombre de wallets FOR
+  walletsAgainst: number;  // Nombre de wallets AGAINST
+  totalWallets: number;    // Total wallets
+  netVotes: number;        // walletsFor - walletsAgainst
+}
+```
+
+### Interface FounderForHomePage
+```typescript
+interface FounderForHomePage {
+  id: string;
   name: string;
-  role: string;
-  image: string;
-  winningTotem: {
-    label: string;
-    emoji: string;
-    netScore: bigint;
-  } | null;
+  shortBio?: string;
+  atomId?: string;
+  proposalCount: number;
+  winningTotem?: { label: string; netScore: bigint; trend: string };
+  recentActivityCount: number;
 }
 ```
 
 ## Hooks
 
-- `useFounderTotems(founderId)` : Pour recuperer le totem gagnant
-- `useAccount()` : Pour verifier si wallet connecte
+- `useFoundersForHomePage()` : Liste des fondateurs avec stats
+- `useTopTotems(founderName, limit)` : Top N totems pour un fondateur
+  - Requete deposits pour compter les wallets uniques
+  - Agregation par totem (object_id)
+  - Tri par totalTrust puis slice
 
-## Etat de chargement
+## Carousel (selecteur de mode)
 
-```
-+--------+
-| Photo  |
-| [...]  |  <- Skeleton loader
-| Name   |
-| [...]  |
-+--------+
-```
+Le carousel permet de basculer entre deux vues :
 
----
+1. **Votes** (Net Votes) - Consensus democratique
+   - 1 wallet = 1 vote
+   - Affiche : walletsFor / walletsAgainst / netVotes
+   - Tri par netVotes (descending)
 
-## Ecarts avec l'implementation actuelle
+2. **TRUST** (Total TRUST) - Engagement financier
+   - ETH depose = poids du vote
+   - Affiche : radar chart FOR vs AGAINST
+   - Tri par totalTrust (descending)
 
-### Ce qui est implemente (139 lignes)
-- [x] Hero Section avec titre et description
-- [x] CTA conditionnel (Connect si non connecte, 3 boutons si connecte)
-- [x] Features Section (3 cards: Proposer, Voter, Resultats)
-- [x] How It Works Section (4 etapes)
-- [x] Stats Section (4 cards statiques: 42, ∞, On-chain, IPFS)
+## Interactions
 
-### Ce qui manque
-- [ ] **Founders Grid** : La grille des 42 fondateurs n'est pas implementee
-- [ ] **FounderCard** : Composant avec photo, nom, role, totem gagnant
-- [ ] **Hook useFounderTotems** : Pour afficher les totems gagnants
-- [ ] **Boutons Vote/Propose** par fondateur
-- [ ] **Modal "How it works?"** : Actuellement c'est une section statique
+1. **Click sur card** : Ouvre FounderExpandedView (modal)
+2. **Click sur Votes/TRUST** : Change le mode d'affichage (stopPropagation)
+3. **Escape** : Ferme FounderExpandedView
+4. **URL param** : `?founder=<id>` pour deep link
 
-### Differences de design
-- L'implementation actuelle est une **landing page marketing** statique
-- La spec prevoit une **page fonctionnelle** avec la grille des fondateurs
-- Les CTA actuels redirigent vers `/propose`, `/vote`, `/results` au lieu de filtrer par fondateur
+## Fichiers modifies (10 decembre 2025)
+
+- `apps/web/src/pages/HomePage.tsx` - Page principale
+- `apps/web/src/components/founder/FounderHomeCard.tsx` - Card avec carousel
+- `apps/web/src/components/graph/TopTotemsRadar.tsx` - Composant dual-mode
+- `apps/web/src/hooks/data/useTopTotems.ts` - Hook avec wallet counting
+- `apps/web/src/i18n/locales/{en,fr}.json` - Traductions
