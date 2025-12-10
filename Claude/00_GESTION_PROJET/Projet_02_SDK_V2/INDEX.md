@@ -39,7 +39,7 @@ Documentation de recherche sur le SDK INTUITION V2 pour la refonte du système d
 
 | # | Fichier | Contenu |
 |---|---------|---------|
-| 17 | [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md) | Signatures réelles contrat V2, batch functions, structures, différences SDK vs contrat |
+| 17 | [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md) | Signatures réelles contrat V2, batch functions, structures, différences SDK vs contrat, **Multicall3 ABANDONNÉ** (incompatible msg.sender) |
 
 ---
 
@@ -278,6 +278,8 @@ Documentation de recherche sur le SDK INTUITION V2 pour la refonte du système d
 - Basis points (calcul frais) → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
 - Frais max 10% → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
 - Adresse EthMultiVault Base → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md)
+- ~~Multicall3~~ **ABANDONNÉ** → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md#15-transaction-atomique-redeem--deposit---impossible-via-multicall3)
+- Switch position FOR→AGAINST → **2 transactions séquentielles** (redeemBatch + depositBatch)
 
 ---
 
@@ -335,11 +337,56 @@ Documentation de recherche sur le SDK INTUITION V2 pour la refonte du système d
 ---
 
 **Créé** : 28/11/2025
-**Mis à jour** : 08/12/2025 - Phase 10 complétée + Réorganisation structure en cours
+**Mis à jour** : 10/12/2025 - Clarification catégories dynamiques + Fix graphiques radar
 
 ---
 
-## Dernières mises à jour (8 décembre 2025)
+## Dernières mises à jour (10 décembre 2025)
+
+### Clarification Catégories Dynamiques
+
+La documentation `18_Design_Decisions_V2.md` a été mise à jour pour clarifier que les catégories sont **dynamiques** :
+
+- L'utilisateur peut créer un totem dans une **catégorie existante** (Animal, Objet, etc.) → 2 triples
+- L'utilisateur peut créer un totem dans une **nouvelle catégorie** (ex: "IA", "Film") → 3 triples
+
+Le système vérifie automatiquement si le Triple 3 `[Catégorie] → [tag category] → [Overmind Founders Collection]` existe et le crée si nécessaire.
+
+**Fichier modifié** : `18_Design_Decisions_V2.md` (sections 1 et 12)
+
+---
+
+### Fix Graphiques Radar - TopTotemsRadar & RelationsRadar
+
+Trois améliorations UX appliquées aux graphiques radar :
+
+1. **Tooltip dynamique par quadrant** - Le tooltip se positionne dans le coin opposé au curseur pour ne jamais masquer les données survolées
+
+2. **Click sur les points du radar** - En plus des labels textuels, il est maintenant possible de cliquer sur les points colorés (bleu FOR / orange AGAINST) pour sélectionner un totem
+
+3. **Suppression de l'outline de focus** - L'outline blanc qui apparaissait au clic sur le conteneur a été supprimé via Tailwind (`**:outline-none`) et `tabIndex={-1}`
+
+**Fichier principal modifié** : `components/graph/TopTotemsRadar.tsx`
+
+**Voir** : [TODO_FIX_01_Discussion.md §15](./TODO_FIX_01_Discussion.md#15-fix-graphiques-radar---interactions--tooltip---10-décembre-2025)
+
+---
+
+## Mises à jour précédentes (9 décembre 2025)
+
+### Multicall3 - ABANDONNÉ
+
+La tentative d'utiliser Multicall3 pour combiner `redeemBatch` + `depositBatch` en une seule transaction a échoué.
+
+**Raison** : `redeemBatch` vérifie `_isApprovedToRedeem(msg.sender, receiver)`. Via Multicall3, `msg.sender` = adresse Multicall3 (pas le wallet utilisateur), donc la vérification échoue.
+
+**Solution actuelle** : 2 transactions séquentielles (2 signatures utilisateur).
+
+Voir [TODO_FIX_01_Discussion.md §14](./TODO_FIX_01_Discussion.md#14-transaction-atomique-redeem--deposit-multicall3---abandonné) pour les détails.
+
+---
+
+## Mises à jour précédentes (8 décembre 2025)
 
 ### Réorganisation Structure (en cours)
 

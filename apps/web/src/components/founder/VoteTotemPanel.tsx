@@ -29,6 +29,7 @@ import { SuccessNotification } from '../common/SuccessNotification';
 import { ErrorNotification } from '../common/ErrorNotification';
 import predicatesData from '../../../../../packages/shared/src/data/predicates.json';
 import type { Predicate } from '../../types/predicate';
+import type { NewTotemData } from './TotemCreationForm';
 
 /**
  * WithdrawOnlyPanel - Simplified withdraw panel
@@ -228,6 +229,8 @@ interface VoteTotemPanelProps {
   founder: FounderForHomePage;
   selectedTotemId?: string;
   selectedTotemLabel?: string;
+  /** Data for a new totem being created (from TotemCreationForm) */
+  newTotemData?: NewTotemData | null;
   onClearSelection?: () => void;
   onOpenCart?: () => void;
 }
@@ -236,6 +239,7 @@ export function VoteTotemPanel({
   founder,
   selectedTotemId,
   selectedTotemLabel,
+  newTotemData,
   onClearSelection,
   onOpenCart,
 }: VoteTotemPanelProps) {
@@ -331,17 +335,34 @@ export function VoteTotemPanel({
     reset: resetWithdraw,
   } = useWithdraw();
 
-  // Calculate minimum required amount based on whether it's a new triple
+  // Calculate minimum required amount based on creation mode
+  // For new totem creation:
+  //   - 2 triples minimum: Founder→predicate→Totem + Totem→hasCategory→Category
+  //   - 3 triples if new category: + Category→tagCategory→System
+  // For existing totem with new triple: 1 triple
+  // For existing triple: just minDeposit
   const minRequiredAmount = useMemo(() => {
     if (!protocolConfig) return '0.001';
-    if (isNewTotem) {
-      // New triple: tripleCost + minDeposit
-      const total = parseFloat(protocolConfig.formattedTripleCost) + parseFloat(protocolConfig.formattedMinDeposit);
+    const tripleCost = parseFloat(protocolConfig.formattedTripleCost);
+    const minDeposit = parseFloat(protocolConfig.formattedMinDeposit);
+
+    // Creating a brand new totem (from creation form)
+    if (newTotemData) {
+      // 2 triples if existing category, 3 if new category
+      const triplesNeeded = newTotemData.isNewCategory ? 3 : 2;
+      const total = (tripleCost * triplesNeeded) + minDeposit;
       return total.toFixed(4);
     }
+
+    // Existing totem but new relationship triple
+    if (isNewTotem) {
+      const total = tripleCost + minDeposit;
+      return total.toFixed(4);
+    }
+
     // Existing triple: just minDeposit
     return protocolConfig.formattedMinDeposit;
-  }, [protocolConfig, isNewTotem]);
+  }, [protocolConfig, isNewTotem, newTotemData]);
 
   // Initialize amount with minimum required
   useEffect(() => {
@@ -374,15 +395,32 @@ export function VoteTotemPanel({
     }
   }, [selectedTotemId, selectedPredicateId, minRequiredAmount]);
 
+  // Update amount when creating a new totem (from creation form)
+  // This ensures minimum amount covers all triple creation costs
+  useEffect(() => {
+    if (newTotemData && minRequiredAmount) {
+      const currentAmount = parseFloat(trustAmount || '0');
+      const minAmount = parseFloat(minRequiredAmount);
+      if (currentAmount < minAmount) {
+        setTrustAmount(minRequiredAmount);
+      }
+    }
+  }, [newTotemData, minRequiredAmount]);
+
+  // Determine if we're working with a new totem (creation) or existing totem
+  const isCreatingNewTotem = !!newTotemData;
+  const effectiveTotemName = newTotemData?.name || selectedTotemLabel || '';
+
   const isFormValid = useMemo(() => {
-    if (!selectedTotemId) return false;
+    // Must have either an existing totem selected OR new totem data
+    if (!selectedTotemId && !newTotemData) return false;
     if (!selectedPredicateId) return false;
     if (!trustAmount || parseFloat(trustAmount) <= 0) return false;
     if (!isDepositValid(trustAmount)) return false;
     if (voteDirection === 'withdraw') return true; // Withdraw doesn't need predicate atomId
     if (!selectedPredicateWithAtom?.atomId) return false; // Need predicate atomId for votes
     return true;
-  }, [selectedTotemId, selectedPredicateId, trustAmount, isDepositValid, voteDirection, selectedPredicateWithAtom]);
+  }, [selectedTotemId, newTotemData, selectedPredicateId, trustAmount, isDepositValid, voteDirection, selectedPredicateWithAtom]);
 
   // Get current user shares based on position direction
   const currentUserShares = positionDirection === 'for' ? forShares : againstShares;
@@ -463,16 +501,24 @@ export function VoteTotemPanel({
       return;
     }
 
-    if (!selectedTotemId || !selectedPredicateWithAtom?.atomId) {
-      console.log('[VoteTotemPanel] Missing data:', { selectedTotemId, predicateAtomId: selectedPredicateWithAtom?.atomId });
+    // For new totem creation, selectedTotemId is undefined - newTotemData is used instead
+    const hasTotemSelection = selectedTotemId || newTotemData;
+    if (!hasTotemSelection || !selectedPredicateWithAtom?.atomId) {
+      console.log('[VoteTotemPanel] Missing data:', {
+        selectedTotemId,
+        newTotemData,
+        predicateAtomId: selectedPredicateWithAtom?.atomId
+      });
       setError('Données manquantes pour ajouter au panier');
       setTimeout(() => setError(null), 3000);
       return;
     }
 
+    // Determine if this is a brand new totem (creation mode) or existing totem
+    const isCreatingNewTotem = !!newTotemData && !selectedTotemId;
     // For new triples (no proactiveClaimInfo), we need to create termId on-chain
     // For existing triples, we use the existing termId/counterTermId
-    const isNewTotem = !proactiveClaimInfo;
+    const isNewTotem = isCreatingNewTotem || !proactiveClaimInfo;
 
     // Include current position so cart can detect if withdrawal is needed for opposite-side vote
     // This enables auto-withdraw when switching from FOR to AGAINST (or vice versa)
@@ -480,26 +526,51 @@ export function VoteTotemPanel({
       ? { direction: positionDirection, shares: currentUserShares }
       : undefined;
 
-    const cartItem = {
-      totemId: selectedTotemId as Hex,
-      totemName: selectedTotemLabel || 'Unknown',
-      predicateId: selectedPredicateWithAtom.atomId as Hex,
-      termId: (proactiveClaimInfo?.termId || selectedTotemId) as Hex,
-      counterTermId: (proactiveClaimInfo?.counterTermId || selectedTotemId) as Hex,
-      direction: voteDirection as 'for' | 'against',
-      amount: trustAmount,
-      isNewTotem,
-      currentPosition: currentPositionForCart, // Pass position to detect opposite-side withdrawal
-    };
+    // Build cart item differently for new totem creation vs existing totem vote
+    const cartItem = isCreatingNewTotem
+      ? {
+          // New totem creation - totemId will be set after atom creation
+          totemId: null,
+          totemName: newTotemData.name,
+          predicateId: selectedPredicateWithAtom.atomId as Hex,
+          termId: null, // Will be set after triple creation
+          counterTermId: null, // Will be set after triple creation
+          direction: voteDirection as 'for' | 'against',
+          amount: trustAmount,
+          isNewTotem: true,
+          currentPosition: undefined, // No existing position for new totem
+          newTotemData: {
+            name: newTotemData.name,
+            category: newTotemData.category,
+            categoryTermId: newTotemData.categoryTermId,
+            isNewCategory: newTotemData.isNewCategory,
+          },
+        }
+      : {
+          // Existing totem vote
+          totemId: selectedTotemId as Hex,
+          totemName: selectedTotemLabel || 'Unknown',
+          predicateId: selectedPredicateWithAtom.atomId as Hex,
+          termId: (proactiveClaimInfo?.termId || selectedTotemId) as Hex,
+          counterTermId: (proactiveClaimInfo?.counterTermId || selectedTotemId) as Hex,
+          direction: voteDirection as 'for' | 'against',
+          amount: trustAmount,
+          isNewTotem,
+          currentPosition: currentPositionForCart, // Pass position to detect opposite-side withdrawal
+        };
 
     console.log('[VoteTotemPanel] Cart item to add:', cartItem);
-    console.log('[VoteTotemPanel] isNewTotem:', isNewTotem, '(triple exists on chain:', !!proactiveClaimInfo, ')');
+    console.log('[VoteTotemPanel] isCreatingNewTotem:', isCreatingNewTotem, 'isNewTotem:', isNewTotem);
 
     // DEBUG: Vérification que totemId est bien un atom ID et pas un triple ID
-    console.log('[VoteTotemPanel] 🔍 DEBUG VERIFICATION:');
-    console.log('  - selectedTotemId (should be ATOM id):', selectedTotemId);
-    console.log('  - proactiveClaimInfo?.termId (TRIPLE id):', proactiveClaimInfo?.termId);
-    console.log('  - Are they different?', selectedTotemId !== proactiveClaimInfo?.termId ? '✅ YES (correct!)' : '⚠️ NO (might be bug if triple exists)');
+    if (!isCreatingNewTotem) {
+      console.log('[VoteTotemPanel] 🔍 DEBUG VERIFICATION (existing totem):');
+      console.log('  - selectedTotemId (should be ATOM id):', selectedTotemId);
+      console.log('  - proactiveClaimInfo?.termId (TRIPLE id):', proactiveClaimInfo?.termId);
+      console.log('  - Are they different?', selectedTotemId !== proactiveClaimInfo?.termId ? '✅ YES (correct!)' : '⚠️ NO (might be bug if triple exists)');
+    } else {
+      console.log('[VoteTotemPanel] 🆕 CREATING NEW TOTEM:', newTotemData);
+    }
 
     try {
       addItem(cartItem);
@@ -558,10 +629,37 @@ export function VoteTotemPanel({
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto space-y-4" style={{ overscrollBehavior: 'contain' }}>
-        {/* Selected Totem */}
+        {/* Selected Totem - Existing OR New */}
         <div>
           <label className="block text-xs text-white/60 mb-1">{t('founderExpanded.selectedTotem')}</label>
-          {selectedTotemLabel ? (
+          {newTotemData ? (
+            // New totem from creation form
+            <div className="bg-gradient-to-r from-slate-500/20 to-orange-500/10 rounded-lg p-3 border border-orange-500/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-white font-medium">{newTotemData.name}</span>
+                  <span className="text-orange-400/70 text-xs ml-2">
+                    ({t('creation.new') || 'nouveau'})
+                  </span>
+                </div>
+                <button
+                  onClick={onClearSelection}
+                  className="text-white/60 hover:text-white"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="mt-1 text-xs text-white/50">
+                {t('creation.category')}: <span className="text-slate-400">{newTotemData.category}</span>
+                {newTotemData.isNewCategory && (
+                  <span className="text-orange-400/70 ml-1">({t('creation.new') || 'nouveau'})</span>
+                )}
+              </div>
+            </div>
+          ) : selectedTotemLabel ? (
+            // Existing totem selected
             <div className="flex items-center justify-between bg-slate-500/20 rounded-lg p-3">
               <span className="text-white font-medium">{selectedTotemLabel}</span>
               <button
@@ -574,6 +672,7 @@ export function VoteTotemPanel({
               </button>
             </div>
           ) : (
+            // No totem selected
             <div className="bg-white/5 rounded-lg p-3 text-white/40 text-sm text-center">
               {t('founderExpanded.selectTotemFromCenter')}
             </div>
@@ -769,19 +868,28 @@ export function VoteTotemPanel({
             </div>
 
             {/* Preview */}
-            {selectedTotemLabel && (
-              <div className="bg-white/5 rounded-lg p-3">
+            {(selectedTotemLabel || newTotemData) && (
+              <div className={`rounded-lg p-3 ${isCreatingNewTotem ? 'bg-orange-500/10 border border-orange-500/20' : 'bg-white/5'}`}>
                 <div className="text-xs text-white/60 mb-1">
                   {t('founderExpanded.votePreview')}
+                  {isCreatingNewTotem && (
+                    <span className="text-orange-400/70 ml-1">({t('creation.new') || 'nouveau'})</span>
+                  )}
                 </div>
                 <p className="text-sm text-white">
                   <span className="text-slate-400">{founder.name}</span>
                   {' '}{selectedPredicate?.label || '...'}{' '}
-                  <span className="text-slate-400">{selectedTotemLabel}</span>
+                  <span className="text-slate-400">{effectiveTotemName}</span>
                 </p>
                 <p className="text-xs text-white/50 mt-1">
                   {voteDirection === 'for' ? '👍 FOR' : '👎 AGAINST'} - {trustAmount || '0'} TRUST
                 </p>
+                {isCreatingNewTotem && newTotemData && (
+                  <p className="text-xs text-orange-400/60 mt-1">
+                    + {t('creation.category')}: {newTotemData.category}
+                    {newTotemData.isNewCategory && ` (${t('creation.new') || 'nouveau'})`}
+                  </p>
+                )}
               </div>
             )}
           </>

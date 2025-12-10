@@ -17,9 +17,17 @@ import { useBatchDeposit, type BatchDepositItem } from '../blockchain/useBatchDe
 import { useBatchRedeem, type BatchRedeemItem } from '../blockchain/useBatchRedeem';
 import type {
   VoteCart,
+  VoteCartItem,
   VoteCartStatus,
   VoteCartError,
 } from '../../types/voteCart';
+
+/**
+ * Type guard to check if a cart item has all required IDs for processing
+ */
+function isProcessableItem(item: VoteCartItem): item is VoteCartItem & { totemId: Hex; termId: Hex; counterTermId: Hex } {
+  return item.totemId !== null && item.termId !== null && item.counterTermId !== null;
+}
 
 /**
  * Execution step result
@@ -153,8 +161,11 @@ export function useCartExecution(): UseCartExecutionResult {
       };
 
       try {
+        // Filter to only processable items (with valid totemId/termId/counterTermId)
+        const processableItems = cart.items.filter(isProcessableItem);
+
         // Step 1: Identify items needing withdrawal
-        const itemsNeedingWithdraw = cart.items.filter(
+        const itemsNeedingWithdraw = processableItems.filter(
           (item) => item.needsWithdraw && item.currentPosition
         );
         console.log('[useCartExecution] Items needing withdraw:', itemsNeedingWithdraw.length);
@@ -208,7 +219,8 @@ export function useCartExecution(): UseCartExecutionResult {
         setProgress(60);
 
         // Prepare deposit items - use correct termId based on direction
-        const depositItems: BatchDepositItem[] = cart.items.map((item) => {
+        // Only process items with valid IDs
+        const depositItems: BatchDepositItem[] = processableItems.map((item) => {
           const depositTermId =
             item.direction === 'for' ? item.termId : item.counterTermId;
 

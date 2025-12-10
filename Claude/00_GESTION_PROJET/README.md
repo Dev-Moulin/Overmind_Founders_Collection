@@ -46,6 +46,26 @@ git push origin feature/nom-descriptif
 # 4. ATTENDRE que Paul valide la PR (ne pas la créer)
 ```
 
+### 🔒 BACKUP DOCUMENTATION - OBLIGATOIRE
+
+**AVANT chaque `git add` / `git commit` / `git push`**, exécuter le backup de la documentation :
+
+```bash
+bash /home/paul/THP_Linux/Dev_++/backup_claude_docs.sh
+```
+
+> ⚠️ **ATTENTION** : Le script est dans le dossier **parent** `Dev_++/`, PAS dans `Overmind_Founders_Collection/`
+
+**Pourquoi ?** Le dossier `Claude/` est dans `.gitignore` (pas sur GitHub). Sans backup, la documentation peut être perdue lors de merges/pulls.
+
+| Élément | Chemin |
+|---------|--------|
+| Doc originale | `/home/paul/THP_Linux/Dev_++/Overmind_Founders_Collection/Claude/` |
+| Backup | `/home/paul/THP_Linux/Dev_++/Claude_Backup/` |
+| **Script backup** | `/home/paul/THP_Linux/Dev_++/backup_claude_docs.sh` ⬅️ DOSSIER PARENT |
+
+**⚠️ INCIDENT 8 décembre 2025** : Toute la documentation a été perdue car elle était ignorée par git. Restaurée depuis l'historique git (commit 951bea4).
+
 ---
 
 ## 🔄 RÈGLES - Synchronisation Issues GitHub

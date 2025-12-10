@@ -2,9 +2,10 @@
  * useAllOFCTotems - Hook to get all OFC totems from category triples
  *
  * Fetches totems that have a category triple:
- * [Totem] - [has category] - [Animal|Object|Trait|Concept|Element|Mythology]
+ * [Totem] - [has category] - [Category]
  *
  * This includes totems created by admins that don't have votes yet.
+ * Also extracts all unique categories (including user-created ones).
  */
 
 import { useMemo } from 'react';
@@ -18,6 +19,12 @@ export interface OFCTotem {
   category: string;
 }
 
+/** Dynamic category from blockchain */
+export interface DynamicCategory {
+  termId: string;
+  label: string;
+}
+
 interface UseAllOFCTotemsReturn {
   /** All OFC totems with their categories */
   totems: OFCTotem[];
@@ -25,6 +32,8 @@ interface UseAllOFCTotemsReturn {
   loading: boolean;
   /** Map of totemId -> category for quick lookup */
   categoryMap: Map<string, string>;
+  /** All unique categories found in the blockchain (dynamic) */
+  dynamicCategories: DynamicCategory[];
 }
 
 export function useAllOFCTotems(): UseAllOFCTotemsReturn {
@@ -38,17 +47,27 @@ export function useAllOFCTotems(): UseAllOFCTotemsReturn {
     }>;
   }>(SUBSCRIBE_TOTEM_CATEGORIES);
 
-  // Build totems list and category map
-  const { totems, categoryMap } = useMemo(() => {
+  // Build totems list, category map, and dynamic categories list
+  const { totems, categoryMap, dynamicCategories } = useMemo(() => {
     const totemsMap = new Map<string, OFCTotem>();
     const catMap = new Map<string, string>();
+    const categoriesMap = new Map<string, DynamicCategory>();
 
     if (data?.triples) {
       data.triples.forEach((triple) => {
         const totemId = triple.subject.term_id;
         const category = triple.object.label;
+        const categoryTermId = triple.object.term_id;
 
         catMap.set(totemId, category);
+
+        // Collect unique categories
+        if (!categoriesMap.has(categoryTermId)) {
+          categoriesMap.set(categoryTermId, {
+            termId: categoryTermId,
+            label: category,
+          });
+        }
 
         if (!totemsMap.has(totemId)) {
           totemsMap.set(totemId, {
@@ -64,6 +83,9 @@ export function useAllOFCTotems(): UseAllOFCTotemsReturn {
     return {
       totems: Array.from(totemsMap.values()),
       categoryMap: catMap,
+      dynamicCategories: Array.from(categoriesMap.values()).sort((a, b) =>
+        a.label.localeCompare(b.label)
+      ),
     };
   }, [data]);
 
@@ -71,5 +93,6 @@ export function useAllOFCTotems(): UseAllOFCTotemsReturn {
     totems,
     loading,
     categoryMap,
+    dynamicCategories,
   };
 }

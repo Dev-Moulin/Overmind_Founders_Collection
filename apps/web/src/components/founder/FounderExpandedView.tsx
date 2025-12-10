@@ -9,6 +9,7 @@ import {
 import { useVoteCart, useVoteCartContext, VoteCartContext } from '../../hooks/cart/useVoteCart';
 import { FounderInfoPanel, FounderCenterPanel, VoteTotemPanel } from './index';
 import { VoteCartPanel } from '../vote/VoteCartPanel';
+import type { NewTotemData } from './TotemCreationForm';
 
 interface FounderExpandedViewProps {
   founder: FounderForHomePage;
@@ -104,18 +105,34 @@ function FounderExpandedViewInner({ founder, onClose }: FounderExpandedViewProps
     }
   };
 
-  // Selected totem state (from center panel)
+  // Selected totem state (from center panel - existing totems)
   const [selectedTotemId, setSelectedTotemId] = useState<string | undefined>();
   const [selectedTotemLabel, setSelectedTotemLabel] = useState<string | undefined>();
+
+  // New totem data (from creation form in center panel)
+  const [newTotemData, setNewTotemData] = useState<NewTotemData | null>(null);
 
   const handleSelectTotem = useCallback((totemId: string, totemLabel: string) => {
     setSelectedTotemId(totemId);
     setSelectedTotemLabel(totemLabel);
+    // Clear new totem data when selecting an existing totem
+    setNewTotemData(null);
   }, []);
 
   const handleClearSelection = useCallback(() => {
     setSelectedTotemId(undefined);
     setSelectedTotemLabel(undefined);
+    setNewTotemData(null);
+  }, []);
+
+  // Handle new totem data from creation form
+  const handleNewTotemChange = useCallback((data: NewTotemData | null) => {
+    setNewTotemData(data);
+    // Clear existing totem selection when creating a new one
+    if (data) {
+      setSelectedTotemId(undefined);
+      setSelectedTotemLabel(undefined);
+    }
   }, []);
 
   // Cart panel state
@@ -154,6 +171,7 @@ function FounderExpandedViewInner({ founder, onClose }: FounderExpandedViewProps
             onSelectTotem={handleSelectTotem}
             selectedTotemId={selectedTotemId}
             refetchTrigger={refetchTrigger}
+            onNewTotemChange={handleNewTotemChange}
           />
         </div>
 
@@ -163,6 +181,7 @@ function FounderExpandedViewInner({ founder, onClose }: FounderExpandedViewProps
             founder={founder}
             selectedTotemId={selectedTotemId}
             selectedTotemLabel={selectedTotemLabel}
+            newTotemData={newTotemData}
             onClearSelection={handleClearSelection}
             onOpenCart={() => setIsCartPanelOpen(true)}
           />

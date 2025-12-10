@@ -10,21 +10,35 @@
 import type { Hex } from 'viem';
 
 /**
+ * Data for creating a new totem (when isNewTotem is true)
+ */
+export interface NewTotemCreationData {
+  /** Name for the new totem atom */
+  name: string;
+  /** Category label */
+  category: string;
+  /** Category termId (null if new category needs to be created) */
+  categoryTermId: string | null;
+  /** Whether this is a new category that needs to be created first */
+  isNewCategory: boolean;
+}
+
+/**
  * A single item in the vote cart
  */
 export interface VoteCartItem {
   /** Unique ID for this cart item */
   id: string;
-  /** The totem (object) atom ID */
-  totemId: Hex;
+  /** The totem (object) atom ID - null for new totems being created */
+  totemId: Hex | null;
   /** Human-readable totem name for display */
   totemName: string;
   /** The predicate atom ID (e.g., "is trait of") */
   predicateId: Hex;
-  /** The term ID for FOR votes (triple's term_id) */
-  termId: Hex;
-  /** The counter term ID for AGAINST votes (triple's counter_term_id) */
-  counterTermId: Hex;
+  /** The term ID for FOR votes (triple's term_id) - null for new totems */
+  termId: Hex | null;
+  /** The counter term ID for AGAINST votes (triple's counter_term_id) - null for new totems */
+  counterTermId: Hex | null;
   /** Vote direction: 'for' or 'against' */
   direction: 'for' | 'against';
   /** Amount to deposit in wei */
@@ -38,6 +52,8 @@ export interface VoteCartItem {
   needsWithdraw: boolean;
   /** Whether this is a new totem that doesn't exist yet */
   isNewTotem: boolean;
+  /** Data for creating a new totem (only present when isNewTotem is true) */
+  newTotemData?: NewTotemCreationData;
 }
 
 /**

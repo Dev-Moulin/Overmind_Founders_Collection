@@ -23,6 +23,7 @@ import { useUserVotesForFounder } from '../../hooks';
 import { TradingChart, type Timeframe } from '../graph/TradingChart';
 import { MyVotesItem, MyVotesSkeleton } from '../vote/MyVotesItem';
 import { filterValidTriples, type RawTriple } from '../../utils/tripleGuards';
+import { TotemCreationForm, type NewTotemData } from './TotemCreationForm';
 
 /** Unified totem type for display */
 interface DisplayTotem {
@@ -54,6 +55,8 @@ interface FounderCenterPanelProps {
   selectedTotemId?: string;
   /** Trigger to refetch user votes (increment to refetch) */
   refetchTrigger?: number;
+  /** Called when new totem data changes in the creation form (real-time sync) */
+  onNewTotemChange?: (data: NewTotemData | null) => void;
 }
 
 /**
@@ -79,23 +82,35 @@ export function FounderCenterPanel({
   onSelectTotem,
   selectedTotemId,
   refetchTrigger,
+  onNewTotemChange,
 }: FounderCenterPanelProps) {
   const { t } = useTranslation();
   const { isConnected, address } = useAccount();
-  const { proposals, loading: proposalsLoading } = useFounderProposals(founder.name);
-  const { totems: ofcTotems, loading: ofcLoading } = useAllOFCTotems();
+  const { proposals, loading: proposalsLoading, refetch: refetchProposals } = useFounderProposals(founder.name);
+  const { totems: ofcTotems, loading: ofcLoading, dynamicCategories } = useAllOFCTotems();
   const { votes: userVotes, loading: votesLoading, refetch: refetchVotes } = useUserVotesForFounder(address, founder.name);
 
   // Track the last refetchTrigger value to avoid duplicate refetches
   const lastRefetchTrigger = useRef(0);
 
-  // Refetch user votes when refetchTrigger changes (after cart validation)
+  // Refetch all data when refetchTrigger changes (after cart validation or totem creation)
+  // Add delay to allow blockchain indexer to process new data
   useEffect(() => {
     if (refetchTrigger && refetchTrigger > 0 && refetchTrigger !== lastRefetchTrigger.current) {
       lastRefetchTrigger.current = refetchTrigger;
-      refetchVotes();
+      console.log('[FounderCenterPanel] Refetch triggered, waiting for indexer...');
+
+      // Wait 3 seconds for the blockchain indexer to process new data
+      const timeoutId = setTimeout(() => {
+        console.log('[FounderCenterPanel] Refetching all data after indexer delay...');
+        // Refetch both proposals (for new totems) and user votes (for new positions)
+        refetchProposals();
+        refetchVotes();
+      }, 3000);
+
+      return () => clearTimeout(timeoutId);
     }
-  }, [refetchTrigger, refetchVotes]);
+  }, [refetchTrigger, refetchProposals, refetchVotes]);
 
   // Section 1: Totems / Création
   const [section1Tab, setSection1Tab] = useState<'totems' | 'creation'>('totems');
@@ -366,16 +381,11 @@ export function FounderCenterPanel({
               </div>
             )
           ) : (
-            // Création tab - placeholder for now
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-2">
-                <svg className="w-6 h-6 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
-                </svg>
-              </div>
-              <p className="text-white/50 text-xs">{t('founderExpanded.createNewTotem') || 'Créer un nouveau totem'}</p>
-              <p className="text-white/30 text-[10px] mt-1">{t('founderExpanded.comingSoon') || 'Bientôt disponible'}</p>
-            </div>
+            // Création tab - Totem creation form
+            <TotemCreationForm
+              onChange={(data) => onNewTotemChange?.(data)}
+              dynamicCategories={dynamicCategories}
+            />
           )}
         </div>
       </div>

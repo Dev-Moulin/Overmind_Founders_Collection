@@ -179,14 +179,13 @@ export const SUBSCRIBE_USER_POSITIONS = gql`
  * - New totem is categorized
  * - Category triple is created
  *
- * Uses "has category" predicate and category labels (Animal, Object, etc.)
+ * Uses "has category" predicate - fetches ALL categories (including user-created ones)
  */
 export const SUBSCRIBE_TOTEM_CATEGORIES = gql`
   subscription SubscribeTotemCategories {
     triples(
       where: {
         predicate: { label: { _eq: "has category" } }
-        object: { label: { _in: ["Animal", "Object", "Trait", "Concept", "Element", "Mythology"] } }
       }
       order_by: { created_at: desc }
     ) {
@@ -217,7 +216,6 @@ export const SUBSCRIBE_CATEGORIES_BY_TOTEMS = gql`
       where: {
         subject_id: { _in: $totemIds }
         predicate: { label: { _eq: "has category" } }
-        object: { label: { _in: ["Animal", "Object", "Trait", "Concept", "Element", "Mythology"] } }
       }
     ) {
       term_id

@@ -31,11 +31,11 @@ const STORAGE_KEY_PREFIX = 'ofc_vote_cart_';
  */
 interface SerializedVoteCartItem {
   id: string;
-  totemId: Hex;
+  totemId: Hex | null;
   totemName: string;
   predicateId: Hex;
-  termId: Hex;
-  counterTermId: Hex;
+  termId: Hex | null;
+  counterTermId: Hex | null;
   direction: 'for' | 'against';
   amount: string; // bigint as string
   currentPosition?: {
@@ -44,6 +44,12 @@ interface SerializedVoteCartItem {
   };
   needsWithdraw: boolean;
   isNewTotem: boolean;
+  newTotemData?: {
+    name: string;
+    category: string;
+    categoryTermId: string | null;
+    isNewCategory: boolean;
+  };
 }
 
 interface SerializedVoteCart {
@@ -155,11 +161,11 @@ function removeCartFromStorage(founderId: Hex): void {
  * Input for adding an item to the cart
  */
 export interface AddToCartInput {
-  totemId: Hex;
+  totemId: Hex | null;
   totemName: string;
   predicateId: Hex;
-  termId: Hex;
-  counterTermId: Hex;
+  termId: Hex | null;
+  counterTermId: Hex | null;
   direction: 'for' | 'against';
   amount: string; // In TRUST (will be converted to wei)
   currentPosition?: {
@@ -167,6 +173,13 @@ export interface AddToCartInput {
     shares: bigint;
   };
   isNewTotem?: boolean;
+  /** Data for creating a new totem (only when isNewTotem is true) */
+  newTotemData?: {
+    name: string;
+    category: string;
+    categoryTermId: string | null;
+    isNewCategory: boolean;
+  };
 }
 
 /**
@@ -340,9 +353,14 @@ export function useVoteCart(): UseVoteCartResult {
       });
 
       // Check if item for this totem already exists
-      const existingIndex = prev.items.findIndex(
-        (item) => item.totemId === input.totemId
-      );
+      // For new totems (totemId is null), compare by name to avoid duplicates
+      const existingIndex = prev.items.findIndex((item) => {
+        if (input.totemId === null) {
+          // For new totems, match by name
+          return item.totemId === null && item.totemName === input.totemName;
+        }
+        return item.totemId === input.totemId;
+      });
       console.log('[useVoteCart] Existing item index:', existingIndex);
 
       let amountWei: bigint;
@@ -371,10 +389,12 @@ export function useVoteCart(): UseVoteCartResult {
         currentPosition: input.currentPosition,
         needsWithdraw,
         isNewTotem: input.isNewTotem ?? false,
+        newTotemData: input.newTotemData,
       };
 
       console.log('[useVoteCart] New item created:', {
         id: newItem.id,
+        totemId: newItem.totemId,
         totemName: newItem.totemName,
         termId: newItem.termId,
         counterTermId: newItem.counterTermId,
@@ -382,6 +402,7 @@ export function useVoteCart(): UseVoteCartResult {
         amount: newItem.amount.toString(),
         isNewTotem: newItem.isNewTotem,
         needsWithdraw: newItem.needsWithdraw,
+        newTotemData: newItem.newTotemData,
       });
 
       if (existingIndex >= 0) {

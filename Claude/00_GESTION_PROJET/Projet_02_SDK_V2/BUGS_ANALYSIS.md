@@ -297,5 +297,278 @@ Afficher les top 3 totems comme "tags"
 
 ---
 
-**Document créé** : 8 décembre 2025
-**Statut** : En attente de validation pour commencer les corrections
+## ✅ STATUT DES BUGS DU 8 DÉCEMBRE
+
+| # | Bug | Statut |
+|---|-----|--------|
+| 1 | My Votes n'affiche pas les positions | ✅ CORRIGÉ (PR #185) |
+| 2 | Trading Graph vide | ✅ CORRIGÉ (PR #190) |
+| 3 | Onglet Création non fonctionnel | 🟡 EN ATTENTE |
+| 4 | Stats panneau gauche vides | ✅ CORRIGÉ (PR #185) |
+| 5 | Top Totems = 1 seul | ✅ CORRIGÉ |
+| 6 | Layout non adapté 16 pouces | ✅ CORRIGÉ (PR #187) |
+| 7 | Vote Graph trop petit | ✅ CORRIGÉ |
+| 8 | Tags fondateur manquants | ✅ CORRIGÉ (PR #186) |
+
+---
+
+# NOUVEAUX BUGS - 9 décembre 2025
+
+## Résumé des 5 problèmes identifiés
+
+| # | Problème | Cause racine | Priorité |
+|---|----------|--------------|----------|
+| 9 | WITHDRAW bloqué "position opposée existante" | `currentPosition` non passé à `addItem()` | 🔴 HIGH |
+| 10 | Trading Chart FOR/AGAINST inversé | Mapping couleurs inversé dans TradingChart | 🔴 HIGH |
+| 11 | My Votes dupliqués au switch d'onglet | Bug state management dans FounderCenterPanel | 🔴 HIGH |
+| 12 | Duplicate React keys dans Best Triples | Plusieurs triples avec même objet → utiliser `tripleTermId` | 🟡 MEDIUM |
+| 13 | Erreur vide dans useBatchVote | Logging insuffisant quand `err.message` est undefined | 🟡 MEDIUM |
+
+---
+
+## 9. WITHDRAW BLOQUÉ - "POSITION OPPOSÉE EXISTANTE"
+
+### Symptôme
+Quand l'utilisateur a voté FOR et veut voter AGAINST, il reçoit l'erreur :
+> "Impossible de voter: position opposée existante. Essayez de retirer d'abord."
+
+### Comportement attendu (selon TODO_FIX_01_Discussion.md)
+Le système devait **automatiquement** :
+1. Détecter la position FOR existante
+2. Notifier : "On va retirer votre position FOR (X TRUST)"
+3. Ajouter le retrait + nouveau vote AGAINST dans le panier
+4. Exécuter en batch
+
+### Cause racine identifiée
+Dans `VoteTotemPanel.tsx` lignes 318-327, `currentPosition` n'est **jamais passé** à `addItem()` :
+
+```typescript
+// ACTUEL (BUG) - ligne 318-327
+const cartItem = {
+  totemId: selectedTotemId as Hex,
+  totemName: selectedTotemLabel || 'Unknown',
+  predicateId: selectedPredicateWithAtom.atomId as Hex,
+  termId: (proactiveClaimInfo?.termId || selectedTotemId) as Hex,
+  counterTermId: (proactiveClaimInfo?.counterTermId || selectedTotemId) as Hex,
+  direction: voteDirection as 'for' | 'against',
+  amount: trustAmount,
+  isNewTotem,
+  // ❌ MANQUE: currentPosition
+};
+```
+
+Sans `currentPosition`, `needsWithdraw` est toujours `false` dans `useVoteCart.ts` (lignes 357-360).
+
+### Solution proposée
+```typescript
+// CORRECTION
+const currentPositionForCart = hasAnyPosition && positionDirection
+  ? { direction: positionDirection, shares: currentUserShares }
+  : undefined;
+
+const cartItem = {
+  // ... autres champs
+  currentPosition: currentPositionForCart, // ✅ Ajouter cette ligne
+};
+```
+
+### Fichiers concernés
+- `apps/web/src/components/founder/VoteTotemPanel.tsx` (lignes 318-327)
+
+---
+
+## 10. TRADING CHART FOR/AGAINST INVERSÉ
+
+### Symptôme
+L'utilisateur vote FOR mais le graphe affiche la courbe AGAINST (rouge) qui augmente.
+
+### Cause potentielle
+Mapping des couleurs inversé dans `TradingChart.tsx` ou données `vault_type` mal interprétées.
+
+### À investiguer
+- Vérifier `vault_type: "triple_positive"` (FOR) vs `"triple_negative"` (AGAINST)
+- Vérifier le mapping couleurs dans le composant
+
+### Fichiers concernés
+- `apps/web/src/components/graph/TradingChart.tsx`
+- `apps/web/src/hooks/data/useVotesTimeline.ts`
+
+---
+
+## 11. MY VOTES DUPLIQUÉS AU SWITCH D'ONGLET
+
+### Symptôme
+Quand l'utilisateur switch entre "My Votes" et "Best Triples" puis revient sur "My Votes", les entrées se dupliquent.
+
+### Cause potentielle
+Bug de state management - les données s'accumulent au lieu d'être remplacées lors du re-render.
+
+### Fichiers concernés
+- `apps/web/src/components/founder/FounderCenterPanel.tsx`
+
+---
+
+## 12. DUPLICATE REACT KEYS DANS BEST TRIPLES
+
+### Symptôme
+Warning React dans la console :
+> "Encountered two children with the same key, '0xbf84a0dc...'"
+
+### Cause racine identifiée
+Plusieurs triples peuvent avoir le **même objet** (ex: "Turtle" avec "has totem" ET "embodies").
+Le code utilise `totem.id` (object atomId) comme key, mais il faudrait utiliser `totem.tripleTermId`.
+
+### Solution proposée
+```typescript
+// AVANT (BUG) - ligne 452
+key={totem.id || `best-${index}`}
+
+// APRÈS (FIX)
+key={totem.tripleTermId || `best-${index}`}
+```
+
+### Fichiers concernés
+- `apps/web/src/components/founder/FounderCenterPanel.tsx` (ligne 452)
+
+---
+
+## 13. ERREUR VIDE DANS useBatchVote
+
+### Symptôme
+La console affiche `[useBatchVote] Error:` suivi de rien (objet vide).
+
+### Cause racine
+Le logging suppose que `err.message` existe toujours, mais certaines erreurs peuvent être des objets sans `message`.
+
+### Solution proposée
+```typescript
+// AVANT (BUG) - ligne 656
+console.error('[useBatchVote] Error:', err);
+
+// APRÈS (FIX)
+console.error('[useBatchVote] Error:', err);
+console.error('[useBatchVote] Error details:', {
+  message: (err as Error)?.message,
+  name: (err as Error)?.name,
+  stack: (err as Error)?.stack,
+  raw: JSON.stringify(err, null, 2),
+});
+```
+
+### Fichiers concernés
+- `apps/web/src/hooks/blockchain/useBatchVote.ts` (ligne 656)
+
+---
+
+## Ordre de priorité recommandé
+
+1. **#9** - WITHDRAW bloqué (critique pour UX)
+2. **#10** - Trading Chart inversé (confusing pour users)
+3. **#11** - My Votes dupliqués (bug visuel majeur)
+4. **#12** - Duplicate React keys (warning console)
+5. **#13** - Erreur vide (debug)
+
+---
+
+## ✅ STATUT DES BUGS DU 9 DÉCEMBRE
+
+| # | Bug | Statut | Notes |
+|---|-----|--------|-------|
+| 9 | WITHDRAW bloqué | ✅ CORRIGÉ | `currentPosition` déjà passé à `addItem()` |
+| 10 | Trading Chart inversé | ✅ VÉRIFIÉ | Code correct (`triple_positive` = FOR vert) |
+| 11 | My Votes dupliqués | 🟡 À INVESTIGUER | Peut-être lié au `cache-and-network` fetch policy |
+| 12 | Duplicate React keys | ✅ CORRIGÉ | Utilise `tripleTermId` au lieu de `totem.id` |
+| 13 | Erreur vide | ✅ CORRIGÉ | Logging amélioré + support `shortMessage` |
+
+---
+
+**Document mis à jour** : 9 décembre 2025
+**Statut** : 4/5 bugs corrigés, 1 à investiguer
+
+---
+
+# NOUVEAUX BUGS - 10 décembre 2025
+
+## Résumé des 3 problèmes identifiés et corrigés
+
+| # | Problème | Cause racine | Statut |
+|---|----------|--------------|--------|
+| 14 | Tooltip TopTotemsRadar masque les données | Position fixe au survol | ✅ CORRIGÉ |
+| 15 | Click uniquement sur labels radar | Pas de handler sur les dots | ✅ CORRIGÉ |
+| 16 | Outline blanc au focus | CSS focus par défaut | ✅ CORRIGÉ |
+
+---
+
+## 14. TOOLTIP MASQUE LES DONNÉES
+
+### Symptôme
+Au survol d'un totem dans le radar, le tooltip apparaissait à une position fixe et masquait souvent les données qu'on essayait de voir.
+
+### Solution implémentée
+**Positionnement dynamique par quadrant** : Le tooltip se place maintenant dans le coin opposé à la position du curseur.
+
+```typescript
+const isLeft = mouseX < cx;
+const isTop = mouseY < cy;
+
+// Si curseur en haut à gauche → tooltip en bas à droite
+const positionStyle = {
+  ...(isTop ? { bottom: 8 } : { top: 8 }),
+  ...(isLeft ? { right: 8 } : { left: 8 }),
+};
+```
+
+### Fichier modifié
+- `apps/web/src/components/graph/TopTotemsRadar.tsx`
+
+---
+
+## 15. CLICK UNIQUEMENT SUR LABELS RADAR
+
+### Symptôme
+Pour sélectionner un totem et voir son graphique trading, il fallait cliquer sur le texte du label. Cliquer sur les points colorés (bleu/orange) ne faisait rien.
+
+### Solution implémentée
+Ajout des props `dot` et `activeDot` sur les composants `<Radar>` avec handler `onClick` :
+
+```typescript
+<Radar
+  name="FOR"
+  dataKey="for"
+  dot={{ r: 4, cursor: 'pointer' }}
+  activeDot={{ onClick: handleRadarClick }}
+/>
+```
+
+### Fichier modifié
+- `apps/web/src/components/graph/TopTotemsRadar.tsx`
+
+---
+
+## 16. OUTLINE BLANC AU FOCUS
+
+### Symptôme
+Quand on cliquait dans le conteneur du radar ou sur un point, un cadre blanc (outline CSS) apparaissait autour du conteneur. Effet indésirable visuellement.
+
+### Solution implémentée
+Suppression de l'outline via Tailwind et attributs HTML :
+
+```tsx
+<div
+  className="... outline-none focus:outline-none **:outline-none"
+  tabIndex={-1}
+>
+  <RadarChart style={{ outline: 'none' }} ... />
+</div>
+```
+
+- `**:outline-none` - syntaxe Tailwind pour tous les descendants
+- `tabIndex={-1}` - empêche le focus clavier
+
+### Fichier modifié
+- `apps/web/src/components/graph/TopTotemsRadar.tsx`
+
+---
+
+**Document mis à jour** : 10 décembre 2025
+**Statut** : 3/3 bugs corrigés

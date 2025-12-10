@@ -1133,3 +1133,247 @@ Affiche : `Joseph - Lion   25%`
 Pour être conforme à la doc, il faudrait modifier `bestTriples` pour inclure l'info du prédicat depuis les proposals.
 
 **Priorité** : Basse (fonctionnel, juste un détail d'affichage)
+
+---
+
+## 14. TRANSACTION ATOMIQUE REDEEM + DEPOSIT (Multicall3) - ABANDONNÉ
+
+### 14.1 Contexte et Recherche (9 décembre 2025)
+
+**Problème initial** : Lorsqu'un utilisateur veut basculer sa position (ex: FOR → AGAINST), le système nécessite **2 transactions séparées** :
+1. `redeemBatch()` - Retrait de la position actuelle
+2. `depositBatch()` - Dépôt dans la nouvelle position
+
+L'utilisateur doit signer 2 fois.
+
+### 14.2 Tentative de solution : Multicall3
+
+Nous avons tenté d'utiliser **Multicall3** (`0xcA11bde05977b3631167028862bE2a173976CA11`) pour combiner les appels en 1 transaction.
+
+### 14.3 Pourquoi ça ne fonctionne PAS
+
+**Découverte critique** : Le contrat `MultiVault.sol` vérifie les permissions ainsi :
+
+```solidity
+function redeemBatch(...) {
+    if (!_isApprovedToRedeem(msg.sender, receiver)) revert NotApproved();
+    // ...
+}
+```
+
+**Problème** : Quand on appelle via Multicall3 :
+- `msg.sender` = Multicall3 (`0xcA11bde...`)
+- `receiver` = User wallet
+
+Le contrat vérifie si **Multicall3 est approuvé pour redeem au nom de l'utilisateur** → **NON** → Transaction échoue !
+
+C'est une **limitation fondamentale de l'EVM** :
+- Multicall3 utilise `CALL` (pas `DELEGATECALL`)
+- `CALL` change le `msg.sender` vers Multicall3
+- Le contrat MultiVault ne reconnaît pas Multicall3 comme autorisé
+
+### 14.4 Solutions alternatives
+
+| Solution | Faisabilité | Sécurité |
+|----------|-------------|----------|
+| **Approve Multicall3** | Simple | ⚠️ DANGEREUX - n'importe qui pourrait appeler Multicall3 pour redeem vos shares |
+| **2 transactions séquentielles** | ✅ Actuel | ✅ Safe |
+| **Déployer un Router custom** | Complexe (Solidity + audit) | Safe si bien audité |
+
+### 14.5 Décision finale
+
+**On garde l'approche 2 transactions séquentielles** car :
+1. C'est sécurisé
+2. Ça fonctionne
+3. Un Router custom nécessiterait un développement Solidity + audit de sécurité
+
+### 14.6 Statut
+
+- [x] Recherche INTUITION V2 (MultiVault.sol analysé)
+- [x] Documentation solution Multicall3
+- [x] Implémentation tentée (9 décembre 2025)
+- [x] **DÉCOUVERTE** : Multicall3 incompatible avec redeemBatch (msg.sender problem)
+- [x] **ABANDONNÉ** : Retour à l'approche séquentielle (9 décembre 2025)
+- [x] Code Multicall3 retiré du codebase
+
+**Conclusion** : L'approche séquentielle (2 tx) est la seule viable sans déployer un contrat Router custom.
+
+### 14.7 Sources de la recherche
+
+- [Multicall3 GitHub](https://github.com/mds1/multicall) - Contrat officiel
+- [Multicall in Solidity - CALL vs DELEGATECALL](https://rya-sge.github.io/access-denied/2025/04/03/solidity-multicall/) - Explication technique
+- [MultiVault.sol source](https://github.com/0xIntuition/intuition-contracts-v2/blob/main/src/protocol/MultiVault.sol) - Vérification de `_isApprovedToRedeem`
+
+---
+
+## 15. FIX GRAPHIQUES RADAR - Interactions & Tooltip - 10 décembre 2025
+
+### 15.1 Contexte
+
+Les graphiques RadarChart (TopTotemsRadar et RelationsRadar) avaient plusieurs problèmes d'UX :
+1. **Tooltip mal positionné** - chevauchait les données au survol
+2. **Click uniquement sur les labels** - impossible de cliquer sur les points du radar
+3. **Outline de focus blanc** - apparaissait au clic, inesthétique
+
+### 15.2 Améliorations TopTotemsRadar
+
+#### 15.2.1 Tooltip avec positionnement dynamique par quadrant
+
+Le tooltip se positionne maintenant dans le coin **opposé** au totem survolé pour éviter de masquer les données.
+
+```typescript
+// Calcul du quadrant basé sur la position de la souris
+const cx = viewBox?.cx ?? (viewBox?.width ?? 300) / 2;
+const cy = viewBox?.cy ?? (viewBox?.height ?? 300) / 2;
+const mouseX = coordinate?.x ?? cx;
+const mouseY = coordinate?.y ?? cy;
+
+const isLeft = mouseX < cx;
+const isTop = mouseY < cy;
+
+// Position opposée au quadrant de la souris
+const positionStyle: React.CSSProperties = {
+  position: 'absolute',
+  pointerEvents: 'none',
+  zIndex: 10,
+  ...(isTop ? { bottom: 8 } : { top: 8 }),
+  ...(isLeft ? { right: 8 } : { left: 8 }),
+};
+```
+
+#### 15.2.2 Click sur les points du radar (dots)
+
+Ajout des props `dot` et `activeDot` sur les composants `<Radar>` pour permettre le clic sur les points :
+
+```typescript
+<Radar
+  name="FOR"
+  dataKey="for"
+  dot={{ r: 4, fill: '#3b82f6', stroke: '#1e40af', strokeWidth: 1, cursor: 'pointer' }}
+  activeDot={{ r: 6, fill: '#60a5fa', stroke: '#3b82f6', strokeWidth: 2, cursor: 'pointer', onClick: handleRadarClick }}
+/>
+```
+
+Le handler `handleRadarClick` extrait le `totemId` et `fullLabel` du payload pour déclencher la sélection.
+
+#### 15.2.3 Suppression de l'outline de focus
+
+L'outline blanc qui apparaissait au clic a été supprimé via :
+
+```tsx
+<div
+  ref={containerRef}
+  className="bg-gray-900/30 rounded-lg outline-none focus:outline-none **:outline-none"
+  style={{ height }}
+  tabIndex={-1}
+>
+```
+
+- `outline-none focus:outline-none` - supprime l'outline sur le conteneur
+- `**:outline-none` - supprime l'outline sur tous les descendants (syntaxe Tailwind)
+- `tabIndex={-1}` - empêche le focus clavier
+- `style={{ outline: 'none' }}` sur RadarChart également
+
+### 15.3 Améliorations RelationsRadar (session précédente)
+
+- **Normalisation sqrt** - compression des valeurs extrêmes pour une meilleure visualisation
+- **Click interaction** - sélection de totem via click sur les labels/points
+- **Propagation au panneau central** - le totem sélectionné filtre le TradingChart
+
+### 15.4 Fichiers modifiés
+
+| Fichier | Modifications |
+|---------|---------------|
+| `components/graph/TopTotemsRadar.tsx` | Tooltip quadrant, click dots, outline removal |
+| `components/graph/RelationsRadar.tsx` | Normalisation sqrt, click interaction |
+| `components/founder/FounderInfoPanel.tsx` | Passage de `onSelectTotem` aux graphiques |
+| `components/founder/FounderExpandedView.tsx` | Gestion état `selectedTotemId/Label` |
+
+### 15.5 Résultat
+
+- **Tooltip** : S'affiche dans le coin opposé au totem survolé (jamais de chevauchement)
+- **Click** : Fonctionne sur labels ET sur les points colorés du radar
+- **Focus** : Plus d'outline blanc disgracieux au clic
+- **Cohérence** : Les deux graphiques radar ont le même comportement d'interaction
+
+**Branche** : `investigate/corrupted-triple-totem`
+
+---
+
+## 16. CLARIFICATION CATÉGORIES DYNAMIQUES - 10 décembre 2025
+
+### 16.1 Contexte
+
+La documentation `18_Design_Decisions_V2.md` indiquait à tort que les 6 catégories (Animal, Objet, Trait, Concept, Element, Mythologie) étaient **fixes**. Ce n'est pas le cas.
+
+### 16.2 Comportement correct
+
+Les catégories sont **dynamiques** :
+
+| Scénario | Triples créés | Exemple |
+|----------|---------------|---------|
+| Totem dans catégorie **existante** | 2 triples | "Phoenix" dans "Animal" |
+| Totem dans catégorie **nouvelle** | 3 triples | "Claude" dans "IA" |
+
+### 16.3 Flux de création (nouvelle catégorie)
+
+```
+1. User saisit "Claude" dans catégorie "IA" (nouvelle)
+2. Système vérifie si Triple 3 [IA] → [tag category] → [Overmind Founders Collection] existe
+3. Si non → créer atom "IA" + Triple 3
+4. Créer Triple 2 : [Claude] → [has category] → [IA]
+5. Créer Triple 1 : [Fondateur] → [has totem] → [Claude] + TRUST
+```
+
+### 16.4 UI Création - Panneau Central
+
+**Emplacement** : `FounderCenterPanel.tsx` → Onglet "Création" (section 1, lignes 368-379)
+
+Le formulaire de création remplace le placeholder actuel dans le **panneau central**.
+
+#### Éléments du formulaire
+
+| Élément | Type | Description |
+|---------|------|-------------|
+| Nom du totem | Input texte | Nom libre (ex: "Phoenix", "Claude") |
+| Catégorie | Combobox | Dropdown + input libre |
+| Prédicat | Radio buttons | `has totem` (défaut) / `embodies` |
+
+#### Comportement Combobox catégorie
+
+```
+┌─────────────────────────────────┐
+│ Catégorie: [Animal        ▼]   │
+├─────────────────────────────────┤
+│ ● Animal                        │  ← Catégories existantes
+│ ○ Objet                         │
+│ ○ Trait                         │
+│ ○ Concept                       │
+│ ○ Element                       │
+│ ○ Mythologie                    │
+├─────────────────────────────────┤
+│ + Nouvelle catégorie...         │  ← Option pour créer
+│   [IA________________]          │  ← Input apparaît si sélectionné
+└─────────────────────────────────┘
+```
+
+#### Interaction avec panneau droit (VoteTotemPanel)
+
+Quand l'utilisateur remplit le formulaire de création :
+1. Le nom du totem est transmis automatiquement au panneau droit
+2. Le panneau droit affiche la prévisualisation du vote
+3. L'utilisateur choisit le montant TRUST et la direction (FOR/AGAINST)
+4. Le totem est ajouté au panier avec flag `isNewTotem: true`
+
+### 16.5 Fichiers modifiés
+
+- `18_Design_Decisions_V2.md` - Sections 1 et 12 clarifiées
+- `INDEX.md` - Ajout de la mise à jour
+
+### 16.6 Source de vérité
+
+Le document `01_Architecture_3_Triples.md` dans `documentation/technologies/Triples_Vote_System/` décrivait déjà ce comportement correctement :
+
+> "Chaque nouvelle catégorie nécessite un Triple 3"
+
+**Branche** : `investigate/corrupted-triple-totem`

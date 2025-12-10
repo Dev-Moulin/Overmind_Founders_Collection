@@ -31,7 +31,8 @@
     "noRelationFound": "No relation found",
     "founder": "Founder",
     "relation": "Relation",
-    "totem": "Totem"
+    "totem": "Totem",
+    "default": "default"
   },
   "vote": {
     "for": "FOR",
@@ -144,6 +145,17 @@
     "selectWithdrawAmount": "Select amount to withdraw",
     "noPositionToWithdraw": "You don't have a position on this totem",
     "voteFirstToWithdraw": "Vote FOR or AGAINST first to be able to withdraw"
+  },
+  "creation": {
+    "totemName": "Totem name",
+    "totemNamePlaceholder": "Ex: Phoenix, Innovation...",
+    "category": "Category",
+    "newCategoryPlaceholder": "Or create a new category...",
+    "newCategoryInfo": "A new category will be created",
+    "preview": "Preview",
+    "new": "new",
+    "selectPredicateInPanel": "Select the relation in the right panel",
+    "communityCategory": "Community category"
   },
   "homePage": {
     "title": "INTUITION",

@@ -3,7 +3,8 @@
  *
  * Hook for executing a vote cart as batch transactions.
  * Orchestrates the multi-step process:
- * 1. createTriples (for new totem-founder relationships)
+ * 0. createClaimWithCategory (for brand new totems with newTotemData)
+ * 1. createTriples (for new totem-founder relationships on existing totems)
  * 2. redeemBatch (if switching positions)
  * 3. depositBatch (for existing triples)
  *
@@ -23,12 +24,20 @@ import { type Hex, type Address, formatEther, decodeEventLog } from 'viem';
 import { getMultiVaultAddressFromChainId, MultiVaultAbi, multiCallIntuitionConfigs } from '@0xintuition/protocol';
 import { currentIntuitionChain } from '../../config/wagmi';
 import { toast } from 'sonner';
+import { useIntuition } from './useIntuition';
+import { useBatchTriples } from './useBatchTriples';
+import type { BatchTripleItem } from './useBatchTriples';
+import categoriesData from '../../../../../packages/shared/src/data/categories.json';
+import type { CategoryConfigType } from '../../types/category';
 import type {
   VoteCart,
   VoteCartItem,
   VoteCartStatus,
   VoteCartError,
 } from '../../types/voteCart';
+
+// Type the categories config
+const typedCategoriesConfig = categoriesData as CategoryConfigType;
 
 /**
  * Default Curve ID for MultiVault
@@ -37,9 +46,28 @@ import type {
 const DEFAULT_CURVE_ID = 1n;
 
 /**
+ * VoteCartItem with all IDs resolved (ready for batch processing)
+ * Items with newTotemData need atom creation first and cannot be batch processed yet
+ */
+interface ProcessableCartItem extends Omit<VoteCartItem, 'totemId' | 'termId' | 'counterTermId'> {
+  totemId: Hex;
+  termId: Hex;
+  counterTermId: Hex;
+}
+
+/**
+ * Type guard to check if a cart item has all required IDs for processing
+ */
+function isProcessableItem(item: VoteCartItem): item is ProcessableCartItem {
+  return item.totemId !== null && item.termId !== null && item.counterTermId !== null;
+}
+
+/**
  * Result of batch vote execution
  */
 export interface BatchVoteResult {
+  /** Create new totem transaction hashes (via createClaimWithCategory) */
+  newTotemTxHashes?: Hex[];
   /** Create triples transaction hash (if any new totems) - includes deposit for new triples */
   createTriplesTxHash?: Hex;
   /** Redeem transaction hash (if any withdrawals) */
@@ -52,6 +80,8 @@ export interface BatchVoteResult {
   totalDeposited: bigint;
   /** Number of triples created */
   triplesCreated: number;
+  /** Number of new totems created */
+  newTotemsCreated: number;
 }
 
 /**
@@ -110,6 +140,8 @@ export function useBatchVote(): UseBatchVoteResult {
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
+  const { getOrCreateAtom } = useIntuition();
+  const { createBatch: createTriplesBatch } = useBatchTriples();
 
   const [status, setStatus] = useState<VoteCartStatus>('idle');
   const [error, setError] = useState<VoteCartError | null>(null);
@@ -126,8 +158,148 @@ export function useBatchVote(): UseBatchVoteResult {
   }, []);
 
   /**
+   * Create brand new totems using useBatchTriples
+   * This handles items that have newTotemData (totemId === null)
+   *
+   * OPTIMIZED: Creates ALL triples in a SINGLE transaction using createTriples batch
+   *
+   * For each totem:
+   * - Triple 1: [Founder] → [predicate] → [Totem] (main vote)
+   * - Triple 2: [Totem] → [has category] → [Category]
+   *
+   * Process:
+   * 1. First create totem atoms (1 tx per totem if new - unavoidable)
+   * 2. Then batch ALL triples in ONE transaction via useBatchTriples
+   */
+  const executeCreateNewTotems = useCallback(
+    async (
+      founderId: Hex,
+      itemsWithNewTotemData: VoteCartItem[]
+    ): Promise<{ txHashes: Hex[]; createdCount: number }> => {
+      console.log('[useBatchVote] ========== CREATE NEW TOTEMS (BATCH) START ==========');
+      console.log('[useBatchVote] Creating', itemsWithNewTotemData.length, 'brand new totems');
+
+      const txHashes: Hex[] = [];
+
+      // Track totem atom IDs for building triples
+      const totemData: { totemId: Hex; categoryTermId: string | null; item: VoteCartItem }[] = [];
+
+      // STEP 1: Create totem and category atoms first (if needed)
+      // Each atom creation is a separate transaction - unavoidable
+      console.log('[useBatchVote] Step 1: Creating atoms (totem + category if new)...');
+
+      for (const item of itemsWithNewTotemData) {
+        if (!item.newTotemData) {
+          console.warn('[useBatchVote] Item missing newTotemData:', item.totemName);
+          continue;
+        }
+
+        const { name, category, categoryTermId, isNewCategory } = item.newTotemData;
+
+        // Create new category atom first if needed
+        let resolvedCategoryTermId = categoryTermId;
+        if (isNewCategory) {
+          console.log('[useBatchVote] Creating new category atom:', category);
+          const categoryResult = await getOrCreateAtom(category);
+          resolvedCategoryTermId = categoryResult.termId;
+          console.log('[useBatchVote] Category atom:', {
+            created: categoryResult.created,
+            termId: categoryResult.termId,
+          });
+        }
+
+        // Get or create totem atom
+        console.log('[useBatchVote] Creating totem atom:', name);
+        const totemResult = await getOrCreateAtom(name);
+        console.log('[useBatchVote] Totem atom:', {
+          created: totemResult.created,
+          termId: totemResult.termId,
+        });
+
+        totemData.push({
+          totemId: totemResult.termId,
+          categoryTermId: resolvedCategoryTermId,
+          item,
+        });
+      }
+
+      if (totemData.length === 0) {
+        console.log('[useBatchVote] No totems to create');
+        return { txHashes, createdCount: 0 };
+      }
+
+      // STEP 2: Build ALL triples for batch creation
+      console.log('[useBatchVote] Step 2: Building batch triples...');
+
+      const batchTriples: BatchTripleItem[] = [];
+
+      for (const { totemId, categoryTermId, item } of totemData) {
+        // Triple 1: [Founder] → [predicate] → [Totem] (main vote)
+        batchTriples.push({
+          subjectId: founderId,
+          predicateId: item.predicateId,
+          objectId: totemId,
+          depositAmount: item.amount, // User's vote amount
+        });
+
+        console.log('[useBatchVote] Triple 1 (main vote):', {
+          founder: founderId,
+          predicate: item.predicateId,
+          totem: totemId,
+          amount: formatEther(item.amount),
+        });
+
+        // Triple 2: [Totem] → [has category] → [Category]
+        const categoryPredicateTermId = typedCategoriesConfig.predicate?.termId;
+        if (categoryPredicateTermId && categoryTermId) {
+          batchTriples.push({
+            subjectId: totemId,
+            predicateId: categoryPredicateTermId as Hex,
+            objectId: categoryTermId as Hex,
+            // No depositAmount = use minDeposit (handled by useBatchTriples)
+          });
+
+          console.log('[useBatchVote] Triple 2 (category):', {
+            totem: totemId,
+            predicate: categoryPredicateTermId,
+            category: categoryTermId,
+          });
+        }
+
+        // Warn if user wanted AGAINST direction
+        if (item.direction === 'against') {
+          console.warn('[useBatchVote] AGAINST direction on new totem is not fully supported yet - created as FOR');
+          toast.warning(`"${item.newTotemData?.name}" créé avec vote FOR (AGAINST non supporté pour nouveaux totems)`);
+        }
+      }
+
+      // STEP 3: Execute batch createTriples in ONE transaction
+      console.log('[useBatchVote] Step 3: Executing batch createTriples...', {
+        tripleCount: batchTriples.length,
+      });
+
+      const result = await createTriplesBatch(batchTriples);
+
+      console.log('[useBatchVote] ✅ Batch createTriples success:', {
+        txHash: result.transactionHash,
+        tripleCount: result.tripleCount,
+        totalAmount: formatEther(result.totalAmount),
+      });
+
+      txHashes.push(result.transactionHash);
+
+      console.log('[useBatchVote] ✅ Created', totemData.length, 'new totems in', batchTriples.length, 'triples (1 batch tx)');
+      console.log('[useBatchVote] ========== CREATE NEW TOTEMS (BATCH) END ==========');
+
+      return { txHashes, createdCount: totemData.length };
+    },
+    [getOrCreateAtom, createTriplesBatch]
+  );
+
+  /**
    * Create triples for new totems (items with isNewTotem = true)
    * Returns a map of totemId -> { termId, counterTermId }
+   * NOTE: Only processes items with valid totemId (items with newTotemData need atom creation first)
    */
   const executeCreateTriples = useCallback(
     async (
@@ -138,8 +310,12 @@ export function useBatchVote(): UseBatchVoteResult {
         throw new Error('Wallet not connected');
       }
 
+      // Filter to only processable items (with valid totemId)
+      // Items with newTotemData (totemId === null) cannot be processed here
+      const processableItems = itemsNeedingTriple.filter(isProcessableItem);
+
       console.log('[useBatchVote] ========== CREATE TRIPLES START ==========');
-      console.log('[useBatchVote] Creating triples for', itemsNeedingTriple.length, 'new totems');
+      console.log('[useBatchVote] Creating triples for', processableItems.length, 'new totems (out of', itemsNeedingTriple.length, 'total)');
       console.log('[useBatchVote] Founder ID:', founderId);
 
       // Prepare arrays for createTriples call
@@ -160,7 +336,7 @@ export function useBatchVote(): UseBatchVoteResult {
 
       // Validate that user's amount covers tripleBaseCost + minDeposit
       const minRequiredAmount = tripleBaseCost + minDeposit;
-      for (const item of itemsNeedingTriple) {
+      for (const item of processableItems) {
         if (item.amount < minRequiredAmount) {
           const missing = minRequiredAmount - item.amount;
           const missingFormatted = parseFloat(formatEther(missing)).toFixed(4);
@@ -174,7 +350,7 @@ export function useBatchVote(): UseBatchVoteResult {
       // The user's chosen amount (item.amount) is the TOTAL they want to spend
       // We subtract the triple creation cost to get the actual deposit amount
       // This way user pays exactly what they chose, not more
-      for (const item of itemsNeedingTriple) {
+      for (const item of processableItems) {
         subjectIds.push(founderId);
         predicateIds.push(item.predicateId);
         objectIds.push(item.totemId);
@@ -351,19 +527,34 @@ export function useBatchVote(): UseBatchVoteResult {
         });
 
         // Identify items needing different actions
-        const itemsNeedingTriple = cart.items.filter((item) => item.isNewTotem);
-        const itemsToRedeem = cart.items.filter((item) => item.needsWithdraw);
-        const itemsWithExistingTriples = cart.items.filter((item) => !item.isNewTotem);
+        // 1. Items with newTotemData (totemId === null) → need full totem creation via createClaimWithCategory
+        // 2. Items with valid totemId but isNewTotem → need triple creation via createTriples
+        // 3. Items with needsWithdraw → need redeem first
+        // 4. Items with existing triples → just deposit
 
+        // Brand new totems (need atom + triple creation)
+        const itemsWithNewTotemData: VoteCartItem[] = cart.items.filter(
+          (item) => item.newTotemData && item.totemId === null
+        );
+
+        // Filter to only processable items (with valid totemId/termId/counterTermId)
+        const processableItems: ProcessableCartItem[] = cart.items.filter(isProcessableItem);
+        const itemsNeedingTriple: ProcessableCartItem[] = processableItems.filter((item) => item.isNewTotem);
+        const itemsToRedeem: ProcessableCartItem[] = processableItems.filter((item) => item.needsWithdraw);
+        const itemsWithExistingTriples: ProcessableCartItem[] = processableItems.filter((item) => !item.isNewTotem);
+
+        const hasNewTotems = itemsWithNewTotemData.length > 0;
         const hasNewTriples = itemsNeedingTriple.length > 0;
         const hasRedeems = itemsToRedeem.length > 0;
         const hasExistingTriples = itemsWithExistingTriples.length > 0;
 
         // Calculate total steps:
-        // - createTriples (if any new) - includes deposit for new items
+        // - createClaimWithCategory (if any brand new totems)
+        // - createTriples (if any new triples on existing totems)
         // - redeemBatch (if switching positions) - separate tx
         // - depositBatch (for existing triples) - separate tx
         let steps = 0;
+        if (hasNewTotems) steps++; // Create new totems
         if (hasNewTriples) steps++; // createTriples (includes deposit)
         if (hasRedeems) steps++; // Redeem
         if (hasExistingTriples) steps++; // Deposit
@@ -371,6 +562,8 @@ export function useBatchVote(): UseBatchVoteResult {
         setTotalSteps(steps);
 
         console.log('[useBatchVote] Execution plan:', {
+          hasNewTotems,
+          newTotemsCount: itemsWithNewTotemData.length,
           hasNewTriples,
           newTriplesCount: itemsNeedingTriple.length,
           hasRedeems,
@@ -379,17 +572,39 @@ export function useBatchVote(): UseBatchVoteResult {
           existingTriplesCount: itemsWithExistingTriples.length,
           totalSteps: steps,
         });
-        console.log('[useBatchVote] 📝 NOTE: New triples will receive deposit via createTriples (1 tx)');
+        console.log('[useBatchVote] 📝 NOTE: New totems use createClaimWithCategory, new triples use createTriples');
 
+        let newTotemTxHashes: Hex[] | undefined;
         let createTriplesTxHash: Hex | undefined;
         let totalRedeemed = 0n;
         let triplesCreated = 0;
+        let newTotemsCreated = 0;
         let stepNum = 0;
 
         // Make a mutable copy of items to update termIds after triple creation
         const updatedItems = [...cart.items];
 
-        // Step 1: Create Triples (if needed)
+        // Step 0: Create brand new totems (if needed)
+        if (hasNewTotems) {
+          stepNum++;
+          setCurrentStep(stepNum);
+          setStatus('creating_atoms');
+          toast.info(
+            `Étape ${stepNum}/${steps}: Création de ${itemsWithNewTotemData.length} nouveau(x) totem(s)...`
+          );
+
+          console.log('[useBatchVote] Creating brand new totems via createClaimWithCategory...');
+          const { txHashes, createdCount } = await executeCreateNewTotems(
+            cart.founderId,
+            itemsWithNewTotemData
+          );
+          newTotemTxHashes = txHashes;
+          newTotemsCreated = createdCount;
+
+          toast.success(`${createdCount} totem(s) créé(s) !`);
+        }
+
+        // Step 1: Create Triples for existing totems (if needed)
         if (hasNewTriples) {
           stepNum++;
           setCurrentStep(stepNum);
@@ -409,7 +624,8 @@ export function useBatchVote(): UseBatchVoteResult {
           // Update items with the real termIds from created triples
           for (let i = 0; i < updatedItems.length; i++) {
             const item = updatedItems[i];
-            if (item.isNewTotem) {
+            // Skip items without totemId (need atom creation first)
+            if (item.isNewTotem && item.totemId !== null) {
               const tripleInfo = createdTriples.get(item.totemId);
               if (tripleInfo) {
                 console.log('[useBatchVote] Updating item termIds:', {
@@ -439,10 +655,12 @@ export function useBatchVote(): UseBatchVoteResult {
         let depositTxHash: Hex | undefined;
 
         if (hasRedeems || hasExistingTriples) {
-          // Get items to deposit (only those that were originally existing triples)
-          const itemsToDeposit = updatedItems.filter(item =>
-            itemsWithExistingTriples.some(orig => orig.totemId === item.totemId)
-          );
+          // Get items to deposit (only those that were originally existing triples and are processable)
+          const itemsToDeposit: ProcessableCartItem[] = updatedItems
+            .filter(isProcessableItem)
+            .filter(item =>
+              itemsWithExistingTriples.some(orig => orig.totemId === item.totemId)
+            );
 
           // Calculate totals
           const depositTotal = itemsToDeposit.reduce((sum, item) => sum + item.amount, 0n);
@@ -548,12 +766,14 @@ export function useBatchVote(): UseBatchVoteResult {
         setError(null);
 
         return {
+          newTotemTxHashes,
           createTriplesTxHash,
           redeemTxHash,
           depositTxHash,
           totalRedeemed,
           totalDeposited,
           triplesCreated,
+          newTotemsCreated,
         };
       } catch (err: unknown) {
         // Enhanced error logging to debug empty error objects
@@ -606,8 +826,10 @@ export function useBatchVote(): UseBatchVoteResult {
       walletClient,
       publicClient,
       reset,
+      executeCreateNewTotems,
       executeCreateTriples,
       status,
+      multiVaultAddress,
     ]
   );
 

@@ -689,7 +689,7 @@ export const intuitionTestnet = defineChain({
 ## 12. Limitations et Erreurs Courantes
 
 ### Limitations Découvertes
-1. **Pas de fonction combinée redeem+deposit** → 2 transactions minimum pour basculer de camp
+1. **Pas de fonction combinée redeem+deposit** → MAIS possible via Multicall3 (voir section 15)
 2. **Créer atom + triple + deposit = 3 tx séparées** (ou 2 si triple inclut le dépôt initial)
 3. **Pas de MAX_BATCH_SIZE explicite** → Arrays limités par le gas uniquement
 4. **batchRedeem utilise un pourcentage** (0-100) et non des shares absolues
@@ -772,4 +772,71 @@ modifier nonReentrant;       // Protection réentrance
 
 ---
 
-**Dernière mise à jour:** 2 décembre 2025
+## 15. Transaction Atomique redeem + deposit - IMPOSSIBLE via Multicall3
+
+> **Ajouté:** 9 décembre 2025
+> **Mis à jour:** 9 décembre 2025 - **ABANDONNÉ** après découverte de l'incompatibilité
+
+### Problème initial
+
+Le contrat INTUITION V2 n'a **PAS** de fonction native pour combiner redeem + deposit en une seule transaction.
+
+| Fonction | Mutabilité |
+|----------|-----------|
+| `redeemBatch` | NONPAYABLE |
+| `depositBatch` | PAYABLE |
+| `multicall` | ❌ N'existe pas |
+| `switchPosition` | ❌ N'existe pas |
+
+### Tentative : Multicall3
+
+Nous avons tenté d'utiliser **Multicall3** (`0xcA11bde05977b3631167028862bE2a173976CA11`) pour combiner les appels.
+
+### Pourquoi ça NE FONCTIONNE PAS
+
+**Découverte critique** : Le contrat `MultiVault.sol` vérifie les permissions :
+
+```solidity
+function redeemBatch(address receiver, ...) {
+    if (!_isApprovedToRedeem(msg.sender, receiver)) revert NotApproved();
+    // ...
+}
+```
+
+**Problème fondamental** :
+- Quand on appelle via Multicall3 : `msg.sender = Multicall3` (pas le user wallet)
+- Le contrat vérifie si Multicall3 est approuvé pour redeem → **NON**
+- Transaction échoue avec `NotApproved`
+
+C'est une **limitation EVM** :
+- Multicall3 utilise `CALL` (pas `DELEGATECALL`)
+- `CALL` change le `msg.sender`
+- Seul un contrat Router avec `DELEGATECALL` préserverait `msg.sender`
+
+### Solution actuelle
+
+**2 transactions séquentielles** :
+1. `redeemBatch()` - 1ère signature
+2. `depositBatch()` - 2ème signature
+
+C'est la seule approche viable sans déployer un contrat Router custom.
+
+### Alternative future (non implémentée)
+
+Un **OFCRouter** custom pourrait être développé (comme Uniswap SwapRouter) :
+
+```solidity
+contract OFCRouter is Multicall {
+    function switchPosition(uint256 fromTermId, uint256 toTermId, ...) external payable {
+        // Utilise delegatecall interne → msg.sender préservé
+        multiVault.redeemAtom(...);
+        multiVault.depositAtom{value: ...}(...);
+    }
+}
+```
+
+**Prérequis** : Développement Solidity + audit de sécurité + déploiement.
+
+---
+
+**Dernière mise à jour:** 9 décembre 2025
