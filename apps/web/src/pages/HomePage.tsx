@@ -1,15 +1,12 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useAccount } from 'wagmi';
 import { useTranslation } from 'react-i18next';
-import { WalletConnectButton } from '../components/common/ConnectButton';
 import { FounderHomeCard, FounderHomeCardSkeleton } from '../components/founder';
 import { FounderExpandedView } from '../components/founder';
 import { useFoundersForHomePage, type FounderForHomePage } from '../hooks';
 
 export function HomePage() {
   const { t } = useTranslation();
-  const { isConnected } = useAccount();
   const { founders, loading, error, stats } = useFoundersForHomePage();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -56,20 +53,11 @@ export function HomePage() {
           {t('homePage.description')}
         </p>
 
-        {!isConnected ? (
-          <div className="flex justify-center">
-            <WalletConnectButton />
-          </div>
-        ) : (
-          <div className="flex flex-wrap justify-center gap-3">
-            <Link to="/vote" className="glass-button">
-              {t('homePage.viewAllTotems')}
-            </Link>
-            <Link to="/results" className="glass-button bg-slate-500/20 border-slate-500/30">
-              {t('homePage.results')}
-            </Link>
-          </div>
-        )}
+        <div className="flex justify-center">
+          <Link to="/results" className="glass-button bg-slate-500/20 border-slate-500/30">
+            {t('homePage.results')}
+          </Link>
+        </div>
       </section>
 
       {/* Stats Section - Dynamic */}
