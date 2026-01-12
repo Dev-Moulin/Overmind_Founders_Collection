@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery } from '@apollo/client';
 import { formatEther } from 'viem';
 import {
@@ -37,15 +38,18 @@ export function useFounderProposals(founderName: string) {
     }
   );
 
-  const proposals: ProposalWithVotes[] =
-    data?.triples.map(enrichTripleWithVotes) || [];
+  const proposals: ProposalWithVotes[] = useMemo(
+    () => data?.triples.map(enrichTripleWithVotes) || [],
+    [data]
+  );
 
-  return {
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     proposals,
     loading,
     error,
     refetch,
-  };
+  }), [proposals, loading, error, refetch]);
 }
 
 /**
@@ -121,14 +125,15 @@ export function useProposalLimit(
   const canPropose = count < MAX_PROPOSALS;
   const remaining = Math.max(0, MAX_PROPOSALS - count);
 
-  return {
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     count,
     canPropose,
     remaining,
     loading,
     error,
     maxProposals: MAX_PROPOSALS,
-  };
+  }), [count, canPropose, remaining, loading, error]);
 }
 
 /**

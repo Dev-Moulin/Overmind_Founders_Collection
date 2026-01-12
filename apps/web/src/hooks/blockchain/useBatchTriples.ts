@@ -8,10 +8,10 @@
  * @see Contract: createTriples(subjectIds[], predicateIds[], objectIds[], assets[])
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { usePublicClient, useWalletClient } from 'wagmi';
 import { useApolloClient } from '@apollo/client';
-import { type Hex, formatEther } from 'viem';
+import { type Hex, formatEther, decodeEventLog } from 'viem';
 import {
   getMultiVaultAddressFromChainId,
   multiCallIntuitionConfigs,
@@ -58,6 +58,10 @@ export interface BatchTripleResult {
   tripleCount: number;
   /** Total amount spent (base costs + deposits) */
   totalAmount: bigint;
+  /** Created triple termIds (from TripleCreated events) */
+  tripleTermIds: Hex[];
+  /** Created triple counterTermIds (from TripleCreated events) */
+  tripleCounterTermIds: Hex[];
 }
 
 /**
@@ -347,15 +351,55 @@ export function useBatchTriples(): UseBatchTriplesResult {
         // Execute the transaction
         const txHash = await walletClient.writeContract(request);
 
-        // Wait for confirmation
-        await publicClient.waitForTransactionReceipt({ hash: txHash });
+        // Wait for confirmation and get receipt with logs
+        const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
 
         console.log('[useBatchTriples] Batch created successfully:', txHash);
+
+        // Parse TripleCreated events to get termIds
+        const tripleTermIds: Hex[] = [];
+        const tripleCounterTermIds: Hex[] = [];
+
+        for (const log of receipt.logs) {
+          try {
+            const decoded = decodeEventLog({
+              abi: MultiVaultAbi,
+              data: log.data,
+              topics: log.topics,
+            });
+
+            if (decoded.eventName === 'TripleCreated') {
+              const args = decoded.args as unknown as {
+                termId: Hex;
+                subjectId: Hex;
+                predicateId: Hex;
+                objectId: Hex;
+                counterTermId?: Hex;
+              };
+              tripleTermIds.push(args.termId);
+              if (args.counterTermId) {
+                tripleCounterTermIds.push(args.counterTermId);
+              }
+
+              console.log('[useBatchTriples] TripleCreated event:', {
+                termId: args.termId,
+                objectId: args.objectId,
+                counterTermId: args.counterTermId,
+              });
+            }
+          } catch {
+            // Not a TripleCreated event, skip
+          }
+        }
+
+        console.log('[useBatchTriples] Parsed termIds:', tripleTermIds.length);
 
         return {
           transactionHash: txHash,
           tripleCount: items.length,
           totalAmount,
+          tripleTermIds,
+          tripleCounterTermIds,
         };
       } catch (err) {
         const errorMessage =
@@ -378,7 +422,8 @@ export function useBatchTriples(): UseBatchTriplesResult {
     setError(null);
   }, []);
 
-  return {
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     createBatch,
     validateItems,
     estimateCost,
@@ -386,5 +431,5 @@ export function useBatchTriples(): UseBatchTriplesResult {
     validating,
     error,
     clearError,
-  };
+  }), [createBatch, validateItems, estimateCost, loading, validating, error, clearError]);
 }

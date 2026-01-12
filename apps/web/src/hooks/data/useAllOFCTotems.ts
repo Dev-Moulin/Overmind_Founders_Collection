@@ -89,10 +89,11 @@ export function useAllOFCTotems(): UseAllOFCTotemsReturn {
     };
   }, [data]);
 
-  return {
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     totems,
     loading,
     categoryMap,
     dynamicCategories,
-  };
+  }), [totems, loading, categoryMap, dynamicCategories]);
 }

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderHook } from '@testing-library/react';
 
 // Mock Apollo client before importing
 vi.mock('@apollo/client', () => ({
@@ -65,10 +66,10 @@ describe('useFounderProposals', () => {
         refetch: mockRefetch,
       } as any);
 
-      const result = useFounderProposals('Joseph Lubin');
+      const { result } = renderHook(() => useFounderProposals('Joseph Lubin'));
 
-      expect(result.loading).toBe(true);
-      expect(result.proposals).toEqual([]);
+      expect(result.current.loading).toBe(true);
+      expect(result.current.proposals).toEqual([]);
     });
   });
 
@@ -81,11 +82,11 @@ describe('useFounderProposals', () => {
         refetch: mockRefetch,
       } as any);
 
-      const result = useFounderProposals('Joseph Lubin');
+      const { result } = renderHook(() => useFounderProposals('Joseph Lubin'));
 
-      expect(result.loading).toBe(false);
-      expect(result.proposals.length).toBe(2);
-      expect(result.error).toBeUndefined();
+      expect(result.current.loading).toBe(false);
+      expect(result.current.proposals.length).toBe(2);
+      expect(result.current.error).toBeUndefined();
     });
 
     it('should include vote counts in proposals', () => {
@@ -96,9 +97,9 @@ describe('useFounderProposals', () => {
         refetch: mockRefetch,
       } as any);
 
-      const result = useFounderProposals('Joseph Lubin');
+      const { result } = renderHook(() => useFounderProposals('Joseph Lubin'));
 
-      const proposal = result.proposals[0];
+      const proposal = result.current.proposals[0];
       expect(proposal.votes).toBeDefined();
       expect(proposal.votes.forVotes).toBe('1000000000000000000');
       expect(proposal.votes.againstVotes).toBe('200000000000000000');
@@ -112,9 +113,9 @@ describe('useFounderProposals', () => {
         refetch: mockRefetch,
       } as any);
 
-      const result = useFounderProposals('Joseph Lubin');
+      const { result } = renderHook(() => useFounderProposals('Joseph Lubin'));
 
-      const proposal = result.proposals[0];
+      const proposal = result.current.proposals[0];
       // Net = 1000000000000000000 - 200000000000000000 = 800000000000000000
       expect(proposal.votes.netVotes).toBe('800000000000000000');
     });
@@ -127,14 +128,14 @@ describe('useFounderProposals', () => {
         refetch: mockRefetch,
       } as any);
 
-      const result = useFounderProposals('Joseph Lubin');
+      const { result } = renderHook(() => useFounderProposals('Joseph Lubin'));
 
       // First proposal: FOR=1e18, AGAINST=0.2e18, percentage = 1/(1+0.2)*100 = 83%
-      const proposal1 = result.proposals[0];
+      const proposal1 = result.current.proposals[0];
       expect(proposal1.percentage).toBe(83);
 
       // Second proposal: FOR=0.5e18, AGAINST=0.5e18, percentage = 50%
-      const proposal2 = result.proposals[1];
+      const proposal2 = result.current.proposals[1];
       expect(proposal2.percentage).toBe(50);
     });
 
@@ -146,9 +147,9 @@ describe('useFounderProposals', () => {
         refetch: mockRefetch,
       } as any);
 
-      const result = useFounderProposals('Test Founder');
+      const { result } = renderHook(() => useFounderProposals('Test Founder'));
 
-      const proposal = result.proposals[0];
+      const proposal = result.current.proposals[0];
       expect(proposal.percentage).toBe(0);
       expect(proposal.votes.forVotes).toBe('0');
       expect(proposal.votes.againstVotes).toBe('0');
@@ -162,9 +163,9 @@ describe('useFounderProposals', () => {
         refetch: mockRefetch,
       } as any);
 
-      const result = useFounderProposals('Joseph Lubin');
+      const { result } = renderHook(() => useFounderProposals('Joseph Lubin'));
 
-      expect(result.refetch).toBe(mockRefetch);
+      expect(result.current.refetch).toBe(mockRefetch);
     });
   });
 
@@ -177,9 +178,9 @@ describe('useFounderProposals', () => {
         refetch: mockRefetch,
       } as any);
 
-      const result = useFounderProposals('');
+      const { result } = renderHook(() => useFounderProposals(''));
 
-      expect(result.proposals).toEqual([]);
+      expect(result.current.proposals).toEqual([]);
     });
   });
 
@@ -192,9 +193,9 @@ describe('useFounderProposals', () => {
         refetch: mockRefetch,
       } as any);
 
-      const result = useFounderProposals('Unknown Founder');
+      const { result } = renderHook(() => useFounderProposals('Unknown Founder'));
 
-      expect(result.proposals).toEqual([]);
+      expect(result.current.proposals).toEqual([]);
     });
   });
 
@@ -208,10 +209,10 @@ describe('useFounderProposals', () => {
         refetch: mockRefetch,
       } as any);
 
-      const result = useFounderProposals('Error Founder');
+      const { result } = renderHook(() => useFounderProposals('Error Founder'));
 
-      expect(result.error).toBe(mockError);
-      expect(result.proposals).toEqual([]);
+      expect(result.current.error).toBe(mockError);
+      expect(result.current.proposals).toEqual([]);
     });
   });
 
@@ -224,9 +225,9 @@ describe('useFounderProposals', () => {
         refetch: mockRefetch,
       } as any);
 
-      const result = useFounderProposals('Joseph Lubin');
+      const { result } = renderHook(() => useFounderProposals('Joseph Lubin'));
 
-      const proposal = result.proposals[0];
+      const proposal = result.current.proposals[0];
       expect(proposal.term_id).toBe('0xtriple1');
       expect(proposal.subject.label).toBe('Joseph Lubin');
       expect(proposal.object.label).toBe('Phoenix');
@@ -242,7 +243,7 @@ describe('useFounderProposals', () => {
         refetch: mockRefetch,
       } as any);
 
-      useFounderProposals('Joseph Lubin');
+      renderHook(() => useFounderProposals('Joseph Lubin'));
 
       expect(useQuery).toHaveBeenCalledWith(
         expect.anything(),
@@ -261,7 +262,7 @@ describe('useFounderProposals', () => {
         refetch: mockRefetch,
       } as any);
 
-      useFounderProposals('');
+      renderHook(() => useFounderProposals(''));
 
       expect(useQuery).toHaveBeenCalledWith(
         expect.anything(),
@@ -287,12 +288,12 @@ describe('useProposalLimit', () => {
       error: undefined,
     } as any);
 
-    const result = useProposalLimit('0x123', 'Joseph Lubin');
+    const { result } = renderHook(() => useProposalLimit('0x123', 'Joseph Lubin'));
 
-    expect(result.count).toBe(1);
-    expect(result.canPropose).toBe(true);
-    expect(result.remaining).toBe(2);
-    expect(result.maxProposals).toBe(3);
+    expect(result.current.count).toBe(1);
+    expect(result.current.canPropose).toBe(true);
+    expect(result.current.remaining).toBe(2);
+    expect(result.current.maxProposals).toBe(3);
   });
 
   it('should return canPropose false when at limit', () => {
@@ -302,11 +303,11 @@ describe('useProposalLimit', () => {
       error: undefined,
     } as any);
 
-    const result = useProposalLimit('0x123', 'Joseph Lubin');
+    const { result } = renderHook(() => useProposalLimit('0x123', 'Joseph Lubin'));
 
-    expect(result.count).toBe(3);
-    expect(result.canPropose).toBe(false);
-    expect(result.remaining).toBe(0);
+    expect(result.current.count).toBe(3);
+    expect(result.current.canPropose).toBe(false);
+    expect(result.current.remaining).toBe(0);
   });
 
   it('should return canPropose false when over limit', () => {
@@ -316,10 +317,10 @@ describe('useProposalLimit', () => {
       error: undefined,
     } as any);
 
-    const result = useProposalLimit('0x123', 'Joseph Lubin');
+    const { result } = renderHook(() => useProposalLimit('0x123', 'Joseph Lubin'));
 
-    expect(result.canPropose).toBe(false);
-    expect(result.remaining).toBe(0); // Math.max(0, -2) = 0
+    expect(result.current.canPropose).toBe(false);
+    expect(result.current.remaining).toBe(0); // Math.max(0, -2) = 0
   });
 
   it('should skip query when walletAddress is undefined', () => {
@@ -329,7 +330,7 @@ describe('useProposalLimit', () => {
       error: undefined,
     } as any);
 
-    useProposalLimit(undefined, 'Joseph Lubin');
+    renderHook(() => useProposalLimit(undefined, 'Joseph Lubin'));
 
     expect(useQuery).toHaveBeenCalledWith(
       expect.anything(),
@@ -346,7 +347,7 @@ describe('useProposalLimit', () => {
       error: undefined,
     } as any);
 
-    useProposalLimit('0x123', '');
+    renderHook(() => useProposalLimit('0x123', ''));
 
     expect(useQuery).toHaveBeenCalledWith(
       expect.anything(),
@@ -363,9 +364,9 @@ describe('useProposalLimit', () => {
       error: undefined,
     } as any);
 
-    const result = useProposalLimit('0x123', 'Joseph Lubin');
+    const { result } = renderHook(() => useProposalLimit('0x123', 'Joseph Lubin'));
 
-    expect(result.loading).toBe(true);
+    expect(result.current.loading).toBe(true);
   });
 
   it('should return error state', () => {
@@ -376,9 +377,9 @@ describe('useProposalLimit', () => {
       error: mockError,
     } as any);
 
-    const result = useProposalLimit('0x123', 'Joseph Lubin');
+    const { result } = renderHook(() => useProposalLimit('0x123', 'Joseph Lubin'));
 
-    expect(result.error).toBe(mockError);
+    expect(result.current.error).toBe(mockError);
   });
 
   it('should handle missing aggregate data', () => {
@@ -388,11 +389,11 @@ describe('useProposalLimit', () => {
       error: undefined,
     } as any);
 
-    const result = useProposalLimit('0x123', 'Joseph Lubin');
+    const { result } = renderHook(() => useProposalLimit('0x123', 'Joseph Lubin'));
 
-    expect(result.count).toBe(0);
-    expect(result.canPropose).toBe(true);
-    expect(result.remaining).toBe(3);
+    expect(result.current.count).toBe(0);
+    expect(result.current.canPropose).toBe(true);
+    expect(result.current.remaining).toBe(3);
   });
 });
 

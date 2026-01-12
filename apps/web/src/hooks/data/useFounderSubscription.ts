@@ -1,5 +1,5 @@
 import { useSubscription } from '@apollo/client';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { SUBSCRIBE_FOUNDER_PROPOSALS } from '../../lib/graphql/subscriptions';
 import type { Triple, ProposalWithVotes } from '../../lib/graphql/types';
 import { enrichTripleWithVotes } from '../../utils/voteCalculations';
@@ -142,7 +142,8 @@ export function useFounderSubscription(
   // isLoading: true while waiting for first data
   const isLoading = loading && lastUpdated === null && !isPaused && !!founderName;
 
-  return {
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     proposals,
     loading,
     error,
@@ -153,7 +154,7 @@ export function useFounderSubscription(
     pause,
     resume,
     isPaused,
-  };
+  }), [proposals, loading, error, lastUpdated, secondsSinceUpdate, isConnected, isLoading, pause, resume, isPaused]);
 }
 
 // Re-export for backward compatibility

@@ -1,13 +1,15 @@
 import { useMemo } from 'react';
 import { useQuery } from '@apollo/client';
+import { formatEther } from 'viem';
 import foundersData from '../../../../../packages/shared/src/data/founders.json';
-import type { FounderData, TrendDirection, WinningTotem, FounderForHomePage } from '../../types/founder';
-import { GET_ATOMS_BY_LABELS, GET_ALL_PROPOSALS } from '../../lib/graphql/queries';
-import type { Triple } from '../../lib/graphql/types';
+import type { FounderData, TrendDirection, WinningTotem, FounderForHomePage, CurveWinnerInfo } from '../../types/founder';
+import { GET_ATOMS_BY_LABELS, GET_ALL_PROPOSALS, GET_DEPOSITS_BY_TERM_IDS } from '../../lib/graphql/queries';
+import type { Triple, GetDepositsByTermIdsResult } from '../../lib/graphql/types';
 import { aggregateTriplesByObject } from '../../utils/aggregateVotes';
+import type { TopTotem } from '../data/useTopTotems';
 
 // Re-export for backward compatibility
-export type { TrendDirection, WinningTotem, FounderForHomePage };
+export type { TrendDirection, WinningTotem, FounderForHomePage, CurveWinnerInfo };
 
 interface AtomResult {
   term_id: string;
@@ -23,22 +25,35 @@ interface ProposalsQueryResult {
 }
 
 /**
- * Hook to get all 42 founders with their atomIds and winning totems
+ * Convert wei string to ETH number
+ */
+function weiToEth(weiStr: string): number {
+  return parseFloat(formatEther(BigInt(weiStr)));
+}
+
+/**
+ * Hook to get all 42 founders with their atomIds, winning totems, and top totems
  *
- * Combines:
- * 1. Static founders data from JSON (all 42 founders)
- * 2. AtomIds from INTUITION GraphQL
- * 3. Winning totems calculated from all proposals
+ * Uses BATCHED queries to avoid rate limiting:
+ * - 1 query for all atoms (GET_ATOMS_BY_LABELS)
+ * - 1 query for all proposals (GET_ALL_PROPOSALS)
+ * - 1 query for all deposits (GET_DEPOSITS_BY_TERM_IDS) - batched!
+ *
+ * This replaces 42 individual useTopTotems calls with a single batched approach.
  *
  * @example
  * ```tsx
  * function HomePage() {
- *   const { founders, loading, stats } = useFoundersForHomePage();
+ *   const { founders, loading, stats, topTotemsMap } = useFoundersForHomePage();
  *
  *   return (
  *     <div className="grid grid-cols-4 gap-4">
  *       {founders.map(founder => (
- *         <FounderHomeCard key={founder.id} founder={founder} />
+ *         <FounderHomeCard
+ *           key={founder.id}
+ *           founder={founder}
+ *           topTotems={topTotemsMap.get(founder.name) || []}
+ *         />
  *       ))}
  *     </div>
  *   );
@@ -68,6 +83,45 @@ export function useFoundersForHomePage() {
     fetchPolicy: 'cache-and-network',
   });
 
+  // Extract all term_ids AND counter_term_ids from proposals for batched deposits query
+  // We need BOTH to properly track FOR (term_id) and AGAINST (counter_term_id) votes
+  const allTermIds = useMemo(() => {
+    if (!proposalsData?.triples) return [];
+    const ids: string[] = [];
+    proposalsData.triples.forEach((t) => {
+      ids.push(t.term_id);
+      if (t.counter_term?.id) {
+        ids.push(t.counter_term.id);
+      }
+    });
+    return ids;
+  }, [proposalsData]);
+
+  // Create a map: termId/counterTermId -> { tripleTermId, isFor }
+  // This allows us to know if a deposit is FOR or AGAINST based on which term_id it's on
+  const termToTripleMap = useMemo(() => {
+    const map = new Map<string, { tripleTermId: string; isFor: boolean }>();
+    if (!proposalsData?.triples) return map;
+    proposalsData.triples.forEach((t) => {
+      map.set(t.term_id, { tripleTermId: t.term_id, isFor: true });
+      if (t.counter_term?.id) {
+        map.set(t.counter_term.id, { tripleTermId: t.term_id, isFor: false });
+      }
+    });
+    return map;
+  }, [proposalsData]);
+
+  // Query 3: BATCHED deposits query - ONE query for ALL triples (term_id + counter_term_id)
+  // This replaces 42 individual queries that caused 429 rate limiting
+  const {
+    data: depositsData,
+    loading: depositsLoading,
+  } = useQuery<GetDepositsByTermIdsResult>(GET_DEPOSITS_BY_TERM_IDS, {
+    variables: { termIds: allTermIds },
+    skip: allTermIds.length === 0,
+    fetchPolicy: 'cache-and-network',
+  });
+
   // Process data
   const result = useMemo(() => {
     // Create atomId map
@@ -83,6 +137,70 @@ export function useFoundersForHomePage() {
     const proposalCountMap = new Map<string, number>();
     const recentActivityMap = new Map<string, number>();
 
+    // NEW: Map of founder name -> TopTotem[] for batched top totems
+    const topTotemsMap = new Map<string, TopTotem[]>();
+
+    // NEW: Curve winners per founder
+    const linearWinnerMap = new Map<string, CurveWinnerInfo>();
+    const progressiveWinnerMap = new Map<string, CurveWinnerInfo>();
+
+    // Build wallet counts map from batched deposits: term_id -> { forWallets: Set, againstWallets: Set }
+    const walletCountsMap = new Map<string, { forWallets: Set<string>; againstWallets: Set<string> }>();
+
+    // NEW: Build curve-specific stats map: tripleTermId -> { linear: {...}, progressive: {...} }
+    // IMPORTANT: We use termToTripleMap to:
+    // 1. Find the original triple term_id for both term_id and counter_term_id deposits
+    // 2. Determine if a deposit is FOR (term_id) or AGAINST (counter_term_id)
+    interface CurveDepositStats {
+      trustFor: number;
+      trustAgainst: number;
+      walletsFor: Set<string>;
+      walletsAgainst: Set<string>;
+    }
+    const curveStatsMap = new Map<string, { linear: CurveDepositStats; progressive: CurveDepositStats }>();
+
+    if (depositsData?.deposits) {
+      depositsData.deposits.forEach((deposit) => {
+        // Use termToTripleMap to find the original triple and determine FOR/AGAINST
+        const termInfo = termToTripleMap.get(deposit.term_id);
+        if (!termInfo) return; // Deposit doesn't belong to any known triple
+
+        const { tripleTermId, isFor } = termInfo;
+
+        // Standard wallet counts (backwards compatibility) - keyed by original triple term_id
+        if (!walletCountsMap.has(tripleTermId)) {
+          walletCountsMap.set(tripleTermId, { forWallets: new Set(), againstWallets: new Set() });
+        }
+        const counts = walletCountsMap.get(tripleTermId)!;
+        if (isFor) {
+          counts.forWallets.add(deposit.sender_id.toLowerCase());
+        } else {
+          counts.againstWallets.add(deposit.sender_id.toLowerCase());
+        }
+
+        // NEW: Curve-specific stats - keyed by original triple term_id
+        if (!curveStatsMap.has(tripleTermId)) {
+          curveStatsMap.set(tripleTermId, {
+            linear: { trustFor: 0, trustAgainst: 0, walletsFor: new Set(), walletsAgainst: new Set() },
+            progressive: { trustFor: 0, trustAgainst: 0, walletsFor: new Set(), walletsAgainst: new Set() },
+          });
+        }
+        const curveStats = curveStatsMap.get(tripleTermId)!;
+        const curveId = deposit.curve_id || '1'; // Default to Linear
+        const isLinear = curveId === '1';
+        const stats = isLinear ? curveStats.linear : curveStats.progressive;
+        const assets = weiToEth(deposit.assets_after_fees || '0');
+
+        if (isFor) {
+          stats.trustFor += assets;
+          stats.walletsFor.add(deposit.sender_id.toLowerCase());
+        } else {
+          stats.trustAgainst += assets;
+          stats.walletsAgainst.add(deposit.sender_id.toLowerCase());
+        }
+      });
+    }
+
     // Calculate 24 hours ago timestamp
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
@@ -97,7 +215,7 @@ export function useFoundersForHomePage() {
         founderTriples.get(founderName)!.push(triple);
       });
 
-      // For each founder, calculate winning totem and recent activity
+      // For each founder, calculate winning totem, recent activity, and top totems
       founderTriples.forEach((triples, founderName) => {
         // Count recent triples (created in last 24h)
         const recentCount = triples.filter((t) => {
@@ -122,7 +240,122 @@ export function useFoundersForHomePage() {
         // Store proposal count (unique totems)
         proposalCountMap.set(founderName, aggregatedTotems.length);
 
-        // Winning totem is the one with highest NET score (already sorted)
+        // Calculate TopTotems with wallet counts from batched deposits
+        const topTotems: TopTotem[] = [];
+
+        // Build a map of totemId -> wallet counts by aggregating from triples
+        const totemWalletsMap = new Map<string, { forWallets: Set<string>; againstWallets: Set<string> }>();
+
+        // For each triple of this founder, aggregate wallet counts by totem (object)
+        triples.forEach((triple) => {
+          if (!triple.object) return;
+          const totemId = triple.object.term_id;
+          const tripleWallets = walletCountsMap.get(triple.term_id);
+
+          if (!totemWalletsMap.has(totemId)) {
+            totemWalletsMap.set(totemId, { forWallets: new Set(), againstWallets: new Set() });
+          }
+
+          const totemWallets = totemWalletsMap.get(totemId)!;
+          if (tripleWallets) {
+            tripleWallets.forWallets.forEach((w) => totemWallets.forWallets.add(w));
+            tripleWallets.againstWallets.forEach((w) => totemWallets.againstWallets.add(w));
+          }
+        });
+
+        // Convert aggregated totems to TopTotem format
+        aggregatedTotems.forEach((agg) => {
+          const trustFor = weiToEth(agg.totalFor.toString());
+          const trustAgainst = weiToEth(agg.totalAgainst.toString());
+          const totemWallets = totemWalletsMap.get(agg.objectId);
+          const walletsFor = totemWallets?.forWallets.size || 0;
+          const walletsAgainst = totemWallets?.againstWallets.size || 0;
+
+          topTotems.push({
+            id: agg.objectId,
+            label: agg.object.label,
+            image: agg.object.image,
+            trustFor,
+            trustAgainst,
+            totalTrust: trustFor + trustAgainst,
+            netScore: trustFor - trustAgainst,
+            walletsFor,
+            walletsAgainst,
+            totalWallets: walletsFor + walletsAgainst,
+            netVotes: walletsFor - walletsAgainst,
+          });
+        });
+
+        // Sort by totalTrust and take top 5
+        const sortedTopTotems = topTotems
+          .sort((a, b) => b.totalTrust - a.totalTrust)
+          .slice(0, 5);
+
+        topTotemsMap.set(founderName, sortedTopTotems);
+
+        // NEW: Calculate curve-specific winners for this founder
+        // Aggregate curve stats by totem (object)
+        interface TotemCurveStats {
+          totemId: string;
+          label: string;
+          image?: string;
+          linear: { netScore: number; netVotes: number };
+          progressive: { netScore: number; netVotes: number };
+        }
+        const totemCurveStatsMap = new Map<string, TotemCurveStats>();
+
+        triples.forEach((triple) => {
+          if (!triple.object) return;
+          const totemId = triple.object.term_id;
+          const tripleStats = curveStatsMap.get(triple.term_id);
+
+          if (!totemCurveStatsMap.has(totemId)) {
+            totemCurveStatsMap.set(totemId, {
+              totemId,
+              label: triple.object.label,
+              image: triple.object.image,
+              linear: { netScore: 0, netVotes: 0 },
+              progressive: { netScore: 0, netVotes: 0 },
+            });
+          }
+
+          const totemStats = totemCurveStatsMap.get(totemId)!;
+          if (tripleStats) {
+            // Linear
+            totemStats.linear.netScore += tripleStats.linear.trustFor - tripleStats.linear.trustAgainst;
+            totemStats.linear.netVotes += tripleStats.linear.walletsFor.size - tripleStats.linear.walletsAgainst.size;
+            // Progressive
+            totemStats.progressive.netScore += tripleStats.progressive.trustFor - tripleStats.progressive.trustAgainst;
+            totemStats.progressive.netVotes += tripleStats.progressive.walletsFor.size - tripleStats.progressive.walletsAgainst.size;
+          }
+        });
+
+        // Find Linear winner (highest netScore on Linear curve)
+        const totemCurveStatsList = Array.from(totemCurveStatsMap.values());
+        const linearSorted = [...totemCurveStatsList].sort((a, b) => b.linear.netScore - a.linear.netScore);
+        if (linearSorted.length > 0 && (linearSorted[0].linear.netScore !== 0 || linearSorted[0].linear.netVotes !== 0)) {
+          linearWinnerMap.set(founderName, {
+            totemId: linearSorted[0].totemId,
+            label: linearSorted[0].label,
+            image: linearSorted[0].image,
+            netScore: linearSorted[0].linear.netScore,
+            netVotes: linearSorted[0].linear.netVotes,
+          });
+        }
+
+        // Find Progressive winner (highest netScore on Progressive curve)
+        const progressiveSorted = [...totemCurveStatsList].sort((a, b) => b.progressive.netScore - a.progressive.netScore);
+        if (progressiveSorted.length > 0 && (progressiveSorted[0].progressive.netScore !== 0 || progressiveSorted[0].progressive.netVotes !== 0)) {
+          progressiveWinnerMap.set(founderName, {
+            totemId: progressiveSorted[0].totemId,
+            label: progressiveSorted[0].label,
+            image: progressiveSorted[0].image,
+            netScore: progressiveSorted[0].progressive.netScore,
+            netVotes: progressiveSorted[0].progressive.netVotes,
+          });
+        }
+
+        // Winning totem is the one with highest NET score (already sorted in aggregatedTotems)
         if (aggregatedTotems.length > 0) {
           const winner = aggregatedTotems[0];
 
@@ -159,6 +392,9 @@ export function useFoundersForHomePage() {
       winningTotem: winningTotemMap.get(founder.name) || null,
       proposalCount: proposalCountMap.get(founder.name) || 0,
       recentActivityCount: recentActivityMap.get(founder.name) || 0,
+      // NEW: Curve-specific winners
+      linearWinner: linearWinnerMap.get(founder.name) || null,
+      progressiveWinner: progressiveWinnerMap.get(founder.name) || null,
     }));
 
     // Calculate stats
@@ -174,13 +410,21 @@ export function useFoundersForHomePage() {
         foundersWithTotems,
         totalProposals,
       },
+      topTotemsMap,
     };
-  }, [founders, atomsData, proposalsData]);
+  }, [founders, atomsData, proposalsData, depositsData, termToTripleMap]);
 
-  return {
+  // Memoize combined loading and error states
+  const loading = atomsLoading || proposalsLoading || depositsLoading;
+  const error = useMemo(() => atomsError || proposalsError || null, [atomsError, proposalsError]);
+
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     founders: result.founders,
-    loading: atomsLoading || proposalsLoading,
-    error: atomsError || proposalsError,
+    loading,
+    error,
     stats: result.stats,
-  };
+    // NEW: Batched top totems map - avoids 42 individual queries
+    topTotemsMap: result.topTotemsMap,
+  }), [result.founders, loading, error, result.stats, result.topTotemsMap]);
 }

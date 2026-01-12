@@ -15,6 +15,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FounderForHomePage } from '../../hooks';
 import { getFounderImageUrl } from '../../utils/founderImage';
+import { truncateAmount } from '../../utils/formatters';
 import { VoteMarketCompact } from '../vote/VoteMarket';
 import { RefreshIndicator } from '../common/RefreshIndicator';
 import { TopTotemsRadar } from '../graph/TopTotemsRadar';
@@ -22,6 +23,202 @@ import { RelationsRadar } from '../graph/RelationsRadar';
 import { useTopTotems } from '../../hooks';
 import { useFounderPanelStats } from '../../hooks';
 import { useFounderTags } from '../../hooks';
+import { useTopTotemsByCurve, type CurveWinner, type TotemWithCurves, type CurveStats } from '../../hooks/data/useTopTotemsByCurve';
+import { SUPPORT_COLORS, OPPOSE_COLORS, CURVE_COLORS } from '../../config/colors';
+
+/**
+ * Format TRUST value for display (using truncation like INTUITION)
+ */
+function formatTrust(value: number): string {
+  if (value >= 1000) {
+    return `${truncateAmount(value / 1000, 1)}k`;
+  }
+  if (value >= 1) {
+    return truncateAmount(value, 2);
+  }
+  if (value >= 0.001) {
+    return truncateAmount(value, 5);
+  }
+  return '0';
+}
+
+/**
+ * CurveStatsCard - displays stats for a single curve with visual FOR/AGAINST bar
+ */
+function CurveStatsCard({
+  curve,
+  stats,
+  totemLabel,
+  isWinner,
+}: {
+  curve: 'linear' | 'progressive';
+  stats: CurveStats;
+  totemLabel: string;
+  isWinner: boolean;
+}) {
+  // Subtle curve colors from centralized config
+  const curveColors = curve === 'linear' ? CURVE_COLORS.linear : CURVE_COLORS.progressive;
+  const curveLabel = curve === 'linear' ? 'Linear' : 'Progressive';
+
+  // Calculate FOR percentage for the bar
+  const totalTrust = stats.trustFor + stats.trustAgainst;
+  const forPercentage = totalTrust > 0 ? (stats.trustFor / totalTrust) * 100 : 50;
+  const totalVoters = stats.walletsFor + stats.walletsAgainst;
+
+  // No activity on this curve
+  if (totalTrust === 0 && totalVoters === 0) {
+    return (
+      <div className="p-2 rounded-lg bg-white/5 border border-white/10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: curveColors.base }} />
+            <span className="text-[10px] font-medium" style={{ color: curveColors.text }}>{curveLabel}</span>
+          </div>
+          <span className="text-xs text-white font-medium truncate max-w-[100px]">
+            {totemLabel}
+          </span>
+        </div>
+        <div className="mt-1 text-[10px] text-white/40 italic">
+          Pas de votes sur cette courbe
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-2 rounded-lg bg-white/5 border border-white/10">
+      {/* Header: Curve label + Totem name */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          {isWinner && <span className="text-yellow-400">🏆</span>}
+          {!isWinner && <span className="text-white/40">📍</span>}
+          <span className="text-[10px] font-medium" style={{ color: curveColors.text }}>{curveLabel}</span>
+        </div>
+        <span className="text-xs text-white font-medium truncate max-w-[100px]">
+          {totemLabel}
+        </span>
+      </div>
+
+      {/* Visual bar FOR/AGAINST - Intuition colors */}
+      <div className="mt-2 h-2 bg-white/10 rounded-full overflow-hidden flex">
+        <div
+          className="h-full transition-all duration-300"
+          style={{ width: `${forPercentage}%`, backgroundColor: SUPPORT_COLORS.base }}
+        />
+        <div
+          className="h-full transition-all duration-300"
+          style={{ width: `${100 - forPercentage}%`, backgroundColor: OPPOSE_COLORS.base }}
+        />
+      </div>
+      <div className="flex items-center justify-between mt-1 text-[10px]">
+        <span style={{ color: SUPPORT_COLORS.base }}>{Math.round(forPercentage)}% FOR</span>
+      </div>
+
+      {/* FOR / AGAINST values */}
+      <div className="flex items-center justify-between mt-1.5 text-[10px]">
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: SUPPORT_COLORS.base }} />
+          <span style={{ color: SUPPORT_COLORS.base }}>{formatTrust(stats.trustFor)}</span>
+        </span>
+        <span className="text-white/30">·</span>
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: OPPOSE_COLORS.base }} />
+          <span style={{ color: OPPOSE_COLORS.base }}>{formatTrust(stats.trustAgainst)}</span>
+        </span>
+      </div>
+
+      {/* Balance + Voters */}
+      <div className="flex items-center justify-between mt-1 text-[10px]">
+        <span className="text-white/40">Balance:</span>
+        <span className={stats.netScore >= 0 ? 'text-green-400' : 'text-red-400'}>
+          {stats.netScore >= 0 ? '+' : ''}{formatTrust(stats.netScore)}
+        </span>
+        <span className="text-white/30">·</span>
+        <span className="text-white/50">{totalVoters} votants</span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * TotemStatsPanel - displays stats for selected totem or winners
+ *
+ * - If a totem is selected: shows its Linear + Progressive stats
+ * - If no totem selected: shows the winners (Linear winner + Progressive winner)
+ */
+function TotemStatsPanel({
+  selectedTotemId,
+  totems,
+  linearWinner,
+  progressiveWinner,
+}: {
+  selectedTotemId?: string;
+  totems: TotemWithCurves[];
+  linearWinner: CurveWinner | null;
+  progressiveWinner: CurveWinner | null;
+}) {
+  // If a totem is selected, find it and display its stats
+  if (selectedTotemId) {
+    const selectedTotem = totems.find((t) => t.id === selectedTotemId);
+    if (selectedTotem) {
+      // Check if this totem is a winner
+      const isLinearWinner = linearWinner?.totemId === selectedTotemId;
+      const isProgressiveWinner = progressiveWinner?.totemId === selectedTotemId;
+
+      return (
+        <div className="mt-3 space-y-1.5">
+          <CurveStatsCard
+            curve="linear"
+            stats={selectedTotem.linear}
+            totemLabel={selectedTotem.label}
+            isWinner={isLinearWinner}
+          />
+          <CurveStatsCard
+            curve="progressive"
+            stats={selectedTotem.progressive}
+            totemLabel={selectedTotem.label}
+            isWinner={isProgressiveWinner}
+          />
+        </div>
+      );
+    }
+  }
+
+  // No totem selected - show winners (sorted by netScore)
+  const winners: Array<{ winner: CurveWinner; curve: 'linear' | 'progressive'; stats: CurveStats }> = [];
+
+  if (linearWinner) {
+    const totem = totems.find((t) => t.id === linearWinner.totemId);
+    if (totem) {
+      winners.push({ winner: linearWinner, curve: 'linear', stats: totem.linear });
+    }
+  }
+  if (progressiveWinner) {
+    const totem = totems.find((t) => t.id === progressiveWinner.totemId);
+    if (totem) {
+      winners.push({ winner: progressiveWinner, curve: 'progressive', stats: totem.progressive });
+    }
+  }
+
+  // Sort by absolute netScore descending
+  winners.sort((a, b) => Math.abs(b.winner.netScore) - Math.abs(a.winner.netScore));
+
+  if (winners.length === 0) return null;
+
+  return (
+    <div className="mt-3 space-y-1.5">
+      {winners.map(({ winner, curve, stats }) => (
+        <CurveStatsCard
+          key={curve}
+          curve={curve}
+          stats={stats}
+          totemLabel={winner.totemLabel}
+          isWinner={true}
+        />
+      ))}
+    </div>
+  );
+}
 
 type GraphTab = 'topTotems' | 'voteGraph';
 
@@ -36,6 +233,8 @@ interface FounderInfoPanelProps {
   hasNewData?: boolean;
   /** Callback when a totem is clicked in the graph */
   onSelectTotem?: (totemId: string, totemLabel: string) => void;
+  /** Currently selected totem ID (to show its stats instead of winners) */
+  selectedTotemId?: string;
 }
 
 export function FounderInfoPanel({
@@ -47,6 +246,7 @@ export function FounderInfoPanel({
   isLoading = false,
   hasNewData = false,
   onSelectTotem,
+  selectedTotemId,
 }: FounderInfoPanelProps) {
   const { t } = useTranslation();
   const imageUrl = getFounderImageUrl(founder);
@@ -65,6 +265,9 @@ export function FounderInfoPanel({
 
   // Fetch founder tags from blockchain
   const { tags, loading: tagsLoading } = useFounderTags(founder.name);
+
+  // Fetch curve winners (Linear/Progressive) and all totems with curve breakdown
+  const { totems: totemsByCurve, linearWinner, progressiveWinner, loading: curveLoading } = useTopTotemsByCurve(founder.name);
 
   // Extract social links from founder data
   const socialLinks = {
@@ -218,6 +421,16 @@ export function FounderInfoPanel({
           </span>
         </div>
       </div>
+
+      {/* Totem Stats - selected totem or winners with FOR/AGAINST bar */}
+      {!curveLoading && (linearWinner || progressiveWinner || selectedTotemId) && (
+        <TotemStatsPanel
+          selectedTotemId={selectedTotemId}
+          totems={totemsByCurve}
+          linearWinner={linearWinner}
+          progressiveWinner={progressiveWinner}
+        />
+      )}
 
       {/* Graph Tabs */}
       <div className="mt-4 shrink-0">

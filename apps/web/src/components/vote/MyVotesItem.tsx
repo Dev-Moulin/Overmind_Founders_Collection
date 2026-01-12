@@ -12,6 +12,7 @@
  */
 
 import type { UserVoteWithDetails } from '../../hooks';
+import { SUPPORT_COLORS, OPPOSE_COLORS } from '../../config/colors';
 
 interface MyVotesItemProps {
   vote: UserVoteWithDetails;
@@ -68,69 +69,98 @@ function AtomImage({
  * MyVotesItem component
  */
 export function MyVotesItem({ vote, onClick, isSelected }: MyVotesItemProps) {
-  const { term, isPositive, signedAmount } = vote;
-  const amountColor = isPositive ? 'text-blue-400' : 'text-orange-400';
+  const { term, isPositive, signedAmount, curveId } = vote;
+
+  // Direction: S = Support, O = Oppose
+  const directionLabel = isPositive ? 'S' : 'O';
+
+  // Curve indicator: L = Linear (1), P = Progressive (2)
+  const isLinear = curveId === 1;
+  const curveLabel = isLinear ? 'L' : 'P';
+
+  // Direction colors - Intuition scheme (both badges use direction color)
+  const directionColors = isPositive ? SUPPORT_COLORS : OPPOSE_COLORS;
 
   return (
     <button
       onClick={() => onClick?.(term.object.term_id, term.object.label)}
       className={`w-full text-left p-2.5 rounded-lg transition-all ${
         isSelected
-          ? 'bg-slate-500/30 ring-1 ring-slate-500/50'
+          ? 'ring-1'
           : 'bg-white/5 hover:bg-white/10'
       }`}
+      style={isSelected ? {
+        backgroundColor: `${directionColors.base}20`,
+        boxShadow: `0 0 0 1px ${directionColors.base}50`,
+      } : undefined}
     >
       <div className="flex items-center justify-between gap-2">
-        {/* Triple: Subject - Predicate - Object */}
-        <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          {/* Subject */}
-          <div className="flex items-center gap-1 shrink-0">
+        {/* Triple: Subject - Predicate - Object (Tags/Bulles style) */}
+        <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
+          {/* Subject Tag */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/10 rounded-full shrink-0">
             <AtomImage
               image={term.subject.image}
               emoji={term.subject.emoji}
               label={term.subject.label}
               size="xs"
             />
-            <span className="text-xs text-white/70 truncate max-w-[60px]">
+            <span className="text-xs text-white/80 truncate max-w-[60px]">
               {term.subject.label.split(' ')[0]}
             </span>
           </div>
 
           <span className="text-white/30 text-xs shrink-0">-</span>
 
-          {/* Predicate */}
-          <div className="flex items-center gap-1 shrink-0">
+          {/* Predicate Tag */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-500/30 rounded-full shrink-0">
             <AtomImage
               image={term.predicate.image}
               emoji={term.predicate.emoji}
               label={term.predicate.label}
               size="xs"
             />
-            <span className="text-xs text-white/50 truncate max-w-[70px]">
+            <span className="text-xs text-slate-300 truncate max-w-[70px]">
               {term.predicate.label}
             </span>
           </div>
 
           <span className="text-white/30 text-xs shrink-0">-</span>
 
-          {/* Object (Totem) */}
-          <div className="flex items-center gap-1 min-w-0">
+          {/* Object (Totem) Tag */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/10 rounded-full min-w-0">
             <AtomImage
               image={term.object.image}
               emoji={term.object.emoji}
               label={term.object.label}
-              size="sm"
+              size="xs"
             />
-            <span className="text-sm text-white font-medium truncate">
+            <span className="text-xs text-white font-medium truncate">
               {term.object.label}
             </span>
           </div>
         </div>
 
-        {/* Amount */}
-        <span className={`text-sm font-medium ${amountColor} shrink-0`}>
-          {signedAmount}
-        </span>
+        {/* Amount + Direction/Curve badges */}
+        <div className="flex items-center gap-1 shrink-0">
+          <span className="text-sm font-medium" style={{ color: directionColors.base }}>
+            {signedAmount}
+          </span>
+          {/* Direction badge: S (Support) or O (Oppose) */}
+          <span
+            className="text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded"
+            style={{ backgroundColor: `${directionColors.base}30`, color: directionColors.base }}
+          >
+            {directionLabel}
+          </span>
+          {/* Curve badge: L (Linear) or P (Progressive) - same direction color */}
+          <span
+            className="text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded"
+            style={{ backgroundColor: `${directionColors.base}20`, color: directionColors.base }}
+          >
+            {curveLabel}
+          </span>
+        </div>
       </div>
     </button>
   );

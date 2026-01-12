@@ -9,6 +9,7 @@ import { usePositionBothSides } from '../../hooks';
 import { GET_USER_POSITION } from '../../lib/graphql/queries';
 import { WithdrawModal } from './WithdrawModal';
 import type { ExistingClaimInfo } from '../../types/claim';
+import { SUPPORT_COLORS, OPPOSE_COLORS } from '../../config/colors';
 
 // Re-export for backward compatibility
 export type { ExistingClaimInfo } from '../../types/claim';
@@ -170,8 +171,8 @@ export function ClaimExistsModal({
     // Prevent voting in opposite direction - must withdraw first
     if (isVotingOppositeDirection) {
       setValidationError(t('claimExists.cannotVoteOpposite', {
-        currentDirection: userExistingDirection === 'for' ? 'FOR' : 'AGAINST',
-        targetDirection: direction === 'for' ? 'FOR' : 'AGAINST',
+        currentDirection: userExistingDirection === 'for' ? 'Support' : 'Oppose',
+        targetDirection: direction === 'for' ? 'Support' : 'Oppose',
       }));
       return;
     }
@@ -265,16 +266,21 @@ export function ClaimExistsModal({
 
           {/* User's existing position */}
           {hasUserPosition && (
-            <div className={`p-4 rounded-lg ${
-              userExistingDirection === 'for'
-                ? 'bg-green-500/10 border border-green-500/30'
-                : 'bg-red-500/10 border border-red-500/30'
-            }`}>
+            <div
+              className="p-4 rounded-lg border"
+              style={{
+                backgroundColor: `${userExistingDirection === 'for' ? SUPPORT_COLORS.base : OPPOSE_COLORS.base}1a`,
+                borderColor: `${userExistingDirection === 'for' ? SUPPORT_COLORS.base : OPPOSE_COLORS.base}4d`,
+              }}
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-white/60">{t('claimExists.currentPosition')}</p>
-                  <p className={`font-bold ${userExistingDirection === 'for' ? 'text-green-400' : 'text-red-400'}`}>
-                    {formatEther(userShares)} {t('common.shares')} ({userExistingDirection === 'for' ? 'FOR' : 'AGAINST'})
+                  <p
+                    className="font-bold"
+                    style={{ color: userExistingDirection === 'for' ? SUPPORT_COLORS.base : OPPOSE_COLORS.base }}
+                  >
+                    {formatEther(userShares)} {t('common.shares')} ({userExistingDirection === 'for' ? 'Support' : 'Oppose'})
                   </p>
                 </div>
                 <button
@@ -290,8 +296,8 @@ export function ClaimExistsModal({
                 <div className="mt-3 p-3 rounded bg-amber-500/20 border border-amber-500/40">
                   <p className="text-amber-400 text-sm mb-2">
                     {t('claimExists.cannotVoteOpposite', {
-                      currentDirection: userExistingDirection === 'for' ? 'FOR' : 'AGAINST',
-                      targetDirection: direction === 'for' ? 'FOR' : 'AGAINST',
+                      currentDirection: userExistingDirection === 'for' ? 'Support' : 'Oppose',
+                      targetDirection: direction === 'for' ? 'Support' : 'Oppose',
                     })}
                   </p>
                   <button

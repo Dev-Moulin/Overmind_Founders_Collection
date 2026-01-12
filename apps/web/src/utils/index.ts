@@ -15,6 +15,6 @@ export {
   enrichTripleWithVotes,
 } from './voteCalculations';
 
-export { formatTimeSinceUpdate, getTimeAgo } from './formatters';
+export { formatTimeSinceUpdate, getTimeAgo, truncateAmount, formatSignedAmount } from './formatters';
 
 export { getCategoryName } from './category';

@@ -6,7 +6,7 @@
  * quand le prédicat ET le totem sont sélectionnés
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLazyQuery } from '@apollo/client';
 import { GET_TRIPLE_BY_ATOMS } from '../../lib/graphql/queries';
 import type { ExistingClaimInfo } from '../../components/modal/ClaimExistsModal';
@@ -119,11 +119,12 @@ export function useProactiveClaimCheck({
     [checkClaimExists]
   );
 
-  return {
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     proactiveClaimInfo,
     isLoading: claimCheckLoading,
     reset,
     refetch,
     checkClaim,
-  };
+  }), [proactiveClaimInfo, claimCheckLoading, reset, refetch, checkClaim]);
 }

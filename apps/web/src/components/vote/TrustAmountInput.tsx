@@ -1,5 +1,6 @@
 import { formatEther } from 'viem';
 import { PresetButtons } from './PresetButtons';
+import { truncateAmount } from '../../utils/formatters';
 
 /**
  * TrustAmountInput - Input pour le montant TRUST avec validation (Step 3)
@@ -32,7 +33,7 @@ export function TrustAmountInput({
 }: TrustAmountInputProps) {
   // Format balance for PresetButtons
   const formattedBalance = balance !== undefined
-    ? Number(formatEther(balance)).toFixed(4)
+    ? truncateAmount(Number(formatEther(balance)))
     : undefined;
 
   return (
@@ -62,7 +63,7 @@ export function TrustAmountInput({
       )}
 
       <div className="text-xs text-white/40 mt-2 space-y-1">
-        <p>Balance: {balance !== undefined ? `${Number(formatEther(balance)).toFixed(3)} TRUST` : 'Chargement...'}</p>
+        <p>Balance: {balance !== undefined ? `${truncateAmount(Number(formatEther(balance)), 3)} TRUST` : 'Chargement...'}</p>
         {configLoading ? (
           <p>Chargement config protocole...</p>
         ) : protocolConfig ? (

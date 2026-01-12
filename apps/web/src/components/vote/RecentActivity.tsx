@@ -1,22 +1,17 @@
 import { formatVoteAmount } from '../../hooks';
 import { getTimeAgo } from '../../utils';
+import type { RecentVote } from '../../hooks';
+import { SUPPORT_COLORS, OPPOSE_COLORS } from '../../config/colors';
 
 /**
  * RecentActivity - Affiche l'historique des votes récents
- * Extrait de VotePanel.tsx lignes 587-616
+ *
+ * Utilise recentVotes de useVotesTimeline qui fournit isFor via le pattern V2:
+ * - Deposit sur term_id = FOR vote
+ * - Deposit sur counter_term_id = AGAINST vote
+ *
+ * @see useVotesTimeline in hooks/data/useVotesTimeline.ts
  */
-
-export interface RecentVote {
-  id: string;
-  sender_id: string;
-  vault_type: 'triple_positive' | 'triple_negative';
-  assets_after_fees: string;
-  created_at: string;
-  term: {
-    term_id: string;
-    object: { label: string };
-  };
-}
 
 interface RecentActivityProps {
   votes: RecentVote[];
@@ -35,20 +30,23 @@ export function RecentActivity({ votes }: RecentActivityProps) {
       </h4>
       <div className="space-y-2">
         {votes.slice(0, 5).map((vote) => {
-          const isFor = vote.vault_type === 'triple_positive';
+          // isFor is now provided directly by useRecentVotesForFounder hook
           const amount = formatVoteAmount(vote.assets_after_fees);
           const timeAgo = getTimeAgo(vote.created_at);
           const voterShort = `${vote.sender_id.slice(0, 6)}...${vote.sender_id.slice(-4)}`;
 
           return (
             <div key={vote.id} className="flex items-center gap-2 text-xs">
-              <span className={`w-1.5 h-1.5 rounded-full ${isFor ? 'bg-green-500' : 'bg-red-500'}`} />
+              <span
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: vote.isFor ? SUPPORT_COLORS.base : OPPOSE_COLORS.base }}
+              />
               <span className="text-white/40 font-mono">{voterShort}</span>
-              <span className={isFor ? 'text-green-400' : 'text-red-400'}>
-                {isFor ? '+' : '-'}{amount}
+              <span style={{ color: vote.isFor ? SUPPORT_COLORS.base : OPPOSE_COLORS.base }}>
+                {vote.isFor ? '+' : '-'}{amount}
               </span>
               <span className="text-white/60 truncate flex-1">
-                sur {vote.term.object.label}
+                sur {vote.totemLabel}
               </span>
               <span className="text-white/30">{timeAgo}</span>
             </div>

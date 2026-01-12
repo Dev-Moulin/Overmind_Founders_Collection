@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useReadContract } from 'wagmi';
 import { base } from 'wagmi/chains';
 import type { Address } from 'viem';
@@ -55,35 +56,23 @@ export function useWhitelist(address?: Address) {
     },
   });
 
-  return {
-    /**
-     * True if the address owns at least one NFT
-     */
-    isEligible: balance ? balance > 0n : false,
+  // Memoize computed values
+  const isEligible = balance ? balance > 0n : false;
+  const balanceValue = balance ?? 0n;
 
-    /**
-     * Loading state while checking balance
-     */
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
+    /** True if the address owns at least one NFT */
+    isEligible,
+    /** Loading state while checking balance */
     isLoading,
-
-    /**
-     * Error if contract read fails
-     */
+    /** Error if contract read fails */
     error,
-
-    /**
-     * Manual refetch function to check eligibility again
-     */
+    /** Manual refetch function to check eligibility again */
     refetch,
-
-    /**
-     * NFT balance (number of NFTs owned)
-     */
-    balance: balance ?? 0n,
-
-    /**
-     * NFT contract address
-     */
+    /** NFT balance (number of NFTs owned) */
+    balance: balanceValue,
+    /** NFT contract address */
     contractAddress: NFT_CONTRACT,
-  };
+  }), [isEligible, isLoading, error, refetch, balanceValue]);
 }

@@ -14,6 +14,8 @@ import { formatEther } from 'viem';
 import type { Hex } from 'viem';
 import { PresetButtons } from './PresetButtons';
 import { usePreviewRedeem } from '../../hooks';
+import { truncateAmount } from '../../utils/formatters';
+import { SUPPORT_COLORS, OPPOSE_COLORS } from '../../config/colors';
 
 interface Position {
   direction: 'for' | 'against';
@@ -91,7 +93,7 @@ export function PositionModifier({
   // Format current position
   const formattedPosition = useMemo(() => {
     const shares = position.formattedShares || formatEther(position.shares);
-    return parseFloat(shares).toFixed(4);
+    return truncateAmount(parseFloat(shares));
   }, [position]);
 
   // Calculate shares to withdraw based on percentage
@@ -128,9 +130,9 @@ export function PositionModifier({
     setAction(null);
   };
 
-  const directionLabel = position.direction === 'for' ? 'FOR' : 'AGAINST';
-  const directionColor = position.direction === 'for' ? 'text-green-400' : 'text-red-400';
-  const oppositeLabel = position.direction === 'for' ? 'AGAINST' : 'FOR';
+  const directionLabel = position.direction === 'for' ? 'Support' : 'Oppose';
+  const directionColorValue = position.direction === 'for' ? SUPPORT_COLORS.base : OPPOSE_COLORS.base;
+  const oppositeLabel = position.direction === 'for' ? 'Oppose' : 'Support';
 
   return (
     <div className={`bg-white/5 border border-white/10 rounded-lg p-4 ${className}`}>
@@ -139,7 +141,7 @@ export function PositionModifier({
         <div>
           <span className="text-xs text-white/50">Position actuelle</span>
           <div className="flex items-center gap-2 mt-1">
-            <span className={`font-semibold ${directionColor}`}>{directionLabel}</span>
+            <span className="font-semibold" style={{ color: directionColorValue }}>{directionLabel}</span>
             <span className="text-white">{formattedPosition} shares</span>
           </div>
         </div>

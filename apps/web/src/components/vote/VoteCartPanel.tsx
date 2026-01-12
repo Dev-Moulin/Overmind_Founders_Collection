@@ -8,12 +8,14 @@
  * @see Documentation: Claude/00_GESTION_PROJET/Projet_02_SDK_V2/TODO_Implementation.md
  */
 
-import { useMemo, useRef, useCallback, useState } from 'react';
+import { useMemo, useRef, useCallback, useState, memo } from 'react';
 import { formatEther } from 'viem';
 import { useTranslation } from 'react-i18next';
 import { useAccount, useBalance } from 'wagmi';
 import { useBatchVote } from '../../hooks';
+import { truncateAmount } from '../../utils/formatters';
 import type { VoteCart, VoteCartItem, VoteCartCostSummary } from '../../types/voteCart';
+import { SUPPORT_COLORS, OPPOSE_COLORS } from '../../config/colors';
 
 /**
  * Draggable amount input - allows drag left/right to change value
@@ -65,7 +67,7 @@ function DraggableAmountInput({
       const sensitivity = moveEvent.shiftKey ? 0.0001 : 0.001;
       const deltaValue = deltaX * sensitivity;
       const newValue = Math.max(min, dragStartValue.current + deltaValue);
-      onChange(newValue.toFixed(4));
+      onChange(truncateAmount(newValue));
     };
 
     const handleMouseUp = () => {
@@ -91,7 +93,7 @@ function DraggableAmountInput({
       const sensitivity = 0.001;
       const deltaValue = deltaX * sensitivity;
       const newValue = Math.max(min, dragStartValue.current + deltaValue);
-      onChange(newValue.toFixed(4));
+      onChange(truncateAmount(newValue));
     };
 
     const handleTouchEnd = () => {
@@ -148,8 +150,6 @@ interface VoteCartPanelProps {
   onRemoveItem: (itemId: string) => void;
   /** Clear cart callback */
   onClearCart: () => void;
-  /** Update direction callback */
-  onUpdateDirection: (itemId: string, direction: 'for' | 'against') => void;
   /** Update amount callback */
   onUpdateAmount: (itemId: string, amount: string) => void;
   /** Callback when batch is successfully executed */
@@ -238,27 +238,27 @@ function analyzeAffordability(
  * Single cart item display - 2 row layout with draggable amount input
  * Row 1: FOR/AGAINST (small, left) | Totem name (center) | X (small, right)
  * Row 2: Draggable input + TRUST + MAX button
+ *
+ * MEMOIZED to prevent re-renders when parent re-renders with same props
  */
-function CartItemRow({
+const CartItemRow = memo(function CartItemRow({
   item,
   onRemove,
-  onUpdateDirection,
   onUpdateAmount,
   canAfford = true,
   maxAffordableAmount,
 }: {
   item: VoteCartItem;
   onRemove: () => void;
-  onUpdateDirection: (direction: 'for' | 'against') => void;
   onUpdateAmount: (amount: string) => void;
   canAfford?: boolean;
   maxAffordableAmount?: bigint;
 }) {
   const { t } = useTranslation();
-  const formattedAmount = Number(formatEther(item.amount)).toFixed(4);
+  const formattedAmount = truncateAmount(Number(formatEther(item.amount)));
   // MAX déjà calculé avec les fees dans analyzeAffordability, petit buffer de sécurité
   const maxAffordableRaw = maxAffordableAmount ? Number(formatEther(maxAffordableAmount)) : 0;
-  const maxAffordable = Math.max(0.001, maxAffordableRaw - 0.0005).toFixed(4); // Tiny safety margin
+  const maxAffordable = truncateAmount(Math.max(0.001, maxAffordableRaw - 0.0005)); // Tiny safety margin
   const canAdjustToMax = !canAfford && maxAffordableAmount && maxAffordableAmount > 0n;
 
   return (
@@ -267,30 +267,32 @@ function CartItemRow({
         canAfford ? 'bg-white/5 border-white/10' : 'bg-red-500/5 border-red-500/30'
       }`}
     >
-      {/* Row 1: Direction toggle (left) | Totem name (center) | Remove (right) */}
+      {/* Row 1: Direction+Curve badges (left) | Totem name (center) | Remove (right) */}
       <div className="flex items-center gap-1 mb-1.5">
-        {/* Direction toggle - reduced container, larger text */}
-        <div className="flex rounded-sm overflow-hidden border border-white/10 shrink-0 scale-[0.7] origin-left">
-          <button
-            onClick={() => onUpdateDirection('for')}
-            className={`px-2.5 py-1 text-sm font-medium transition-colors ${
-              item.direction === 'for'
-                ? 'bg-green-500/20 text-green-400'
-                : 'bg-white/5 text-white/40 hover:text-white/60'
-            }`}
+        {/* Direction + Curve badges - compact [S/O] [L/P] both colored by direction */}
+        <div className="flex items-center gap-0.5 shrink-0">
+          {/* Direction badge: S (Support) or O (Oppose) */}
+          <span
+            className="w-5 h-5 flex items-center justify-center text-[10px] font-bold rounded"
+            style={{
+              backgroundColor: `${item.direction === 'for' ? SUPPORT_COLORS.base : OPPOSE_COLORS.base}30`,
+              color: item.direction === 'for' ? SUPPORT_COLORS.base : OPPOSE_COLORS.base,
+            }}
+            title={item.direction === 'for' ? 'Support' : 'Oppose'}
           >
-            FOR
-          </button>
-          <button
-            onClick={() => onUpdateDirection('against')}
-            className={`px-2.5 py-1 text-sm font-medium transition-colors ${
-              item.direction === 'against'
-                ? 'bg-red-500/20 text-red-400'
-                : 'bg-white/5 text-white/40 hover:text-white/60'
-            }`}
+            {item.direction === 'for' ? 'S' : 'O'}
+          </span>
+          {/* Curve badge: L (Linear) or P (Progressive) - same direction color */}
+          <span
+            className="w-5 h-5 flex items-center justify-center text-[10px] font-bold rounded"
+            style={{
+              backgroundColor: `${item.direction === 'for' ? SUPPORT_COLORS.base : OPPOSE_COLORS.base}20`,
+              color: item.direction === 'for' ? SUPPORT_COLORS.base : OPPOSE_COLORS.base,
+            }}
+            title={item.curveId === 1 ? 'Linear' : 'Progressive'}
           >
-            AGT
-          </button>
+            {item.curveId === 1 ? 'L' : 'P'}
+          </span>
         </div>
 
         {/* Totem name - centered, flex-1 */}
@@ -359,43 +361,74 @@ function CartItemRow({
       )}
     </div>
   );
-}
+});
 
 /**
  * Cost summary display - compact
+ * Shows detailed breakdown of costs including triple creation
  */
 function CostSummarySection({ summary }: { summary: VoteCartCostSummary }) {
   const { t } = useTranslation();
 
+  // Calculate effective deposit (what goes to vault after triple costs)
+  const effectiveDeposit = summary.totalDeposits > summary.tripleCreationCosts
+    ? summary.totalDeposits - summary.tripleCreationCosts
+    : 0n;
+
   return (
     <div className="p-1.5 bg-slate-500/10 border border-slate-500/20 rounded shrink-0">
       <div className="space-y-0.5 text-[10px]">
+        {/* User's total input */}
         <div className="flex justify-between text-white/50">
           <span>{t('founderExpanded.deposits')}</span>
-          <span>{Number(formatEther(summary.totalDeposits)).toFixed(2)}</span>
+          <span>{truncateAmount(Number(formatEther(summary.totalDeposits)))}</span>
         </div>
+
+        {/* Triple creation costs (taken from deposit) */}
+        {summary.tripleCreationCosts > 0n && (
+          <div className="flex justify-between text-orange-400/70">
+            <span>{t('founderExpanded.tripleCreation', { count: summary.newTripleCount }) || `Triple creation (${summary.newTripleCount})`}</span>
+            <span>-{truncateAmount(Number(formatEther(summary.tripleCreationCosts)))}</span>
+          </div>
+        )}
+
+        {/* Effective deposit (what actually goes to vault) */}
+        {summary.tripleCreationCosts > 0n && (
+          <div className="flex justify-between text-blue-400/70">
+            <span>{t('founderExpanded.effectiveDeposit') || 'Effective deposit'}</span>
+            <span>{truncateAmount(Number(formatEther(effectiveDeposit)))}</span>
+          </div>
+        )}
+
+        {/* Entry fees (calculated on effective deposit) */}
         {summary.estimatedEntryFees > 0n && (
           <div className="flex justify-between text-white/30">
             <span>{t('founderExpanded.entryFees')}</span>
-            <span>+{Number(formatEther(summary.estimatedEntryFees)).toFixed(2)}</span>
+            <span>+{truncateAmount(Number(formatEther(summary.estimatedEntryFees)))}</span>
           </div>
         )}
+
+        {/* Atom creation costs (for new totems) */}
         {summary.atomCreationCosts > 0n && (
           <div className="flex justify-between text-white/30">
             <span>{t('founderExpanded.atomCreation', { count: summary.newTotemCount })}</span>
-            <span>+{Number(formatEther(summary.atomCreationCosts)).toFixed(2)}</span>
+            <span>+{truncateAmount(Number(formatEther(summary.atomCreationCosts)))}</span>
           </div>
         )}
+
+        {/* Withdrawals (reduce cost) */}
         {summary.totalWithdrawable > 0n && (
           <div className="flex justify-between text-green-400/70">
             <span>{t('founderExpanded.withdrawals', { count: summary.withdrawCount })}</span>
-            <span>-{Number(formatEther(summary.totalWithdrawable)).toFixed(2)}</span>
+            <span>-{truncateAmount(Number(formatEther(summary.totalWithdrawable)))}</span>
           </div>
         )}
+
+        {/* Net total */}
         <div className="border-t border-white/10 pt-1 mt-1">
           <div className="flex justify-between text-white text-xs font-medium">
             <span>{t('founderExpanded.netTotal')}</span>
-            <span>{Number(formatEther(summary.netCost)).toFixed(2)} TRUST</span>
+            <span>{truncateAmount(Number(formatEther(summary.netCost)))} TRUST</span>
           </div>
         </div>
       </div>
@@ -411,7 +444,6 @@ export function VoteCartPanel({
   costSummary,
   onRemoveItem,
   onClearCart,
-  onUpdateDirection,
   onUpdateAmount,
   onSuccess,
   validationErrors,
@@ -424,7 +456,7 @@ export function VoteCartPanel({
 
   // Get user balance in wei
   const userBalance = balanceData?.value ?? 0n;
-  const formattedBalance = balanceData ? Number(balanceData.formatted).toFixed(4) : '0';
+  const formattedBalance = balanceData ? truncateAmount(Number(balanceData.formatted)) : '0';
 
   // Analyze affordability of each item
   const { affordability, totalAffordable, totalBlocked } = useMemo(() => {
@@ -510,7 +542,7 @@ export function VoteCartPanel({
                   {t('voteCart.insufficientBalance') || 'Balance insuffisante'}
                 </span>
                 <span className="text-[10px] text-red-300 shrink-0">
-                  -{Number(formatEther(missingAmount)).toFixed(2)} TRUST
+                  -{truncateAmount(Number(formatEther(missingAmount)), 2)} TRUST
                 </span>
               </div>
               {totalBlocked > 0 && (
@@ -534,7 +566,6 @@ export function VoteCartPanel({
               key={item.id}
               item={item}
               onRemove={() => onRemoveItem(item.id)}
-              onUpdateDirection={(dir) => onUpdateDirection(item.id, dir)}
               onUpdateAmount={(amount) => onUpdateAmount(item.id, amount)}
               canAfford={itemAff?.canAfford ?? true}
               maxAffordableAmount={itemAff?.maxAffordableAmount}

@@ -7,7 +7,7 @@ import { useFoundersForHomePage, type FounderForHomePage } from '../hooks';
 
 export function HomePage() {
   const { t } = useTranslation();
-  const { founders, loading, error, stats } = useFoundersForHomePage();
+  const { founders, loading, error, stats, topTotemsMap } = useFoundersForHomePage();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Get selected founder from URL param
@@ -100,6 +100,7 @@ export function HomePage() {
                 founder={founder}
                 onSelect={selectFounder}
                 isSelected={founder.id === selectedFounderId}
+                topTotems={topTotemsMap.get(founder.name) || []}
               />
             ))}
           </div>

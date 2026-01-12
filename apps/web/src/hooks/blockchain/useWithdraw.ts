@@ -1,10 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import { formatEther, type Hex } from 'viem';
 import { redeem, getMultiVaultAddressFromChainId, MultiVaultAbi } from '@0xintuition/protocol';
 import { currentIntuitionChain } from '../../config/wagmi';
 import { toast } from 'sonner';
 import type { WithdrawStatus, WithdrawError, WithdrawPreview } from '../../types/withdraw';
+import { type CurveId, CURVE_LINEAR } from './useVote';
 
 /**
  * Result of useWithdraw hook
@@ -14,25 +15,14 @@ export interface UseWithdrawResult {
     termId: Hex,
     shares: bigint,
     isPositive: boolean,
-    minAssets?: bigint
+    minAssets?: bigint,
+    curveId?: CurveId
   ) => Promise<Hex | null>;
   status: WithdrawStatus;
   error: WithdrawError | null;
   isLoading: boolean;
   reset: () => void;
 }
-
-/**
- * Default Curve ID for MultiVault
- *
- * In INTUITION V2, curveId=1 is the default bonding curve used for ALL deposits.
- * FOR vs AGAINST is determined by the termId used:
- * - FOR = triple's term_id
- * - AGAINST = triple's counter_term_id
- *
- * The curveId is NOT different for FOR vs AGAINST.
- */
-const DEFAULT_CURVE_ID = 1n;
 
 /**
  * Hook to withdraw TRUST from a vault after voting
@@ -81,6 +71,7 @@ export function useWithdraw(): UseWithdrawResult {
    * @param shares - Number of shares to redeem
    * @param isPositive - true for FOR vault, false for AGAINST vault
    * @param minAssets - Minimum assets to receive (slippage protection), defaults to 0
+   * @param curveId - Curve ID: 1 = Linear (default), 2 = Offset Progressive
    * @returns Transaction hash or null if failed
    */
   const withdraw = useCallback(
@@ -88,7 +79,8 @@ export function useWithdraw(): UseWithdrawResult {
       termId: Hex,
       shares: bigint,
       isPositive: boolean,
-      minAssets: bigint = 0n
+      minAssets: bigint = 0n,
+      curveId: CurveId = CURVE_LINEAR
     ): Promise<Hex | null> => {
       if (!address) {
         setError({
@@ -125,23 +117,24 @@ export function useWithdraw(): UseWithdrawResult {
         setStatus('withdrawing');
         toast.info('Please sign the withdrawal transaction...');
 
-        // In INTUITION V2, curveId=1 is used for ALL deposits (FOR and AGAINST)
+        // In INTUITION V2, curveId determines the bonding curve:
+        // - 1 = Linear (stable, 1:1 ratio)
+        // - 4 = Offset Progressive (rewards early adopters)
         // FOR vs AGAINST is determined by which termId you use, not the curveId
-        // The isPositive parameter is kept for future use/clarity but doesn't affect curveId
-        const curveId = DEFAULT_CURVE_ID;
+        const curveIdBigInt = BigInt(curveId);
 
         // Check maxRedeem to see how much can be redeemed
         const maxRedeemable = await publicClient.readContract({
           address: multiVaultAddress,
           abi: MultiVaultAbi,
           functionName: 'maxRedeem',
-          args: [address, termId, curveId],
+          args: [address, termId, curveIdBigInt],
         }) as bigint;
 
         console.log('[useWithdraw] Pre-redeem check:', {
           receiver: address,
           termId,
-          curveId: curveId.toString(),
+          curveId: curveIdBigInt.toString(),
           requestedShares: shares.toString(),
           maxRedeemable: maxRedeemable.toString(),
           canRedeem: maxRedeemable >= shares,
@@ -178,7 +171,7 @@ export function useWithdraw(): UseWithdrawResult {
 
         // Call redeem function from @0xintuition/protocol
         const txHash = await redeem(config, {
-          args: [address, termId, curveId, sharesToRedeem, minAssets],
+          args: [address, termId, curveIdBigInt, sharesToRedeem, minAssets],
         });
 
         toast.loading('Withdrawing TRUST...', { id: 'withdraw' });
@@ -245,13 +238,14 @@ export function useWithdraw(): UseWithdrawResult {
     [address, walletClient, publicClient, multiVaultAddress, reset]
   );
 
-  return {
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     withdraw,
     status,
     error,
     isLoading: status === 'withdrawing',
     reset,
-  };
+  }), [withdraw, status, error, reset]);
 }
 
 /**

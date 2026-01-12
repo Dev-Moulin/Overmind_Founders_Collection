@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useIntuition } from '../blockchain/useIntuition';
 
 interface FounderData {
@@ -197,7 +197,8 @@ export function useAdminActions({
     [isReady, isAdmin, createAtom, refetchOfcAtoms]
   );
 
-  return {
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     creatingItem,
     createdItems,
     createError,
@@ -205,5 +206,5 @@ export function useAdminActions({
     handleCreatePredicate,
     handleCreateTotem,
     handleCreateOfcAtom,
-  };
+  }), [creatingItem, createdItems, createError, handleCreateFounderAtom, handleCreatePredicate, handleCreateTotem, handleCreateOfcAtom]);
 }

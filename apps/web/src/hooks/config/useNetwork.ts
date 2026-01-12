@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { type Network, getCurrentNetwork, setCurrentNetwork, getNetworkConfig } from '../../lib/networkConfig';
 
 /**
@@ -30,12 +30,13 @@ export function useNetwork() {
 
   const config = getNetworkConfig(network);
 
-  return {
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     network,
     config,
     switchNetwork,
     toggleNetwork,
     isTestnet: network === 'testnet',
     isMainnet: network === 'mainnet',
-  };
+  }), [network, config, switchNetwork, toggleNetwork]);
 }

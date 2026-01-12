@@ -5,10 +5,8 @@
  * for display in "My Votes" section with inline images format:
  * [Img Subject] Subject - [Img Predicate] Predicate - [Img Object] Object  +X.XXX
  *
- * NOTE: Due to Hasura limitations:
- * 1. The `term` relation on deposits doesn't support inline fragments for triples
- * 2. We use a two-query approach: get user deposits, then get founder's triples
- * 3. Join them client-side by term_id
+ * NOTE: Uses positions (not deposits) to correctly account for redeems.
+ * Position value = total_deposit - total_redeem
  *
  * @see Phase 10 - Etape 5 in TODO_FIX_01_Discussion.md
  */
@@ -17,10 +15,11 @@ import { useMemo, useCallback } from 'react';
 import { useQuery } from '@apollo/client';
 import { formatEther } from 'viem';
 import {
-  GET_USER_DEPOSITS_SIMPLE,
+  GET_USER_POSITIONS_FOR_TERMS,
   GET_FOUNDER_TRIPLES_WITH_DETAILS,
 } from '../../lib/graphql/queries';
 import { filterValidTriples, type RawTriple } from '../../utils/tripleGuards';
+import { formatSignedAmount } from '../../utils/formatters';
 
 /** Predicates used for founder-totem relationships */
 const FOUNDER_PREDICATES = ['has totem', 'embodies'];
@@ -28,6 +27,8 @@ const FOUNDER_PREDICATES = ['has totem', 'embodies'];
 /** Triple info from the triples query */
 interface TripleInfo {
   term_id: string;
+  /** Direct counter_term_id field (for AGAINST votes) */
+  counter_term_id?: string | null;
   subject: {
     term_id: string;
     label: string;
@@ -48,16 +49,20 @@ interface TripleInfo {
   };
 }
 
-/** Deposit from the deposits query */
-interface UserDeposit {
+/** Position from the positions query (accounts for redeems) */
+interface UserPosition {
   id: string;
-  sender_id: string;
+  account_id: string;
   term_id: string;
-  vault_type: string;
   shares: string;
-  assets_after_fees: string;
+  /** Curve ID: 1 = Linear, 2 = Progressive */
+  curve_id: string | number;
+  /** Total deposited (sum of all deposits) */
+  total_deposit_assets_after_total_fees: string;
+  /** Total redeemed (sum of all withdrawals) */
+  total_redeem_assets_for_receiver: string;
   created_at: string;
-  transaction_hash: string;
+  updated_at: string;
 }
 
 /**
@@ -69,6 +74,7 @@ export interface UserVoteWithDetails {
   term_id: string;
   vault_type: string;
   shares: string;
+  /** Current position value (deposits - redeems) */
   assets_after_fees: string;
   created_at: string;
   transaction_hash: string;
@@ -100,6 +106,8 @@ export interface UserVoteWithDetails {
   formattedAmount: string;
   /** Signed amount string (e.g., "+10.50" or "-10.50") */
   signedAmount: string;
+  /** Curve ID: 1 = Linear, 2 = Progressive */
+  curveId: number;
 }
 
 interface UseUserVotesForFounderReturn {
@@ -113,9 +121,9 @@ interface UseUserVotesForFounderReturn {
   refetch: () => void;
 }
 
-/** Result type for GET_USER_DEPOSITS_SIMPLE */
-interface GetUserDepositsResult {
-  deposits: UserDeposit[];
+/** Result type for GET_USER_POSITIONS_ALL */
+interface GetUserPositionsResult {
+  positions: UserPosition[];
 }
 
 /** Result type for GET_FOUNDER_TRIPLES_WITH_DETAILS */
@@ -126,10 +134,11 @@ interface GetFounderTriplesResult {
 /**
  * Hook to fetch user's votes for a specific founder
  *
- * Uses two queries:
- * 1. Get all deposits for the user
- * 2. Get all triples for the founder with subject/predicate/object details
- * Then joins them client-side by term_id
+ * Uses two queries in sequence:
+ * 1. Get founder's triples with subject/predicate/object details (to get term_ids)
+ * 2. Get user's positions for those specific term_ids (efficient: only founder's triples)
+ *
+ * This approach is more efficient than fetching ALL user positions and filtering client-side.
  *
  * @param walletAddress - The user's wallet address (0x...)
  * @param founderName - The founder's name (e.g., "Joseph Lubin")
@@ -142,19 +151,7 @@ export function useUserVotesForFounder(
   // Normalize wallet address to lowercase
   const normalizedAddress = walletAddress?.toLowerCase();
 
-  // Query 1: Get user's deposits (simple, no term details)
-  const {
-    data: depositsData,
-    loading: depositsLoading,
-    error: depositsError,
-    refetch: refetchDeposits,
-  } = useQuery<GetUserDepositsResult>(GET_USER_DEPOSITS_SIMPLE, {
-    variables: { walletAddress: normalizedAddress },
-    skip: !normalizedAddress,
-    fetchPolicy: 'cache-and-network',
-  });
-
-  // Query 2: Get founder's triples with full details
+  // Query 1: Get founder's triples with full details (first, to get term_ids)
   const {
     data: triplesData,
     loading: triplesLoading,
@@ -172,66 +169,141 @@ export function useUserVotesForFounder(
     return filterValidTriples(triplesData.triples as RawTriple[], 'useUserVotesForFounder');
   }, [triplesData?.triples]);
 
-  // Create a map of term_id -> triple info for fast lookup
-  const triplesMap = useMemo(() => {
-    const map = new Map<string, TripleInfo>();
+  // Extract all term_ids (triple term_ids + counter_term_ids) for positions query
+  // Also create map for later lookup
+  const { allTermIds, termToVoteInfo } = useMemo(() => {
+    const termIds: string[] = [];
+    const map = new Map<string, { triple: TripleInfo; isFor: boolean }>();
+
     for (const triple of validTriples) {
-      // Cast back to TripleInfo - filterValidTriples guarantees non-null fields
-      map.set(triple.term_id, triple as unknown as TripleInfo);
+      const tripleInfo = triple as unknown as TripleInfo;
+      // Position on term_id = FOR vote
+      termIds.push(tripleInfo.term_id);
+      map.set(tripleInfo.term_id, { triple: tripleInfo, isFor: true });
+      // Position on counter_term_id = AGAINST vote
+      if (tripleInfo.counter_term_id) {
+        termIds.push(tripleInfo.counter_term_id);
+        map.set(tripleInfo.counter_term_id, { triple: tripleInfo, isFor: false });
+      }
     }
-    return map;
+
+    return { allTermIds: termIds, termToVoteInfo: map };
   }, [validTriples]);
 
-  // Join deposits with triples and create enriched votes
+  // Query 2: Get user's positions for founder's triples only (efficient)
+  const {
+    data: positionsData,
+    loading: positionsLoading,
+    error: positionsError,
+    refetch: refetchPositions,
+  } = useQuery<GetUserPositionsResult>(GET_USER_POSITIONS_FOR_TERMS, {
+    variables: {
+      walletAddress: normalizedAddress,
+      termIds: allTermIds,
+    },
+    // Skip if no wallet, no founder, or no term_ids yet
+    skip: !normalizedAddress || !founderName || allTermIds.length === 0,
+    fetchPolicy: 'cache-and-network',
+  });
+
+  // Join positions with triples and create enriched votes
+  // Uses termToVoteInfo to determine FOR/AGAINST based on term_id vs counter_term_id
+  // Groups by totem + direction + curve (keeps Linear and Progressive separate)
   const allVotes = useMemo((): UserVoteWithDetails[] => {
-    if (!depositsData?.deposits || triplesMap.size === 0) {
+    if (!positionsData?.positions || termToVoteInfo.size === 0) {
       return [];
     }
 
-    const votes: UserVoteWithDetails[] = [];
+    // Group positions by totem + direction + curve
+    // Key: `${object.term_id}_${isFor}_${curveId}` to keep curves separate
+    const consolidatedMap = new Map<string, {
+      triple: TripleInfo;
+      isFor: boolean;
+      curveId: number;
+      currentValue: bigint; // deposits - redeems
+      totalShares: bigint;
+      latestPosition: UserPosition;
+    }>();
 
-    for (const deposit of depositsData.deposits) {
-      // Check if this deposit is for one of the founder's triples
-      const triple = triplesMap.get(deposit.term_id);
-      if (!triple) continue;
+    for (const position of positionsData.positions) {
+      // Skip positions with no shares (fully redeemed)
+      const shares = BigInt(position.shares || '0');
+      if (shares <= 0n) continue;
+
+      // Check if this position is for one of the founder's triples
+      const voteInfo = termToVoteInfo.get(position.term_id);
+      if (!voteInfo) continue;
+
+      const { triple, isFor } = voteInfo;
 
       // Check if predicate matches founder predicates
       if (!FOUNDER_PREDICATES.includes(triple.predicate.label)) continue;
 
-      // Determine if it's a positive (FOR) or negative (AGAINST) vote
-      // vault_type can be "Triple", "triple_positive", "triple_negative"
-      // For "Triple", we assume positive (FOR) - this may need adjustment
-      const isPositive = deposit.vault_type !== 'triple_negative';
-      const formattedAmount = formatEther(BigInt(deposit.assets_after_fees));
-      const signedAmount = `${isPositive ? '+' : '-'}${parseFloat(formattedAmount).toFixed(4)}`;
+      // Calculate current position value = deposits - redeems
+      const totalDeposit = BigInt(position.total_deposit_assets_after_total_fees || '0');
+      const totalRedeem = BigInt(position.total_redeem_assets_for_receiver || '0');
+      const currentValue = totalDeposit - totalRedeem;
+
+      // Skip if current value is 0 or negative (shouldn't happen, but safety check)
+      if (currentValue <= 0n) continue;
+      // Curve ID from positions table
+      const curveId = Number(position.curve_id) || 1; // Default to Linear if missing
+      const key = `${triple.object.term_id}_${isFor}_${curveId}`;
+
+      const existing = consolidatedMap.get(key);
+      if (existing) {
+        // Add to existing
+        existing.currentValue += currentValue;
+        existing.totalShares += shares;
+        // Keep the most recent position for metadata
+        if (position.updated_at > existing.latestPosition.updated_at) {
+          existing.latestPosition = position;
+        }
+      } else {
+        // Create new entry
+        consolidatedMap.set(key, {
+          triple,
+          isFor,
+          curveId,
+          currentValue,
+          totalShares: shares,
+          latestPosition: position,
+        });
+      }
+    }
+
+    // Convert consolidated map to votes array
+    const votes: UserVoteWithDetails[] = [];
+    for (const [, data] of consolidatedMap) {
+      const { triple, isFor, curveId, currentValue, totalShares, latestPosition } = data;
+
+      const formattedAmount = formatEther(currentValue);
+      const signedAmount = formatSignedAmount(formattedAmount, isFor);
 
       votes.push({
-        ...deposit,
+        id: latestPosition.id,
+        sender_id: latestPosition.account_id,
+        term_id: latestPosition.term_id,
+        vault_type: isFor ? 'triple_positive' : 'triple_negative',
+        shares: totalShares.toString(),
+        assets_after_fees: currentValue.toString(),
+        created_at: latestPosition.created_at,
+        transaction_hash: '', // Positions don't have tx hash
         term: {
           term_id: triple.term_id,
           subject: triple.subject,
           predicate: triple.predicate,
           object: triple.object,
         },
-        isPositive,
+        isPositive: isFor,
         formattedAmount,
         signedAmount,
+        curveId,
       });
     }
 
     return votes;
-  }, [depositsData?.deposits, triplesMap]);
-
-  // DEBUG: Log only when data actually changes (disabled in production)
-  // useEffect(() => {
-  //   if (process.env.NODE_ENV === 'development') {
-  //     console.log('[useUserVotesForFounder] DEBUG:', {
-  //       walletAddress: normalizedAddress,
-  //       founderName,
-  //       matchedVotesCount: allVotes.length,
-  //     });
-  //   }
-  // }, [allVotes.length, normalizedAddress, founderName]);
+  }, [positionsData?.positions, termToVoteInfo, allTermIds.length]);
 
   // Separate FOR and AGAINST votes - memoized to prevent unnecessary re-renders
   const forVotes = useMemo(() => allVotes.filter((v) => v.isPositive), [allVotes]);
@@ -248,18 +320,19 @@ export function useUserVotesForFounder(
   );
 
   // Combined loading state
-  const loading = depositsLoading || triplesLoading;
+  const loading = positionsLoading || triplesLoading;
 
   // Combined error
-  const error = depositsError || triplesError;
+  const error = positionsError || triplesError;
 
   // Combined refetch - memoized to prevent unnecessary effect triggers
   const refetch = useCallback(() => {
-    refetchDeposits();
+    refetchPositions();
     refetchTriples();
-  }, [refetchDeposits, refetchTriples]);
+  }, [refetchPositions, refetchTriples]);
 
-  return {
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     votes: allVotes,
     forVotes,
     againstVotes,
@@ -268,5 +341,5 @@ export function useUserVotesForFounder(
     loading,
     error: error as Error | undefined,
     refetch,
-  };
+  }), [allVotes, forVotes, againstVotes, totalFor, totalAgainst, loading, error, refetch]);
 }

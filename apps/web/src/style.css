@@ -162,6 +162,289 @@ button:focus-visible {
   animation: slide-in-right 0.4s ease-out;
 }
 
+/* ========================================
+   Blur Step System - UX Phase 18
+   ======================================== */
+
+/* Keyframes for step reveal animation */
+@keyframes revealStep {
+  from {
+    opacity: 0.5;
+    transform: translateY(-5px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes reduceBlur {
+  from { filter: blur(4px); }
+  to { filter: blur(2px); }
+}
+
+/* Step reveal animation class */
+.step-reveal {
+  animation: revealStep 0.3s ease-out forwards;
+}
+
+.step-reduce-blur {
+  animation: reduceBlur 0.3s ease-out forwards;
+}
+
+/* Blur levels for form steps - Progressive reveal system */
+/* Based on distance from current step: 0=current, 1=next, 2=2 steps, 3=3+ steps */
+.blur-step-none {
+  filter: blur(0);
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.blur-step-1 {
+  filter: blur(2px);
+  pointer-events: auto;
+  opacity: 0.9;
+}
+
+.blur-step-2 {
+  filter: blur(4px);
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.blur-step-3 {
+  filter: blur(6px);
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* Disabled blur state (blocked curve, redeem unavailable) */
+.blur-disabled {
+  filter: blur(4px);
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+/* ========================================
+   Pulsation Animations - UX Phase 18
+   ======================================== */
+
+/* Mode 1 : Première visite - Glow neutre (gris/blanc) */
+@keyframes glowPulseNeutral {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(200, 200, 200, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(200, 200, 200, 0.5);
+  }
+}
+
+.first-visit-pulse {
+  animation: glowPulseNeutral 1.5s ease-in-out infinite;
+}
+
+/* Mode 2 : Retour - Border + Scale (gris/slate) */
+@keyframes returnVisitPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.3);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.7);
+    transform: scale(1.02);
+  }
+}
+
+.return-visit-pulse {
+  animation: returnVisitPulse 1.5s ease-in-out infinite;
+}
+
+/* Arrêt de la pulsation */
+.pulse-stop {
+  animation: none !important;
+}
+
+/* ========================================
+   Cascade Pulse - Guide user to select totem
+   ======================================== */
+
+/* Cascade pulse animation with staggered delays */
+@keyframes cascadePulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(148, 163, 184, 0);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 8px 2px rgba(148, 163, 184, 0.4);
+    transform: scale(1.02);
+  }
+}
+
+/* Base cascade pulse class - each row gets a delay */
+.cascade-pulse {
+  animation: cascadePulse 2s ease-in-out infinite;
+}
+
+/* Staggered delays for cascade effect (row by row) */
+/* Each row adds 150ms delay for wave effect from top to bottom */
+.cascade-delay-0 { animation-delay: 0ms; }
+.cascade-delay-1 { animation-delay: 150ms; }
+.cascade-delay-2 { animation-delay: 300ms; }
+.cascade-delay-3 { animation-delay: 450ms; }
+.cascade-delay-4 { animation-delay: 600ms; }
+.cascade-delay-5 { animation-delay: 750ms; }
+.cascade-delay-6 { animation-delay: 900ms; }
+.cascade-delay-7 { animation-delay: 1050ms; }
+
+/* ========================================
+   Totem Expand Animation
+   ======================================== */
+
+/* Details reveal animation - blur to focus with soft bounce */
+@keyframes revealTotemDetails {
+  0% {
+    opacity: 0;
+    filter: blur(4px);
+    transform: translateY(-8px);
+    max-height: 0;
+  }
+  60% {
+    opacity: 0.8;
+    filter: blur(1px);
+    transform: translateY(2px);
+    max-height: 60px;
+  }
+  80% {
+    opacity: 0.95;
+    filter: blur(0);
+    transform: translateY(-1px);
+    max-height: 55px;
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+    max-height: 50px;
+  }
+}
+
+/* Header tag blur-to-focus animation (totem change) */
+@keyframes blurToFocus {
+  0% {
+    opacity: 0.5;
+    filter: blur(4px);
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 0.9;
+    filter: blur(1px);
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1);
+  }
+}
+
+.animate-blur-to-focus {
+  animation: blurToFocus 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Ring pulse animation for "current selection" state */
+/* Subtle glow pulsation to indicate active selection */
+@keyframes ringPulseSelection {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5), 0 0 8px 2px rgba(255, 255, 255, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7), 0 0 12px 4px rgba(255, 255, 255, 0.25);
+  }
+}
+
+.animate-ring-pulse {
+  animation: ringPulseSelection 2s ease-in-out infinite;
+}
+
+/* Totem grid - items align to top to prevent neighbor stretching */
+.totem-grid {
+  align-items: start;
+}
+
+/* Totem details - animated reveal with soft bounce (slow & smooth) */
+.totem-details {
+  animation: revealTotemDetails 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  overflow: hidden;
+}
+
+/* ========================================
+   Blur Focus Effect - Center to Edge on Hover
+   ======================================== */
+
+/* Button with blur that clears from center on hover */
+/* Border stays sharp, blur clears from center outward */
+.btn-blur-focus {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* Blur overlay - covers the button interior */
+.btn-blur-focus::before {
+  content: '';
+  position: absolute;
+  inset: 1px; /* Leave border visible */
+  border-radius: inherit;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  transition: opacity 0.3s ease-out;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* On hover: blur disappears (focus effect) */
+.btn-blur-focus:hover::before {
+  opacity: 0;
+}
+
+/* Dimmed state - clickable but not selected */
+.btn-blur-focus {
+  opacity: 0.7;
+}
+
+.btn-blur-focus:hover {
+  opacity: 1;
+}
+
+/* Variant with radial clear (more advanced effect) */
+.btn-blur-focus-radial::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  /* Radial mask that starts small (blurred everywhere) */
+  mask-image: radial-gradient(circle at center, transparent 0%, black 0%);
+  -webkit-mask-image: radial-gradient(circle at center, transparent 0%, black 0%);
+  transition: mask-image 0.3s ease-out, -webkit-mask-image 0.3s ease-out;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* On hover: radial mask expands from center (blur clears from center) */
+.btn-blur-focus-radial:hover::before {
+  mask-image: radial-gradient(circle at center, transparent 100%, black 100%);
+  -webkit-mask-image: radial-gradient(circle at center, transparent 100%, black 100%);
+}
+
+/* Transition for smooth blur changes */
+.blur-transition {
+  transition: filter 0.3s ease-out, opacity 0.3s ease-out;
+}
+
 /* App layout */
 .app {
   width: 100%;

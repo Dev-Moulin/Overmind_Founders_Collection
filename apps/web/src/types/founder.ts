@@ -36,6 +36,19 @@ export interface WinningTotem {
 }
 
 /**
+ * Winner per curve type (Linear or Progressive)
+ */
+export interface CurveWinnerInfo {
+  totemId: string;
+  label: string;
+  image?: string;
+  /** Net score = FOR - AGAINST (in ETH) */
+  netScore: number;
+  /** Net votes = walletsFor - walletsAgainst */
+  netVotes: number;
+}
+
+/**
  * Founder data enriched with atomId and winning totem for HomePage
  */
 export interface FounderForHomePage extends FounderData {
@@ -43,4 +56,8 @@ export interface FounderForHomePage extends FounderData {
   proposalCount: number;
   /** Number of new totems proposed in the last 24 hours */
   recentActivityCount: number;
+  /** Winner for Linear curve (curveId=1) */
+  linearWinner: CurveWinnerInfo | null;
+  /** Winner for Progressive curve (curveId=2) */
+  progressiveWinner: CurveWinnerInfo | null;
 }

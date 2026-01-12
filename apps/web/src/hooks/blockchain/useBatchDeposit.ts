@@ -8,7 +8,7 @@
  * @see Contract: depositBatch(receiver, termIds[], curveIds[], assets[], minShares[])
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { usePublicClient, useWalletClient } from 'wagmi';
 import { type Hex } from 'viem';
 import {
@@ -136,9 +136,9 @@ export function useBatchDeposit(): UseBatchDepositResult {
           receiver,
           multiVaultAddress,
         });
-        console.log('[useBatchDeposit] Term IDs to deposit into:');
+        console.log('[useBatchDeposit] Deposit details:');
         termIds.forEach((termId, index) => {
-          console.log(`  [${index + 1}] termId: ${termId}, amount: ${assets[index].toString()} (${Number(assets[index]) / 1e18} ETH)`);
+          console.log(`  [${index + 1}] termId: ${termId}, curveId: ${curveIds[index].toString()}, amount: ${assets[index].toString()} (${Number(assets[index]) / 1e18} ETH)`);
         });
         console.log('[useBatchDeposit] ⚠️ NOTE: depositBatch deposits into EXISTING term IDs only!');
         console.log('[useBatchDeposit] If a termId is for an atom (not a triple), the deposit goes to the atom, NOT a triple!');
@@ -186,10 +186,11 @@ export function useBatchDeposit(): UseBatchDepositResult {
     setError(null);
   }, []);
 
-  return {
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     executeBatch,
     loading,
     error,
     clearError,
-  };
+  }), [executeBatch, loading, error, clearError]);
 }

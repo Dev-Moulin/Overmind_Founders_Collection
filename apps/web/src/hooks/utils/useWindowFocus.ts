@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 /**
  * Hook return type
@@ -116,13 +116,14 @@ export function useWindowFocus(): UseWindowFocusResult {
     return () => clearInterval(interval);
   }, [lastBlurredAt, isFocused]);
 
-  return {
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     isFocused,
     isVisible,
     lastFocusedAt,
     lastBlurredAt,
     timeSinceBlur,
-  };
+  }), [isFocused, isVisible, lastFocusedAt, lastBlurredAt, timeSinceBlur]);
 }
 
 /**

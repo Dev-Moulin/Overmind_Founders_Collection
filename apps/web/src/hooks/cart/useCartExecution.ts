@@ -11,7 +11,7 @@
  * @see Phase 5 in TODO_Implementation.md
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { type Hex } from 'viem';
 import { useBatchDeposit, type BatchDepositItem } from '../blockchain/useBatchDeposit';
 import { useBatchRedeem, type BatchRedeemItem } from '../blockchain/useBatchRedeem';
@@ -126,6 +126,7 @@ export function useCartExecution(): UseCartExecutionResult {
           termId: item.termId,
           counterTermId: item.counterTermId,
           direction: item.direction,
+          curveId: item.curveId,
           amount: item.amount.toString(),
           isNewTotem: item.isNewTotem,
           needsWithdraw: item.needsWithdraw,
@@ -227,6 +228,7 @@ export function useCartExecution(): UseCartExecutionResult {
           return {
             termId: depositTermId,
             amount: item.amount,
+            curveId: BigInt(item.curveId), // 1 = Linear, 2 = Progressive
           };
         });
 
@@ -305,13 +307,14 @@ export function useCartExecution(): UseCartExecutionResult {
     setProgress(0);
   }, []);
 
-  return {
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     executeCart,
     status,
     error,
     progress,
     reset,
-  };
+  }), [executeCart, status, error, progress, reset]);
 }
 
 /**

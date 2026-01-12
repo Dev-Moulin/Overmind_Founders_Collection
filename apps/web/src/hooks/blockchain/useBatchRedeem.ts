@@ -8,7 +8,7 @@
  * @see Contract: redeemBatch(receiver, termIds[], curveIds[], shares[], minAssets[])
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { usePublicClient, useWalletClient } from 'wagmi';
 import { type Hex } from 'viem';
 import {
@@ -174,10 +174,11 @@ export function useBatchRedeem(): UseBatchRedeemResult {
     setError(null);
   }, []);
 
-  return {
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     executeBatch,
     loading,
     error,
     clearError,
-  };
+  }), [executeBatch, loading, error, clearError]);
 }

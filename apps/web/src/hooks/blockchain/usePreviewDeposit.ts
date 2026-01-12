@@ -7,7 +7,7 @@
  * @see Documentation: Claude/00_GESTION_PROJET/Projet_02_SDK_V2/13_Deposit_Redeem_BondingCurve.md
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { usePublicClient } from 'wagmi';
 import { type Hex, parseEther, formatEther } from 'viem';
 import { MultiVaultAbi, getMultiVaultAddressFromChainId } from '@0xintuition/protocol';
@@ -193,13 +193,14 @@ export function usePreviewDeposit(): UsePreviewDepositResult {
     setError(null);
   }, []);
 
-  return {
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     preview,
     currentPreview,
     loading,
     error,
     clearPreview,
-  };
+  }), [preview, currentPreview, loading, error, clearPreview]);
 }
 
 /**

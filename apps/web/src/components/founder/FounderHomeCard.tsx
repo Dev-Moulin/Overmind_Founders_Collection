@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { FounderForHomePage } from '../../hooks';
-import { useTopTotems } from '../../hooks';
+import type { FounderForHomePage, TopTotem } from '../../hooks';
 import { getFounderImageUrl } from '../../utils/founderImage';
 import { TopTotemsRadar, type RadarMode } from '../graph/TopTotemsRadar';
 
@@ -9,21 +8,25 @@ interface FounderHomeCardProps {
   founder: FounderForHomePage;
   onSelect?: (founderId: string) => void;
   isSelected?: boolean;
+  /** Pre-computed top totems from batched query (avoids 42 individual API calls) */
+  topTotems: TopTotem[];
 }
 
 /**
  * Compact founder card for HomePage grid
  * Shows photo, name, Top 5 totems radar (with carousel for votes/trust), and action buttons
+ *
+ * IMPORTANT: topTotems is passed as props from HomePage (batched query)
+ * This avoids 42 individual useTopTotems calls that caused 429 rate limiting
+ *
+ * Wrapped in React.memo to prevent unnecessary re-renders (42 cards on HomePage)
  */
-export function FounderHomeCard({ founder, onSelect, isSelected }: FounderHomeCardProps) {
+export const FounderHomeCard = memo(function FounderHomeCard({ founder, onSelect, isSelected, topTotems }: FounderHomeCardProps) {
   const { t } = useTranslation();
   const imageUrl = getFounderImageUrl(founder);
 
   // Carousel state: 'wallets' = Net Votes (default), 'trust' = Total TRUST
   const [radarMode, setRadarMode] = useState<RadarMode>('wallets');
-
-  // Fetch top totems for this founder
-  const { topTotems, loading: totemsLoading } = useTopTotems(founder.name, 5);
 
   const handleCardClick = () => {
     if (onSelect) {
@@ -66,18 +69,42 @@ export function FounderHomeCard({ founder, onSelect, isSelected }: FounderHomeCa
         </div>
       </div>
 
+      {/* Curve Winners - Linear and Progressive */}
+      {(founder.linearWinner || founder.progressiveWinner) && (
+        <div className="mb-3 p-2 bg-white/5 rounded-lg border border-white/10">
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            {/* Linear Winner */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-yellow-500">🏆</span>
+              <span className="text-white/50">Linear:</span>
+              <span className="text-white font-medium truncate">
+                {founder.linearWinner?.label || '-'}
+              </span>
+            </div>
+            {/* Progressive Winner */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-yellow-500">🏆</span>
+              <span className="text-white/50">Progressive:</span>
+              <span className="text-white font-medium truncate">
+                {founder.progressiveWinner?.label || '-'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Top Totems Radar with Carousel */}
       <div className="flex-1 mb-2">
-        {/* Radar Chart */}
-        {topTotems.length > 0 || totemsLoading ? (
+        {/* Radar Chart - data comes from batched query in HomePage */}
+        {topTotems.length > 0 ? (
           <TopTotemsRadar
             totems={topTotems}
-            loading={totemsLoading}
+            loading={false}
             mode={radarMode}
-            height={220}
+            height={200}
           />
         ) : (
-          <div className="bg-white/5 rounded-lg p-4 border border-white/10 text-center h-[220px] flex items-center justify-center">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 text-center h-[200px] flex items-center justify-center">
             <p className="text-sm text-white/40">{t('common.noTotem')}</p>
           </div>
         )}
@@ -123,7 +150,7 @@ export function FounderHomeCard({ founder, onSelect, isSelected }: FounderHomeCa
       </div>
     </div>
   );
-}
+});
 
 /**
  * Skeleton loader for FounderHomeCard

@@ -14,6 +14,7 @@
 import { useMemo } from 'react';
 import { useQuery, gql } from '@apollo/client';
 import { formatEther } from 'viem';
+import { truncateAmount } from '../../utils/formatters';
 
 /**
  * GraphQL query for founder vote market stats
@@ -225,7 +226,7 @@ export function useVoteMarketStats(
           label: totems[0].label,
           termId: totems[0].termId,
           totalTrust: totems[0].totalTrust,
-          formattedTrust: Number(formatEther(totems[0].totalTrust)).toFixed(2),
+          formattedTrust: truncateAmount(Number(formatEther(totems[0].totalTrust)), 2),
         }
       : null;
 
@@ -245,7 +246,7 @@ export function useVoteMarketStats(
       totalTrustFor,
       totalTrustAgainst,
       totalTrust,
-      formattedTotalTrust: Number(formatEther(totalTrust)).toFixed(2),
+      formattedTotalTrust: truncateAmount(Number(formatEther(totalTrust)), 2),
       uniqueVoters: uniqueVotersSet.size,
       totemCount: triples.length,
       topTotem,
@@ -255,10 +256,14 @@ export function useVoteMarketStats(
     };
   }, [data]);
 
-  return {
+  // Memoize error to prevent new reference on each render
+  const errorObj = useMemo(() => error || null, [error]);
+
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     stats,
     loading,
-    error: error || null,
+    error: errorObj,
     refetch,
-  };
+  }), [stats, loading, errorObj, refetch]);
 }

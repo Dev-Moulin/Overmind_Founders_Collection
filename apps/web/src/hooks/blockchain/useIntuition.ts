@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { usePublicClient, useWalletClient } from 'wagmi';
 import { useApolloClient } from '@apollo/client';
 import {
@@ -715,7 +715,11 @@ export function useIntuition() {
     [getOrCreateAtom, createTriple, findTriple, publicClient, multiVaultAddress]
   );
 
-  return {
+  // Memoize isReady to prevent recalculation
+  const isReady = !!walletClient && !!publicClient;
+
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     createAtom,
     createFounderAtom,
     createTriple,
@@ -724,6 +728,16 @@ export function useIntuition() {
     createClaimWithCategory,
     getOrCreateAtom,
     findTriple,
-    isReady: !!walletClient && !!publicClient,
-  };
+    isReady,
+  }), [
+    createAtom,
+    createFounderAtom,
+    createTriple,
+    createClaim,
+    createClaimWithDescription,
+    createClaimWithCategory,
+    getOrCreateAtom,
+    findTriple,
+    isReady,
+  ]);
 }

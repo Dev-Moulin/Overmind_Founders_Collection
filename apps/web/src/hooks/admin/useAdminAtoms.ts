@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery } from '@apollo/client';
 import { GET_ATOMS_BY_LABELS, GET_ALL_TOTEM_CATEGORIES } from '../../lib/graphql/queries';
 
@@ -68,25 +69,41 @@ export function useAdminAtoms({
     refetch: refetchCategoryTriples,
   } = useQuery<{ triples: CategoryTriple[] }>(GET_ALL_TOTEM_CATEGORIES);
 
-  // Build Maps
-  const totemCategoryMap = new Map<string, string>();
-  categoryTriplesData?.triples.forEach((triple) =>
-    totemCategoryMap.set(triple.subject.label, triple.object.label)
-  );
+  // Build Maps - memoized
+  const totemCategoryMap = useMemo(() => {
+    const map = new Map<string, string>();
+    categoryTriplesData?.triples.forEach((triple) =>
+      map.set(triple.subject.label, triple.object.label)
+    );
+    return map;
+  }, [categoryTriplesData]);
 
-  const atomsByLabel = new Map<string, Atom>();
-  atomsData?.atoms.forEach((atom) => atomsByLabel.set(atom.label, atom));
+  const atomsByLabel = useMemo(() => {
+    const map = new Map<string, Atom>();
+    atomsData?.atoms.forEach((atom) => map.set(atom.label, atom));
+    return map;
+  }, [atomsData]);
 
-  const predicatesByLabel = new Map<string, Atom>();
-  predicatesData?.atoms.forEach((atom) => predicatesByLabel.set(atom.label, atom));
+  const predicatesByLabel = useMemo(() => {
+    const map = new Map<string, Atom>();
+    predicatesData?.atoms.forEach((atom) => map.set(atom.label, atom));
+    return map;
+  }, [predicatesData]);
 
-  const ofcAtomsByLabel = new Map<string, Atom>();
-  ofcAtomsData?.atoms.forEach((atom) => ofcAtomsByLabel.set(atom.label, atom));
+  const ofcAtomsByLabel = useMemo(() => {
+    const map = new Map<string, Atom>();
+    ofcAtomsData?.atoms.forEach((atom) => map.set(atom.label, atom));
+    return map;
+  }, [ofcAtomsData]);
 
-  const totemsByLabel = new Map<string, Atom>();
-  totemsData?.atoms.forEach((atom) => totemsByLabel.set(atom.label, atom));
+  const totemsByLabel = useMemo(() => {
+    const map = new Map<string, Atom>();
+    totemsData?.atoms.forEach((atom) => map.set(atom.label, atom));
+    return map;
+  }, [totemsData]);
 
-  return {
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     // Maps
     atomsByLabel,
     predicatesByLabel,
@@ -107,7 +124,24 @@ export function useAdminAtoms({
     refetchOfcAtoms,
     refetchTotems,
     refetchCategoryTriples,
-  };
+  }), [
+    atomsByLabel,
+    predicatesByLabel,
+    ofcAtomsByLabel,
+    totemsByLabel,
+    totemCategoryMap,
+    atomsLoading,
+    predicatesLoading,
+    ofcAtomsLoading,
+    totemsLoading,
+    categoryTriplesLoading,
+    atomsError,
+    refetchAtoms,
+    refetchPredicates,
+    refetchOfcAtoms,
+    refetchTotems,
+    refetchCategoryTriples,
+  ]);
 }
 
 export type { Atom };

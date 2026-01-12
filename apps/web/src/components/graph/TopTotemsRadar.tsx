@@ -15,7 +15,7 @@
  * @see Phase 10 - Étape 3 in TODO_FIX_01_Discussion.md
  */
 
-import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   RadarChart,
@@ -27,9 +27,14 @@ import {
   Tooltip,
 } from 'recharts';
 import type { TopTotem } from '../../hooks';
+import { truncateAmount } from '../../utils/formatters';
+import { SUPPORT_COLORS, OPPOSE_COLORS } from '../../config/colors';
 
 /** Display mode for the radar chart */
 export type RadarMode = 'trust' | 'wallets';
+
+/** Curve mode for filtering data by bonding curve type */
+export type CurveMode = 'linear' | 'progressive' | 'total';
 
 interface TopTotemsRadarProps {
   /** Top totems data */
@@ -42,20 +47,26 @@ interface TopTotemsRadarProps {
   height?: number;
   /** Display mode: 'trust' for TRUST values, 'wallets' for wallet counts */
   mode?: RadarMode;
+  /** Show curve toggle (Linear/Progressive/Total) */
+  showCurveToggle?: boolean;
+  /** Currently selected curve mode */
+  curveMode?: CurveMode;
+  /** Callback when curve mode changes */
+  onCurveModeChange?: (mode: CurveMode) => void;
 }
 
 /**
- * Format TRUST value for display
+ * Format TRUST value for display (using truncation like INTUITION)
  */
 function formatTrust(value: number): string {
   if (value >= 1000) {
-    return `${(value / 1000).toFixed(1)}k`;
+    return `${truncateAmount(value / 1000, 1)}k`;
   }
   if (value >= 1) {
-    return value.toFixed(2);
+    return truncateAmount(value, 2);
   }
   if (value >= 0.001) {
-    return value.toFixed(4);
+    return truncateAmount(value, 5);
   }
   return '0';
 }
@@ -65,7 +76,7 @@ function formatTrust(value: number): string {
  */
 function formatWallets(value: number): string {
   if (value >= 1000) {
-    return `${(value / 1000).toFixed(1)}k`;
+    return `${truncateAmount(value / 1000, 1)}k`;
   }
   return value.toString();
 }
@@ -199,19 +210,19 @@ function CustomRadarTooltip({
         <div className="space-y-1">
           <div className="flex items-center justify-between gap-4">
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-blue-500" />
-              <span className="text-xs text-white/70">FOR</span>
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: SUPPORT_COLORS.base }} />
+              <span className="text-xs text-white/70">Support</span>
             </span>
-            <span className="text-xs font-medium text-blue-400">
+            <span className="text-xs font-medium" style={{ color: SUPPORT_COLORS.base }}>
               {formatValue(forValue)} {unitLabel}
             </span>
           </div>
           <div className="flex items-center justify-between gap-4">
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-orange-500" />
-              <span className="text-xs text-white/70">AGAINST</span>
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: OPPOSE_COLORS.base }} />
+              <span className="text-xs text-white/70">Oppose</span>
             </span>
-            <span className="text-xs font-medium text-orange-400">
+            <span className="text-xs font-medium" style={{ color: OPPOSE_COLORS.base }}>
               {formatValue(againstValue)} {unitLabel}
             </span>
           </div>
@@ -231,13 +242,17 @@ function CustomRadarTooltip({
 
 /**
  * Radar chart component for top totems visualization
+ * Wrapped in React.memo to prevent unnecessary re-renders
  */
-export function TopTotemsRadar({
+export const TopTotemsRadar = memo(function TopTotemsRadar({
   totems,
   loading = false,
   onTotemClick,
   height = 250,
   mode = 'trust',
+  showCurveToggle = false,
+  curveMode = 'total',
+  onCurveModeChange,
 }: TopTotemsRadarProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -249,8 +264,14 @@ export function TopTotemsRadar({
   const measureContainer = useCallback(() => {
     if (containerRef.current) {
       const { clientWidth, clientHeight } = containerRef.current;
+      // Only update if dimensions actually changed to avoid unnecessary re-renders
       if (clientWidth > 0 && clientHeight > 0) {
-        setDimensions({ width: clientWidth, height: clientHeight });
+        setDimensions((prev) => {
+          if (prev.width === clientWidth && prev.height === clientHeight) {
+            return prev; // Return same reference if unchanged
+          }
+          return { width: clientWidth, height: clientHeight };
+        });
       }
     }
   }, []);
@@ -382,8 +403,8 @@ export function TopTotemsRadar({
                 >
                   <span className="text-sm text-white truncate">{totem.label}</span>
                   <div className="flex gap-2 text-xs">
-                    <span className="text-blue-400">+{formatValue(forVal)}</span>
-                    <span className="text-orange-400">-{formatValue(againstVal)}</span>
+                    <span style={{ color: SUPPORT_COLORS.base }}>+{formatValue(forVal)}</span>
+                    <span style={{ color: OPPOSE_COLORS.base }}>-{formatValue(againstVal)}</span>
                   </div>
                 </div>
               );
@@ -454,40 +475,78 @@ export function TopTotemsRadar({
             )}
           />
 
-          {/* FOR area (blue) - with clickable dots */}
+          {/* Support area - Intuition blue with clickable dots */}
           <Radar
-            name="FOR"
+            name="Support"
             dataKey="for"
-            stroke="#3b82f6"
+            stroke={SUPPORT_COLORS.base}
             strokeWidth={2}
-            fill="#3b82f6"
+            fill={SUPPORT_COLORS.base}
             fillOpacity={0.3}
             animationDuration={750}
-            dot={{ r: 4, fill: '#3b82f6', stroke: '#1e40af', strokeWidth: 1, cursor: 'pointer' }}
-            activeDot={{ r: 6, fill: '#60a5fa', stroke: '#3b82f6', strokeWidth: 2, cursor: 'pointer', onClick: handleRadarClick }}
+            dot={{ r: 4, fill: SUPPORT_COLORS.base, stroke: SUPPORT_COLORS.fill, strokeWidth: 1, cursor: 'pointer' }}
+            activeDot={{ r: 6, fill: SUPPORT_COLORS.base, stroke: SUPPORT_COLORS.fill, strokeWidth: 2, cursor: 'pointer', onClick: handleRadarClick }}
           />
 
-          {/* AGAINST area (orange) - with clickable dots */}
+          {/* Oppose area - Intuition orange with clickable dots */}
           <Radar
-            name="AGAINST"
+            name="Oppose"
             dataKey="against"
-            stroke="#f97316"
+            stroke={OPPOSE_COLORS.base}
             strokeWidth={2}
-            fill="#f97316"
+            fill={OPPOSE_COLORS.base}
             fillOpacity={0.3}
             animationDuration={750}
-            dot={{ r: 4, fill: '#f97316', stroke: '#c2410c', strokeWidth: 1, cursor: 'pointer' }}
-            activeDot={{ r: 6, fill: '#fb923c', stroke: '#f97316', strokeWidth: 2, cursor: 'pointer', onClick: handleRadarClick }}
+            dot={{ r: 4, fill: OPPOSE_COLORS.base, stroke: OPPOSE_COLORS.fill, strokeWidth: 1, cursor: 'pointer' }}
+            activeDot={{ r: 6, fill: OPPOSE_COLORS.base, stroke: OPPOSE_COLORS.fill, strokeWidth: 2, cursor: 'pointer', onClick: handleRadarClick }}
           />
         </RadarChart>
       </div>
     );
   };
 
-  // Dynamic title based on mode
+  // Dynamic title based on mode and curve
+  const getCurveLabel = () => {
+    switch (curveMode) {
+      case 'linear': return 'Linear';
+      case 'progressive': return 'Progressive';
+      default: return 'Total';
+    }
+  };
+
   const title = isTrustMode
     ? t('results.topTotems.titleTrust', 'Top Totems (TRUST)')
     : t('results.topTotems.titleWallets', 'Top Totems (Votes)');
+
+  // Curve toggle component
+  const CurveToggle = () => {
+    if (!showCurveToggle) return null;
+
+    const modes: CurveMode[] = ['linear', 'progressive', 'total'];
+    const labels: Record<CurveMode, string> = {
+      linear: 'Linear',
+      progressive: 'Progressive',
+      total: 'Total',
+    };
+
+    return (
+      <div className="flex gap-0.5 bg-white/5 rounded p-0.5">
+        {modes.map((m) => (
+          <button
+            key={m}
+            onClick={() => onCurveModeChange?.(m)}
+            className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
+              curveMode === m
+                ? 'bg-slate-500/30 text-slate-300'
+                : 'text-white/40 hover:text-white/60'
+            }`}
+          >
+            {labels[m]}
+          </button>
+        ))}
+      </div>
+    );
+  };
 
   // Render flat list for wallets mode (simple ranking)
   const renderWalletsList = () => {
@@ -523,12 +582,13 @@ export function TopTotemsRadar({
               className="relative bg-white/5 rounded p-2 cursor-pointer hover:bg-white/10 transition-colors"
               onClick={() => onTotemClick?.(totem.id, totem.label)}
             >
-              {/* Background bar */}
+              {/* Background bar - Intuition colors */}
               <div
-                className={`absolute inset-y-0 left-0 rounded opacity-20 ${
-                  isPositive ? 'bg-blue-500' : 'bg-orange-500'
-                }`}
-                style={{ width: `${barWidth}%` }}
+                className="absolute inset-y-0 left-0 rounded opacity-20"
+                style={{
+                  width: `${barWidth}%`,
+                  backgroundColor: isPositive ? SUPPORT_COLORS.base : OPPOSE_COLORS.base,
+                }}
               />
               {/* Content */}
               <div className="relative flex items-center justify-between gap-2">
@@ -537,9 +597,9 @@ export function TopTotemsRadar({
                   <span className="text-sm text-white truncate">{totem.label}</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs shrink-0">
-                  <span className="text-blue-400">{totem.walletsFor}</span>
+                  <span style={{ color: SUPPORT_COLORS.base }}>{totem.walletsFor}</span>
                   <span className="text-white/30">/</span>
-                  <span className="text-orange-400">{totem.walletsAgainst}</span>
+                  <span style={{ color: OPPOSE_COLORS.base }}>{totem.walletsAgainst}</span>
                   <span className={`font-medium ml-1 ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
                     {isPositive ? '+' : ''}{totem.netVotes}
                   </span>
@@ -554,7 +614,15 @@ export function TopTotemsRadar({
 
   return (
     <div className="space-y-2">
-      <h4 className="text-sm font-medium text-white/70">{title}</h4>
+      <div className="flex items-center justify-between gap-2">
+        <h4 className="text-sm font-medium text-white/70">
+          {title}
+          {showCurveToggle && curveMode !== 'total' && (
+            <span className="ml-1 text-xs text-slate-400">({getCurveLabel()})</span>
+          )}
+        </h4>
+        <CurveToggle />
+      </div>
       <div
         ref={containerRef}
         className="bg-gray-900/30 rounded-lg outline-none focus:outline-none **:outline-none"
@@ -565,7 +633,7 @@ export function TopTotemsRadar({
       </div>
     </div>
   );
-}
+});
 
 /**
  * TopTotemsRadar with data fetching

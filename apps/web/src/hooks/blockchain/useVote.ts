@@ -1,11 +1,19 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import { parseEther, type Hex, type Address } from 'viem';
 import { getMultiVaultAddressFromChainId } from '@0xintuition/sdk';
 import { MultiVaultAbi } from '@0xintuition/protocol';
 import { currentIntuitionChain } from '../../config/wagmi';
 import { toast } from 'sonner';
+import { truncateAmount } from '../../utils/formatters';
 import type { VoteStatus, VoteError } from '../../types/vote';
+
+/** Curve ID for bonding curve selection */
+export type CurveId = 1 | 2;
+
+/** Curve ID constants */
+export const CURVE_LINEAR = 1 as const;
+export const CURVE_PROGRESSIVE = 2 as const;
 
 export interface VoteOptions {
   /** The term ID (for FOR votes) */
@@ -16,6 +24,8 @@ export interface VoteOptions {
   amount: string;
   /** True for FOR vote, false for AGAINST vote */
   isFor: boolean;
+  /** Curve ID: 1 = Linear (default), 4 = Offset Progressive */
+  curveId?: CurveId;
 }
 
 export interface UseVoteResult {
@@ -95,7 +105,7 @@ export function useVote(): UseVoteResult {
   }, [updateStatus]);
 
   const vote = useCallback(
-    async ({ termId, counterTermId, amount, isFor }: VoteOptions) => {
+    async ({ termId, counterTermId, amount, isFor, curveId = CURVE_LINEAR }: VoteOptions) => {
       if (!address) {
         setError({
           code: 'WALLET_NOT_CONNECTED',
@@ -139,7 +149,7 @@ export function useVote(): UseVoteResult {
         const balance = await publicClient.getBalance({ address });
         if (balance < amountWei) {
           throw new Error(
-            `Balance TRUST insuffisante. Vous avez ${(Number(balance) / 1e18).toFixed(4)} TRUST mais il faut ${amount} TRUST.`
+            `Balance TRUST insuffisante. Vous avez ${truncateAmount(Number(balance) / 1e18)} TRUST mais il faut ${amount} TRUST.`
           );
         }
 
@@ -149,15 +159,15 @@ export function useVote(): UseVoteResult {
         toast.info('Veuillez signer la transaction de vote...');
 
         // NOTE: For deposits on triples in INTUITION V2:
-        // The SDK uses curveId = 1n for all deposits (default bonding curve)
-        // See @0xintuition/sdk/src/experimental/utils.ts line 607:
-        //   termIds.map(() => 1n), // curveIds (all 1 for default curve)
+        // curveId determines the bonding curve used:
+        // - 1 = Linear (stable, 1:1 ratio)
+        // - 4 = Offset Progressive (rewards early adopters)
         //
         // FOR vs AGAINST is determined by which vault you deposit to:
         // - FOR = deposit on the triple's term_id (positive vault)
         // - AGAINST = deposit on the triple's counter_term_id (negative vault)
         const depositTermId = isFor ? termId : counterTermId!;
-        const curveId = 1n; // Default bonding curve for all deposits (per SDK)
+        const curveIdBigInt = BigInt(curveId); // Convert to bigint for contract call
 
         // Call depositBatch directly on the contract
         // TRUST is native on INTUITION L3, so we send it as msg.value
@@ -170,7 +180,7 @@ export function useVote(): UseVoteResult {
           args: [
             address as Address,  // receiver - shares go to the voter
             [depositTermId],     // termIds - term_id for FOR, counter_term_id for AGAINST
-            [curveId],           // curveIds - 1n = default bonding curve
+            [curveIdBigInt],     // curveIds - 1 = Linear, 2 = Progressive
             [amountWei],         // assets - amount to deposit
             [0n],                // minShares - minimum shares to receive (0 = no minimum)
           ],
@@ -244,13 +254,17 @@ export function useVote(): UseVoteResult {
     ]
   );
 
-  return {
+  // Memoize isLoading to prevent new value on each render
+  const isLoading = useMemo(() => ['checking', 'depositing'].includes(status), [status]);
+
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     vote,
     status,
     error,
-    isLoading: ['checking', 'depositing'].includes(status),
+    isLoading,
     currentStep,
     totalSteps,
     reset,
-  };
+  }), [vote, status, error, isLoading, currentStep, totalSteps, reset]);
 }

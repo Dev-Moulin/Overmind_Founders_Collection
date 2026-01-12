@@ -15,6 +15,8 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TopTotem } from '../../hooks';
+import { truncateAmount } from '../../utils/formatters';
+import { SUPPORT_COLORS, OPPOSE_COLORS } from '../../config/colors';
 
 interface RelationsRadarProps {
   /** Founder name (displayed at center) */
@@ -45,17 +47,17 @@ interface TotemNode {
 }
 
 /**
- * Format TRUST value for display
+ * Format TRUST value for display (using truncation like INTUITION)
  */
 function formatTrust(value: number): string {
   if (value >= 1000) {
-    return `${(value / 1000).toFixed(1)}k`;
+    return `${truncateAmount(value / 1000, 1)}k`;
   }
   if (value >= 1) {
-    return value.toFixed(2);
+    return truncateAmount(value, 2);
   }
   if (value >= 0.001) {
-    return value.toFixed(4);
+    return truncateAmount(value, 5);
   }
   return '0';
 }
@@ -250,25 +252,25 @@ export function RelationsRadar({
             />
           ))}
 
-          {/* FOR zone (blue) */}
+          {/* FOR zone - Intuition blue */}
           {forPath && (
             <path
               d={forPath}
-              fill="#3b82f6"
+              fill={SUPPORT_COLORS.base}
               fillOpacity={0.3}
-              stroke="#3b82f6"
+              stroke={SUPPORT_COLORS.base}
               strokeWidth={2}
               strokeOpacity={0.8}
             />
           )}
 
-          {/* AGAINST zone (orange) */}
+          {/* AGAINST zone - Intuition orange */}
           {againstPath && (
             <path
               d={againstPath}
-              fill="#f97316"
+              fill={OPPOSE_COLORS.base}
               fillOpacity={0.3}
-              stroke="#f97316"
+              stroke={OPPOSE_COLORS.base}
               strokeWidth={2}
               strokeOpacity={0.8}
             />
@@ -320,7 +322,7 @@ export function RelationsRadar({
           {nodes.map((node, index) => {
             const isHovered = hoveredTotem === node.id;
             const netScore = node.trustFor - node.trustAgainst;
-            const nodeColor = netScore >= 0 ? '#3b82f6' : '#f97316';
+            const nodeColor = netScore >= 0 ? SUPPORT_COLORS.base : OPPOSE_COLORS.base;
 
             return (
               <g
@@ -369,20 +371,20 @@ export function RelationsRadar({
           })}
         </svg>
 
-        {/* Tooltip */}
+        {/* Tooltip - Intuition colors */}
         {hoveredNode && (
           <div className="absolute bottom-2 left-2 right-2 bg-gray-900/95 border border-white/10 rounded-lg p-2 shadow-xl">
             <p className="text-sm font-medium text-white mb-1">{hoveredNode.label}</p>
             <div className="flex items-center gap-4 text-xs">
               <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-blue-500" />
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: SUPPORT_COLORS.base }} />
                 <span className="text-white/70">FOR:</span>
-                <span className="text-blue-400 font-medium">{formatTrust(hoveredNode.trustFor)}</span>
+                <span className="font-medium" style={{ color: SUPPORT_COLORS.base }}>{formatTrust(hoveredNode.trustFor)}</span>
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-orange-500" />
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: OPPOSE_COLORS.base }} />
                 <span className="text-white/70">AGAINST:</span>
-                <span className="text-orange-400 font-medium">{formatTrust(hoveredNode.trustAgainst)}</span>
+                <span className="font-medium" style={{ color: OPPOSE_COLORS.base }}>{formatTrust(hoveredNode.trustAgainst)}</span>
               </span>
             </div>
             <p className="text-xs text-white/50 mt-1">
@@ -391,14 +393,14 @@ export function RelationsRadar({
           </div>
         )}
 
-        {/* Legend */}
+        {/* Legend - Intuition colors */}
         <div className="absolute top-2 right-2 flex gap-3 text-xs">
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-blue-500" />
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: SUPPORT_COLORS.base }} />
             <span className="text-white/50">FOR</span>
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-orange-500" />
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: OPPOSE_COLORS.base }} />
             <span className="text-white/50">AGAINST</span>
           </span>
         </div>

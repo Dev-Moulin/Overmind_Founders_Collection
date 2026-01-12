@@ -5,11 +5,14 @@ import type { FounderForHomePage } from '../../hooks';
 import {
   useFounderSubscription,
   useAutoSubscriptionPause,
+  CURVE_LINEAR,
+  type CurveId,
 } from '../../hooks';
 import { useVoteCart, useVoteCartContext, VoteCartContext } from '../../hooks/cart/useVoteCart';
 import { FounderInfoPanel, FounderCenterPanel, VoteTotemPanel } from './index';
 import { VoteCartPanel } from '../vote/VoteCartPanel';
 import type { NewTotemData } from './TotemCreationForm';
+import type { CurveFilter } from '../../hooks/data/useVotesTimeline';
 
 interface FounderExpandedViewProps {
   founder: FounderForHomePage;
@@ -46,7 +49,6 @@ function FounderExpandedViewInner({ founder, onClose }: FounderExpandedViewProps
     initCart,
     removeItem,
     updateAmount,
-    updateDirection,
     clearCart,
     validationErrors,
     isValid: isCartValid,
@@ -141,6 +143,25 @@ function FounderExpandedViewInner({ founder, onClose }: FounderExpandedViewProps
   // Trigger to refetch user votes after cart validation
   const [refetchTrigger, setRefetchTrigger] = useState(0);
 
+  // Curve filter state - shared between CenterPanel and InfoPanel
+  const [curveFilter, setCurveFilter] = useState<CurveFilter>('progressive');
+
+  // User's position on selected totem (for visual highlighting across panels)
+  const [userPositionCurveId, setUserPositionCurveId] = useState<CurveId | null>(null);
+
+  // Handler to sync curve filter when user's position is detected
+  const handleUserPositionDetected = useCallback((position: { direction: 'for' | 'against'; curveId: CurveId } | null) => {
+    if (position) {
+      // Auto-switch curve filter to match user's position curve
+      const newFilter: CurveFilter = position.curveId === CURVE_LINEAR ? 'linear' : 'progressive';
+      setCurveFilter(newFilter);
+      // Store position curve for visual highlighting
+      setUserPositionCurveId(position.curveId);
+    } else {
+      setUserPositionCurveId(null);
+    }
+  }, []);
+
   return (
     <div
       className="fixed inset-0 z-50 m-0 bg-black/40 backdrop-blur-md flex items-center justify-center p-4 overflow-hidden"
@@ -161,6 +182,7 @@ function FounderExpandedViewInner({ founder, onClose }: FounderExpandedViewProps
             isLoading={isLoading}
             hasNewData={hasNewData}
             onSelectTotem={handleSelectTotem}
+            selectedTotemId={selectedTotemId}
           />
         </div>
 
@@ -172,6 +194,9 @@ function FounderExpandedViewInner({ founder, onClose }: FounderExpandedViewProps
             selectedTotemId={selectedTotemId}
             refetchTrigger={refetchTrigger}
             onNewTotemChange={handleNewTotemChange}
+            curveFilter={curveFilter}
+            onCurveFilterChange={setCurveFilter}
+            userPositionCurveId={userPositionCurveId}
           />
         </div>
 
@@ -184,6 +209,8 @@ function FounderExpandedViewInner({ founder, onClose }: FounderExpandedViewProps
             newTotemData={newTotemData}
             onClearSelection={handleClearSelection}
             onOpenCart={() => setIsCartPanelOpen(true)}
+            onUserPositionDetected={handleUserPositionDetected}
+            refetchTrigger={refetchTrigger}
           />
         </div>
       </div>
@@ -222,7 +249,6 @@ function FounderExpandedViewInner({ founder, onClose }: FounderExpandedViewProps
                   costSummary={costSummary}
                   onRemoveItem={removeItem}
                   onClearCart={clearCart}
-                  onUpdateDirection={updateDirection}
                   onUpdateAmount={updateAmount}
                   onSuccess={() => {
                     setIsCartPanelOpen(false);

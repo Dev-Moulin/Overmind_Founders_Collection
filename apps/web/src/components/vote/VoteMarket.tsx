@@ -16,6 +16,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useVoteMarketStats } from '../../hooks';
+import { truncateAmount } from '../../utils/formatters';
+import { SUPPORT_COLORS, OPPOSE_COLORS } from '../../config/colors';
 
 interface VoteMarketProps {
   /** Founder name to show stats for */
@@ -163,11 +165,11 @@ export function VoteMarket({ founderName, className = '' }: VoteMarketProps) {
                   <div key={totem.termId} className="flex items-center justify-between text-xs">
                     <span className="text-white/70 truncate max-w-[120px]">{totem.label}</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-green-400/80">
-                        +{Number(totem.forTrust / BigInt(1e18)).toFixed(2)}
+                      <span style={{ color: `${SUPPORT_COLORS.base}cc` }}>
+                        +{truncateAmount(Number(totem.forTrust / BigInt(1e18)), 2)}
                       </span>
-                      <span className="text-red-400/80">
-                        -{Number(totem.againstTrust / BigInt(1e18)).toFixed(2)}
+                      <span style={{ color: `${OPPOSE_COLORS.base}cc` }}>
+                        -{truncateAmount(Number(totem.againstTrust / BigInt(1e18)), 2)}
                       </span>
                     </div>
                   </div>
@@ -202,9 +204,9 @@ export function VoteMarketCompact({ founderName, className = '' }: VoteMarketPro
         <span className="text-white font-medium">{stats.uniqueVoters}</span>
       </div>
       <div className="flex items-center gap-1">
-        <span className="text-green-400">{stats.forPercentage}%</span>
+        <span style={{ color: SUPPORT_COLORS.base }}>{stats.forPercentage}%</span>
         <span className="text-white/30">/</span>
-        <span className="text-red-400">{stats.againstPercentage}%</span>
+        <span style={{ color: OPPOSE_COLORS.base }}>{stats.againstPercentage}%</span>
       </div>
     </div>
   );

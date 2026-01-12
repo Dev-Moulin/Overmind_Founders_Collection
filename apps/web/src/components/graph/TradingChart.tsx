@@ -9,7 +9,7 @@
  * @see Phase 10 in TODO_FIX_01_Discussion.md
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AreaChart,
@@ -20,6 +20,11 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { CURVE_LINEAR, type CurveId } from '../../hooks';
+import type { CurveFilter } from '../../hooks/data/useVotesTimeline';
+import { CurveSwitch } from '../common/CurveSwitch';
+import { truncateAmount } from '../../utils/formatters';
+import { SUPPORT_COLORS, OPPOSE_COLORS } from '../../config/colors';
 
 export type Timeframe = '12H' | '24H' | '7D' | 'All';
 
@@ -29,6 +34,18 @@ export interface VoteDataPoint {
   forVotes: number;
   againstVotes: number;
   netVotes: number;
+}
+
+/** Dynamic title info for displaying totem or winner */
+export interface ChartTitleInfo {
+  /** Label (totem name or winner name) */
+  label: string;
+  /** TRUST value */
+  trust: number;
+  /** Curve type for coloring the label */
+  curve: 'linear' | 'progressive';
+  /** Direction for coloring the TRUST value */
+  direction: 'for' | 'against' | 'neutral';
 }
 
 interface TradingChartProps {
@@ -42,12 +59,20 @@ interface TradingChartProps {
   height?: number;
   /** Whether data is loading */
   loading?: boolean;
-  /** Optional title */
+  /** Optional title (fallback if no dynamic title) */
   title?: string;
+  /** Dynamic title info (takes precedence over title prop) */
+  titleInfo?: ChartTitleInfo | null;
   /** Suggested timeframe if current one has no data */
   suggestedTimeframe?: Timeframe | null;
   /** Whether any data exists for this item */
   hasAnyData?: boolean;
+  /** Current curve filter */
+  curveFilter?: CurveFilter;
+  /** Callback when curve filter changes */
+  onCurveFilterChange?: (filter: CurveFilter) => void;
+  /** User's position curve (for visual highlighting) */
+  userPositionCurveId?: CurveId | null;
 }
 
 /**
@@ -70,20 +95,21 @@ function formatXAxis(timestamp: number, timeframe: Timeframe): string {
 }
 
 /**
- * Format TRUST value for display
+ * Format TRUST value for display (using truncation like INTUITION)
  */
 function formatTrust(value: number): string {
   if (value >= 1000) {
-    return `${(value / 1000).toFixed(1)}k`;
+    return `${truncateAmount(value / 1000, 1)}k`;
   }
   if (value >= 1) {
-    return value.toFixed(2);
+    return truncateAmount(value, 2);
   }
-  return value.toFixed(4);
+  return truncateAmount(value, 5);
 }
 
 /**
  * Custom tooltip component
+ * Uses Intuition color scheme: Support = blue (#0073e6), Oppose = orange (#ff8000)
  */
 function CustomTooltip({
   active,
@@ -96,8 +122,8 @@ function CustomTooltip({
 }) {
   if (!active || !payload || payload.length === 0) return null;
 
-  const forValue = payload.find(p => p.name === 'FOR')?.value || 0;
-  const againstValue = payload.find(p => p.name === 'AGAINST')?.value || 0;
+  const forValue = payload.find(p => p.name === 'Support')?.value || 0;
+  const againstValue = payload.find(p => p.name === 'Oppose')?.value || 0;
   const net = forValue - againstValue;
 
   return (
@@ -106,19 +132,19 @@ function CustomTooltip({
       <div className="space-y-1">
         <div className="flex items-center justify-between gap-4">
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-green-500" />
-            <span className="text-xs text-white/70">FOR</span>
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: SUPPORT_COLORS.base }} />
+            <span className="text-xs text-white/70">Support</span>
           </span>
-          <span className="text-xs font-medium text-green-400">
+          <span className="text-xs font-medium" style={{ color: SUPPORT_COLORS.base }}>
             {formatTrust(forValue)} TRUST
           </span>
         </div>
         <div className="flex items-center justify-between gap-4">
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-orange-500" />
-            <span className="text-xs text-white/70">AGAINST</span>
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: OPPOSE_COLORS.base }} />
+            <span className="text-xs text-white/70">Oppose</span>
           </span>
-          <span className="text-xs font-medium text-orange-400">
+          <span className="text-xs font-medium" style={{ color: OPPOSE_COLORS.base }}>
             {formatTrust(againstValue)} TRUST
           </span>
         </div>
@@ -136,7 +162,70 @@ function CustomTooltip({
 }
 
 /**
- * Timeframe selector buttons
+ * Dynamic title component - shows colored label and TRUST value
+ */
+function DynamicTitle({
+  titleInfo,
+  fallbackTitle,
+}: {
+  titleInfo?: ChartTitleInfo | null;
+  fallbackTitle: string;
+}) {
+  if (!titleInfo) {
+    return <span className="text-white/70">{fallbackTitle}</span>;
+  }
+
+  // Curve colors: blue for linear, purple for progressive
+  const curveColor = titleInfo.curve === 'linear'
+    ? 'text-blue-400'
+    : 'text-purple-400';
+
+  // Direction colors: green for FOR, orange for AGAINST, neutral for balanced
+  const directionColor = titleInfo.direction === 'for'
+    ? 'text-green-400'
+    : titleInfo.direction === 'against'
+      ? 'text-orange-400'
+      : 'text-white/60';
+
+  return (
+    <span className="flex items-center gap-2">
+      <span className={curveColor}>{titleInfo.label}</span>
+      <span className={`${directionColor} text-xs`}>
+        {formatTrust(titleInfo.trust)} TRUST
+      </span>
+    </span>
+  );
+}
+
+/**
+ * Wrapper to adapt CurveSwitch props for TradingChart usage
+ */
+function CurveSwitchWrapper({
+  selected,
+  onChange,
+  userPositionCurveId,
+}: {
+  selected: CurveFilter;
+  onChange: (filter: CurveFilter) => void;
+  userPositionCurveId?: CurveId | null;
+}) {
+  const hasLinearPosition = userPositionCurveId === CURVE_LINEAR;
+  const hasProgressivePosition = userPositionCurveId !== null && userPositionCurveId !== CURVE_LINEAR;
+  const isLinear = selected === 'linear';
+
+  return (
+    <CurveSwitch
+      isLinear={isLinear}
+      onChange={(newIsLinear) => onChange(newIsLinear ? 'linear' : 'progressive')}
+      hasLinearPosition={hasLinearPosition}
+      hasProgressivePosition={hasProgressivePosition}
+      size="md"
+    />
+  );
+}
+
+/**
+ * Timeframe selector buttons (compact)
  */
 function TimeframeSelector({
   selected,
@@ -148,15 +237,15 @@ function TimeframeSelector({
   const timeframes: Timeframe[] = ['12H', '24H', '7D', 'All'];
 
   return (
-    <div className="flex gap-1 bg-white/5 rounded-lg p-0.5">
+    <div className="flex bg-white/5 rounded-full p-0.5">
       {timeframes.map((tf) => (
         <button
           key={tf}
           onClick={() => onChange(tf)}
-          className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+          className={`px-1.5 py-0.5 text-[9px] font-medium rounded-full transition-colors ${
             selected === tf
               ? 'bg-slate-500/30 text-slate-300'
-              : 'text-white/50 hover:text-white/80 hover:bg-white/5'
+              : 'text-white/40 hover:text-white/70'
           }`}
         >
           {tf}
@@ -168,16 +257,21 @@ function TimeframeSelector({
 
 /**
  * Trading-style chart component for vote visualization
+ * Wrapped in React.memo to prevent unnecessary re-renders
  */
-export function TradingChart({
+export const TradingChart = memo(function TradingChart({
   data,
   timeframe,
   onTimeframeChange,
   height = 200,
   loading = false,
   title = 'Vote Activity',
+  titleInfo,
   suggestedTimeframe,
   hasAnyData = true,
+  curveFilter,
+  onCurveFilterChange,
+  userPositionCurveId,
 }: TradingChartProps) {
   const { t } = useTranslation();
 
@@ -194,8 +288,15 @@ export function TradingChart({
     return (
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-white/70">{title}</h3>
-          <TimeframeSelector selected={timeframe} onChange={onTimeframeChange} />
+          <h3 className="text-sm font-medium">
+            <DynamicTitle titleInfo={titleInfo} fallbackTitle={title} />
+          </h3>
+          <div className="flex items-center gap-1.5">
+            {curveFilter && onCurveFilterChange && (
+              <CurveSwitchWrapper selected={curveFilter} onChange={onCurveFilterChange} userPositionCurveId={userPositionCurveId} />
+            )}
+            <TimeframeSelector selected={timeframe} onChange={onTimeframeChange} />
+          </div>
         </div>
         <div
           className="flex items-center justify-center bg-white/5 rounded-lg"
@@ -241,8 +342,15 @@ export function TradingChart({
     return (
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-white/70">{title}</h3>
-          <TimeframeSelector selected={timeframe} onChange={onTimeframeChange} />
+          <h3 className="text-sm font-medium">
+            <DynamicTitle titleInfo={titleInfo} fallbackTitle={title} />
+          </h3>
+          <div className="flex items-center gap-1.5">
+            {curveFilter && onCurveFilterChange && (
+              <CurveSwitchWrapper selected={curveFilter} onChange={onCurveFilterChange} userPositionCurveId={userPositionCurveId} />
+            )}
+            <TimeframeSelector selected={timeframe} onChange={onTimeframeChange} />
+          </div>
         </div>
         <div
           className="flex items-center justify-center bg-white/5 rounded-lg"
@@ -258,8 +366,15 @@ export function TradingChart({
     <div className="space-y-2">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-white/70">{title}</h3>
-        <TimeframeSelector selected={timeframe} onChange={onTimeframeChange} />
+        <h3 className="text-sm font-medium">
+          <DynamicTitle titleInfo={titleInfo} fallbackTitle={title} />
+        </h3>
+        <div className="flex items-center gap-1.5">
+          {curveFilter && onCurveFilterChange && (
+            <CurveSwitchWrapper selected={curveFilter} onChange={onCurveFilterChange} userPositionCurveId={userPositionCurveId} />
+          )}
+          <TimeframeSelector selected={timeframe} onChange={onTimeframeChange} />
+        </div>
       </div>
 
       {/* Chart */}
@@ -270,15 +385,15 @@ export function TradingChart({
             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
           >
             <defs>
-              {/* Gradient for FOR area */}
+              {/* Gradient for Support area - Intuition blue */}
               <linearGradient id="gradientFor" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                <stop offset="5%" stopColor={SUPPORT_COLORS.base} stopOpacity={0.4} />
+                <stop offset="95%" stopColor={SUPPORT_COLORS.base} stopOpacity={0} />
               </linearGradient>
-              {/* Gradient for AGAINST area */}
+              {/* Gradient for Oppose area - Intuition orange */}
               <linearGradient id="gradientAgainst" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#f97316" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                <stop offset="5%" stopColor={OPPOSE_COLORS.base} stopOpacity={0.4} />
+                <stop offset="95%" stopColor={OPPOSE_COLORS.base} stopOpacity={0} />
               </linearGradient>
             </defs>
 
@@ -305,23 +420,23 @@ export function TradingChart({
               )}
             />
 
-            {/* FOR area (green) */}
+            {/* Support area - Intuition blue */}
             <Area
               type="monotone"
               dataKey="forVotes"
-              name="FOR"
-              stroke="#22c55e"
+              name="Support"
+              stroke={SUPPORT_COLORS.base}
               strokeWidth={2}
               fill="url(#gradientFor)"
               animationDuration={750}
             />
 
-            {/* AGAINST area (orange) */}
+            {/* Oppose area - Intuition orange */}
             <Area
               type="monotone"
               dataKey="againstVotes"
-              name="AGAINST"
-              stroke="#f97316"
+              name="Oppose"
+              stroke={OPPOSE_COLORS.base}
               strokeWidth={2}
               fill="url(#gradientAgainst)"
               animationDuration={750}
@@ -331,7 +446,7 @@ export function TradingChart({
       </div>
     </div>
   );
-}
+});
 
 /**
  * TradingChart with internal state management

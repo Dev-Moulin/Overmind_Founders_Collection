@@ -9,7 +9,7 @@
  * - Reset du formulaire après succès
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { type Hex } from 'viem';
 import { useIntuition, ClaimExistsError } from '../blockchain/useIntuition';
 import type { ExistingClaimInfo } from '../../components/modal/ClaimExistsModal';
@@ -225,7 +225,8 @@ export function useVoteSubmit({
   const clearError = useCallback(() => setError(null), []);
   const clearSuccess = useCallback(() => setSuccess(null), []);
 
-  return {
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     isSubmitting,
     error,
     success,
@@ -238,5 +239,15 @@ export function useVoteSubmit({
     setExistingClaimInfo,
     setShowClaimExistsModal,
     handleSubmit,
-  };
+  }), [
+    isSubmitting,
+    error,
+    success,
+    existingClaimInfo,
+    showClaimExistsModal,
+    closeClaimExistsModal,
+    clearError,
+    clearSuccess,
+    handleSubmit,
+  ]);
 }

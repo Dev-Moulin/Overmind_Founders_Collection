@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { usePublicClient } from 'wagmi';
 import { formatEther, parseEther } from 'viem';
 import {
@@ -67,16 +67,28 @@ export function useProtocolConfig() {
           return parseFloat(num.toFixed(6)).toString();
         };
 
+        // Calculate EXACT minimum for creating a new triple (tripleBaseCost + minDeposit)
+        // This is the real value the contract requires, not truncated
+        const tripleCostWei = BigInt(contractConfig.triple_cost);
+        const minDepositWei = BigInt(contractConfig.min_deposit);
+        const exactMinForNewTripleWei = tripleCostWei + minDepositWei;
+        const exactMinForNewTriple = formatEther(exactMinForNewTripleWei);
+
         setConfig({
           // Coûts de base (wei)
           atomCost: contractConfig.atom_cost,
           tripleCost: contractConfig.triple_cost,
           minDeposit: contractConfig.min_deposit,
 
-          // Coûts formatés (TRUST) - cleaned up
+          // Coûts formatés (TRUST) - cleaned up for DISPLAY only
           formattedAtomCost: cleanNumber(contractConfig.formatted_atom_cost),
           formattedTripleCost: cleanNumber(contractConfig.formatted_triple_cost),
           formattedMinDeposit: cleanNumber(contractConfig.formatted_min_deposit),
+
+          // EXACT values (not truncated) - use these for calculations and preset buttons
+          exactFormattedTripleCost: contractConfig.formatted_triple_cost,
+          exactFormattedMinDeposit: contractConfig.formatted_min_deposit,
+          exactMinForNewTriple, // tripleBaseCost + minDeposit = what user needs for new triple
 
           // Frais (basis points)
           entryFee: contractConfig.entry_fee,
@@ -100,40 +112,42 @@ export function useProtocolConfig() {
     fetchConfig();
   }, [publicClient]);
 
-  return {
-    /** Configuration du protocole */
+  /** Helpers pour validation - memoized to prevent re-renders */
+  const isDepositValid = useCallback((amount: string) => {
+    if (!config) return false;
+    try {
+      const amountWei = parseEther(amount);
+      const minDepositWei = BigInt(config.minDeposit);
+      return amountWei >= minDepositWei;
+    } catch {
+      return false;
+    }
+  }, [config]);
+
+  /** Calcul du coût total pour créer un triple - memoized */
+  const getTotalTripleCost = useCallback((depositAmount: string) => {
+    if (!config) return null;
+    try {
+      const depositWei = parseEther(depositAmount);
+      const tripleCostWei = BigInt(config.tripleCost);
+      const totalWei = tripleCostWei + depositWei;
+      // Format and remove trailing zeros
+      const formattedValue = parseFloat(Number(formatEther(totalWei)).toFixed(4)).toString();
+      return {
+        totalWei: totalWei.toString(),
+        formatted: formattedValue,
+      };
+    } catch {
+      return null;
+    }
+  }, [config]);
+
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     config,
-    /** État de chargement */
     loading,
-    /** Erreur éventuelle */
     error,
-    /** Helpers pour validation */
-    isDepositValid: (amount: string) => {
-      if (!config) return false;
-      try {
-        const amountWei = parseEther(amount);
-        const minDepositWei = BigInt(config.minDeposit);
-        return amountWei >= minDepositWei;
-      } catch {
-        return false;
-      }
-    },
-    /** Calcul du coût total pour créer un triple */
-    getTotalTripleCost: (depositAmount: string) => {
-      if (!config) return null;
-      try {
-        const depositWei = parseEther(depositAmount);
-        const tripleCostWei = BigInt(config.tripleCost);
-        const totalWei = tripleCostWei + depositWei;
-        // Format and remove trailing zeros
-        const formattedValue = parseFloat(Number(formatEther(totalWei)).toFixed(4)).toString();
-        return {
-          totalWei: totalWei.toString(),
-          formatted: formattedValue,
-        };
-      } catch {
-        return null;
-      }
-    },
-  };
+    isDepositValid,
+    getTotalTripleCost,
+  }), [config, loading, error, isDepositValid, getTotalTripleCost]);
 }

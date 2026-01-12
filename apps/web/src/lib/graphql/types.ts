@@ -426,5 +426,7 @@ export interface GetDepositsByTermIdsResult {
     term_id: string;
     sender_id: string;
     vault_type: string;
+    curve_id: string;
+    assets_after_fees: string;
   }>;
 }

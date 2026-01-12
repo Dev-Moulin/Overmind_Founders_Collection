@@ -1,6 +1,53 @@
 /**
- * Time formatting utilities
+ * Time and amount formatting utilities
  */
+
+/**
+ * Truncate a number to N decimal places (no rounding)
+ * Like INTUITION does - shows exact value without rounding up
+ *
+ * @param value - Number or string to truncate
+ * @param decimals - Number of decimal places (default: 5)
+ * @returns Truncated string without trailing zeros
+ *
+ * @example
+ * truncateAmount(0.0029799, 5) → "0.00297"
+ * truncateAmount("0.002969999998", 5) → "0.00296"
+ * truncateAmount(0.1, 5) → "0.1"
+ */
+export function truncateAmount(value: number | string, decimals: number = 5): string {
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  if (isNaN(num)) return '0';
+
+  // Truncate by using floor with multiplier (no rounding)
+  const multiplier = Math.pow(10, decimals);
+  const truncated = Math.floor(num * multiplier) / multiplier;
+
+  // Convert to string and remove trailing zeros
+  let result = truncated.toFixed(decimals);
+  // Remove trailing zeros but keep at least one decimal
+  result = result.replace(/\.?0+$/, '');
+  // If we removed all decimals, add back the integer
+  if (!result.includes('.') && truncated !== Math.floor(truncated)) {
+    result = truncated.toFixed(decimals).replace(/0+$/, '');
+  }
+
+  return result || '0';
+}
+
+/**
+ * Format amount with sign prefix (+ or -)
+ * Uses truncation (not rounding) for INTUITION-like display
+ *
+ * @param value - Amount value
+ * @param isPositive - true for +, false for -
+ * @param decimals - Number of decimal places (default: 5)
+ * @returns Signed truncated amount (e.g., "+0.00297" or "-0.00297")
+ */
+export function formatSignedAmount(value: number | string, isPositive: boolean, decimals: number = 5): string {
+  const truncated = truncateAmount(value, decimals);
+  return `${isPositive ? '+' : '-'}${truncated}`;
+}
 
 /**
  * Format seconds since update for display (French)

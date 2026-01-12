@@ -234,12 +234,13 @@ export function useTotemData({
     return Array.from(categories);
   }, [categoriesSubData]);
 
-  return {
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     allExistingTotems,
     existingTotems,
     filteredAllTotems,
     totemsByCategory,
     dynamicCategories,
     totemCategoriesMap,
-  };
+  }), [allExistingTotems, existingTotems, filteredAllTotems, totemsByCategory, dynamicCategories, totemCategoriesMap]);
 }

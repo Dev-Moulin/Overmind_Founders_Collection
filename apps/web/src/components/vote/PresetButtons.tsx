@@ -11,6 +11,7 @@
  */
 
 import { useMemo } from 'react';
+import { truncateAmount } from '../../utils/formatters';
 
 interface PresetButtonsProps {
   /** Current amount value */
@@ -134,15 +135,15 @@ export function PresetButtons({
 }
 
 /**
- * Format amount to reasonable decimal places
+ * Format amount to reasonable decimal places (using truncation like INTUITION)
  */
 function formatAmount(value: number): string {
   if (value >= 1) {
-    return value.toFixed(2);
+    return truncateAmount(value, 2);
   } else if (value >= 0.01) {
-    return value.toFixed(4);
+    return truncateAmount(value, 4);
   } else {
-    return value.toFixed(6);
+    return truncateAmount(value, 6);
   }
 }
 

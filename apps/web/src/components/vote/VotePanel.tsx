@@ -7,6 +7,7 @@ import type { FounderForHomePage } from '../../hooks';
 import { useFounderProposals } from '../../hooks';
 import { useProtocolConfig } from '../../hooks';
 import { useVoteCart } from '../../hooks';
+import { useVotesTimeline } from '../../hooks';
 import { ClaimExistsModal } from '../modal/ClaimExistsModal';
 import { NotConnected } from './NotConnected';
 import { RecentActivity } from './RecentActivity';
@@ -21,7 +22,7 @@ import { SubmitButton } from './SubmitButton';
 import { FloatingCartButton } from './CartBadge';
 import { VoteCartPanel } from './VoteCartPanel';
 import { VoteMarket } from './VoteMarket';
-import { GET_TRIPLES_BY_PREDICATES, GET_ATOMS_BY_LABELS, GET_FOUNDER_RECENT_VOTES } from '../../lib/graphql/queries';
+import { GET_TRIPLES_BY_PREDICATES, GET_ATOMS_BY_LABELS } from '../../lib/graphql/queries';
 import { useTotemData } from '../../hooks';
 import { useProactiveClaimCheck } from '../../hooks';
 import { useVoteSubmit } from '../../hooks';
@@ -59,7 +60,6 @@ export function VotePanel({ founder }: VotePanelProps) {
     addItem: _addItem, // Will be used for "Add to Cart" button in future phase
     removeItem,
     updateAmount,
-    updateDirection,
     clearCart,
     formattedNetCost,
     isValid: isCartValid,
@@ -93,23 +93,8 @@ export function VotePanel({ founder }: VotePanelProps) {
     fetchPolicy: 'cache-first',
   });
 
-  const { data: recentVotesData } = useQuery<{
-    deposits: Array<{
-      id: string;
-      sender_id: string;
-      vault_type: 'triple_positive' | 'triple_negative';
-      assets_after_fees: string;
-      created_at: string;
-      term: {
-        term_id: string;
-        object: { label: string };
-      };
-    }>;
-  }>(GET_FOUNDER_RECENT_VOTES, {
-    variables: { founderName: founder.name, limit: 5 },
-    skip: !founder.name,
-    fetchPolicy: 'cache-and-network',
-  });
+  // Get recent votes from useVotesTimeline (provides recentVotes with correct FOR/AGAINST detection)
+  const { recentVotes } = useVotesTimeline(founder.name);
 
   // Form state
   const [searchQuery, setSearchQuery] = useState('');
@@ -261,7 +246,7 @@ export function VotePanel({ founder }: VotePanelProps) {
         <ErrorNotification message={error} onClose={clearError} />
       )}
 
-      <RecentActivity votes={recentVotesData?.deposits || []} />
+      <RecentActivity votes={recentVotes} />
 
       {/* Vote Market Stats */}
       <VoteMarket founderName={founder.name} className="mb-6" />
@@ -409,7 +394,6 @@ export function VotePanel({ founder }: VotePanelProps) {
                   costSummary={costSummary}
                   onRemoveItem={removeItem}
                   onClearCart={clearCart}
-                  onUpdateDirection={updateDirection}
                   onUpdateAmount={updateAmount}
                   onSuccess={() => {
                     setIsCartPanelOpen(false);

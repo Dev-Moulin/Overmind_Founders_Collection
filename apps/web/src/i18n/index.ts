@@ -20,7 +20,7 @@ i18n
   .init({
     resources,
     fallbackLng: 'fr', // Fallback to French
-    debug: true, // Enable debug to see what's happening
+    debug: false, // Disabled to reduce console noise
 
     interpolation: {
       escapeValue: false, // React already escapes values

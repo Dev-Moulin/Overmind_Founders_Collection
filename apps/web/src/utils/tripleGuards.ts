@@ -28,15 +28,19 @@ export interface RawTriple {
     term_id: string;
     label: string;
     image?: string;
+    emoji?: string;
   } | null;
   predicate?: {
     term_id: string;
     label: string;
+    image?: string;
+    emoji?: string;
   } | null;
   object?: {
     term_id: string;
     label: string;
     image?: string;
+    emoji?: string;
     description?: string;
   } | null;
   votes?: {
@@ -63,15 +67,19 @@ export interface ValidTriple {
     term_id: string;
     label: string;
     image?: string;
+    emoji?: string;
   };
   predicate: {
     term_id: string;
     label: string;
+    image?: string;
+    emoji?: string;
   };
   object: {
     term_id: string;
     label: string;
     image?: string;
+    emoji?: string;
     description?: string;
   };
   votes?: {
@@ -119,49 +127,18 @@ export function hasValidObject(triple: RawTriple): boolean {
   );
 }
 
-// Track which sources have already logged to avoid spam
-const loggedSources = new Set<string>();
-
 /**
  * Filter an array of triples to only include valid ones
- * Logs warnings for invalid triples in development (once per source per session)
  *
  * @param triples - Array of raw triples from GraphQL
- * @param source - Optional source identifier for logging
+ * @param _source - Optional source identifier (unused, kept for API compatibility)
  * @returns Array of valid triples with guaranteed non-null fields
  */
 export function filterValidTriples(
   triples: RawTriple[],
-  source?: string
+  _source?: string
 ): ValidTriple[] {
-  let invalidCount = 0;
-  const sourceKey = source || 'tripleGuards';
-
-  const result = triples.filter((triple): triple is ValidTriple => {
-    if (!isValidTriple(triple)) {
-      invalidCount++;
-      return false;
-    }
-    return true;
-  });
-
-  // Log once per source per session with full details
-  if (invalidCount > 0 && process.env.NODE_ENV === 'development' && !loggedSources.has(sourceKey)) {
-    loggedSources.add(sourceKey);
-    // Find and log the invalid triples with full details
-    const invalidTriples = triples.filter((t) => !isValidTriple(t));
-    console.warn(
-      `[${sourceKey}] Filtered ${invalidCount} invalid triple(s):`,
-      invalidTriples.map((t) => ({
-        term_id: t.term_id,
-        subject: t.subject ? { term_id: t.subject.term_id, label: t.subject.label } : null,
-        predicate: t.predicate ? { term_id: t.predicate.term_id, label: t.predicate.label } : null,
-        object: t.object ? { term_id: t.object.term_id, label: t.object.label } : null,
-      }))
-    );
-  }
-
-  return result;
+  return triples.filter((triple): triple is ValidTriple => isValidTriple(triple));
 }
 
 /**

@@ -153,7 +153,7 @@ export function TotemCreationForm({ onChange, dynamicCategories = [] }: TotemCre
                     selectedCategory === cat.label
                       ? 'bg-slate-500/40 text-white ring-1 ring-slate-500/50'
                       : isDynamic
-                        ? 'bg-purple-500/10 text-purple-300/80 hover:bg-purple-500/20 hover:text-purple-200 border border-purple-500/30'
+                        ? 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white border border-dashed border-white/30'
                         : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
                   }`}
                   title={isDynamic ? t('creation.communityCategory') || 'Catégorie communautaire' : undefined}

@@ -615,8 +615,15 @@ export const GET_TRIPLE_BY_ATOMS = gql`
 /**
  * Get recent votes (deposits) for a specific founder
  *
- * Fetches deposits made on triples where the subject is the founder.
- * Used for activity feed in the VotePanel.
+ * DEPRECATED: This query only returns FOR votes because it filters by term.subject.label.
+ * AGAINST votes are made on counter_term_id which doesn't have subject/predicate/object.
+ *
+ * Use useRecentVotesForFounder hook instead, which uses the two-query approach:
+ * 1. GET_FOUNDER_TRIPLES_WITH_DETAILS to get term_ids + counter_term_ids
+ * 2. GET_RECENT_VOTES_BY_TERM_IDS to get deposits for those term_ids
+ *
+ * @see useRecentVotesForFounder in hooks/data/useRecentVotesForFounder.ts
+ * @see Section 17.10 in TODO_FIX_01_Discussion.md
  */
 export const GET_FOUNDER_RECENT_VOTES = gql`
   query GetFounderRecentVotes($founderName: String!, $limit: Int = 10) {
@@ -640,6 +647,9 @@ export const GET_FOUNDER_RECENT_VOTES = gql`
       transaction_hash
       term {
         term_id
+        counter_term {
+          id
+        }
         subject {
           label
         }
@@ -889,11 +899,14 @@ export const GET_DEPOSITS_BY_TERM_IDS = gql`
     deposits(
       where: {
         term_id: { _in: $termIds }
+        vault_type: { _in: ["triple_positive", "triple_negative"] }
       }
     ) {
       term_id
       sender_id
       vault_type
+      curve_id
+      assets_after_fees
     }
   }
 `;
@@ -921,6 +934,70 @@ export const GET_USER_DEPOSITS_SIMPLE = gql`
       assets_after_fees
       created_at
       transaction_hash
+      curve_id
+    }
+  }
+`;
+
+/**
+ * Get all positions for a user (ACCURATE: accounts for redeems)
+ *
+ * This is more accurate than deposits because positions track:
+ * - total_deposit_assets_after_total_fees: sum of all deposits
+ * - total_redeem_assets_for_receiver: sum of all withdrawals
+ * - shares: current position (0 if fully redeemed)
+ *
+ * Current position value = deposits - redeems
+ *
+ * NOTE: Uses _ilike for case-insensitive wallet matching.
+ */
+export const GET_USER_POSITIONS_ALL = gql`
+  query GetUserPositionsAll($walletAddress: String!) {
+    positions(
+      where: { account_id: { _ilike: $walletAddress } }
+    ) {
+      id
+      account_id
+      term_id
+      shares
+      curve_id
+      total_deposit_assets_after_total_fees
+      total_redeem_assets_for_receiver
+      created_at
+      updated_at
+    }
+  }
+`;
+
+/**
+ * Get user's positions for specific term_ids (founder's triples)
+ *
+ * More efficient approach: instead of fetching ALL user positions and filtering client-side,
+ * we fetch positions for specific term_ids (the founder's triples and their counter_terms).
+ *
+ * Used by useUserVotesForFounder hook:
+ * 1. First get founder's triples (GET_FOUNDER_TRIPLES_WITH_DETAILS) to get term_ids + counter_term_ids
+ * 2. Then get user's positions for those specific term_ids with this query
+ *
+ * NOTE: Uses _ilike for case-insensitive wallet matching.
+ */
+export const GET_USER_POSITIONS_FOR_TERMS = gql`
+  query GetUserPositionsForTerms($walletAddress: String!, $termIds: [String!]!) {
+    positions(
+      where: {
+        account_id: { _ilike: $walletAddress }
+        term_id: { _in: $termIds }
+      }
+    ) {
+      id
+      account_id
+      term_id
+      shares
+      curve_id
+      total_deposit_assets_after_total_fees
+      total_redeem_assets_for_receiver
+      created_at
+      updated_at
     }
   }
 `;
@@ -943,6 +1020,7 @@ export const GET_FOUNDER_TRIPLES_WITH_DETAILS = gql`
       }
     ) {
       term_id
+      counter_term_id
       subject {
         term_id
         label
@@ -991,6 +1069,7 @@ export const GET_DEPOSITS_FOR_TIMELINE = gql`
       assets_after_fees
       created_at
       transaction_hash
+      curve_id
     }
   }
 `;
@@ -1014,6 +1093,127 @@ export const GET_FOUNDER_TAGS = gql`
         term_id
         label
       }
+    }
+  }
+`;
+
+// ============================================================================
+// CURVE-SPECIFIC QUERIES - For Linear vs Progressive totals
+// ============================================================================
+
+/**
+ * Get deposits aggregated by curve_id for a specific term
+ *
+ * Returns total assets deposited per curve (Linear=1, Progressive=4)
+ * Grouped by vault_type (Triple for V2) to separate FOR/AGAINST
+ *
+ * @param termId - The triple's term_id (FOR deposits)
+ * @param counterTermId - The triple's counter_term_id (AGAINST deposits)
+ */
+export const GET_DEPOSITS_BY_CURVE = gql`
+  query GetDepositsByCurve($termId: String!, $counterTermId: String!) {
+    # FOR deposits on termId
+    for_linear: deposits_aggregate(
+      where: {
+        term_id: { _eq: $termId }
+        curve_id: { _eq: "1" }
+      }
+    ) {
+      aggregate {
+        sum { assets_after_fees }
+        count
+      }
+      nodes { sender_id }
+    }
+    for_progressive: deposits_aggregate(
+      where: {
+        term_id: { _eq: $termId }
+        curve_id: { _eq: "2" }
+      }
+    ) {
+      aggregate {
+        sum { assets_after_fees }
+        count
+      }
+      nodes { sender_id }
+    }
+    # AGAINST deposits on counterTermId
+    against_linear: deposits_aggregate(
+      where: {
+        term_id: { _eq: $counterTermId }
+        curve_id: { _eq: "1" }
+      }
+    ) {
+      aggregate {
+        sum { assets_after_fees }
+        count
+      }
+      nodes { sender_id }
+    }
+    against_progressive: deposits_aggregate(
+      where: {
+        term_id: { _eq: $counterTermId }
+        curve_id: { _eq: "2" }
+      }
+    ) {
+      aggregate {
+        sum { assets_after_fees }
+        count
+      }
+      nodes { sender_id }
+    }
+  }
+`;
+
+/**
+ * Get all deposits for a founder's triples, grouped by curve_id
+ *
+ * Used to calculate:
+ * - Total TRUST per curve (Linear vs Progressive)
+ * - Number of unique wallets per curve
+ * - Top totem per curve (winner Linear vs winner Progressive)
+ *
+ * @param founderName - The founder's name
+ */
+export const GET_FOUNDER_DEPOSITS_BY_CURVE = gql`
+  query GetFounderDepositsByCurve($founderName: String!) {
+    # First get all triples for this founder
+    triples(
+      where: {
+        subject: { label: { _eq: $founderName } }
+        predicate: { label: { _in: ["has totem", "embodies"] } }
+      }
+    ) {
+      term_id
+      object {
+        term_id
+        label
+        image
+      }
+      counter_term {
+        id
+      }
+    }
+  }
+`;
+
+/**
+ * Get deposits for multiple term_ids with curve breakdown
+ *
+ * @param termIds - Array of term_ids (triples and counter_terms)
+ */
+export const GET_DEPOSITS_FOR_TERMS_BY_CURVE = gql`
+  query GetDepositsForTermsByCurve($termIds: [String!]!) {
+    deposits(
+      where: {
+        term_id: { _in: $termIds }
+      }
+    ) {
+      term_id
+      sender_id
+      curve_id
+      assets_after_fees
+      vault_type
     }
   }
 `;

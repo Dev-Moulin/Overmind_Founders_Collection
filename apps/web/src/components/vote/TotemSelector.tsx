@@ -1,5 +1,6 @@
 import type { CategoryConfigType } from '../../types/category';
 import categoriesConfig from '../../../../../packages/shared/src/data/categories.json';
+import { truncateAmount } from '../../utils/formatters';
 
 const typedCategoriesConfig = categoriesConfig as CategoryConfigType;
 
@@ -137,7 +138,7 @@ export function TotemSelector({
                             : 'bg-white/5 text-white/70 hover:bg-white/10 border border-white/10'
                         }`}
                       >
-                        {totem.label} ({totem.trustScore?.toFixed(1) || '0'})
+                        {totem.label} ({totem.trustScore ? truncateAmount(totem.trustScore, 1) : '0'})
                       </button>
                     ))}
                   </div>

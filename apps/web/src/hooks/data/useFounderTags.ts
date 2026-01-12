@@ -70,9 +70,13 @@ export function useFounderTags(founderName: string): UseFounderTagsReturn {
     return uniqueTags;
   }, [data]);
 
-  return {
+  // Memoize error to prevent new reference on each render
+  const errorObj = useMemo(() => error as Error | undefined, [error]);
+
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     tags,
     loading,
-    error: error as Error | undefined,
-  };
+    error: errorObj,
+  }), [tags, loading, errorObj]);
 }

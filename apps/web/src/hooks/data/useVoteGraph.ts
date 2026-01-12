@@ -19,6 +19,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@apollo/client';
 import { GET_FOUNDER_PROPOSALS } from '../../lib/graphql/queries';
+import { truncateAmount } from '../../utils/formatters';
 
 /**
  * Node type for the graph
@@ -84,13 +85,13 @@ export interface UseVoteGraphResult {
 }
 
 /**
- * Format bigint value to human-readable string
+ * Format bigint value to human-readable string (using truncation like INTUITION)
  */
 function formatTrust(value: string | number | bigint | undefined): string {
   if (!value) return '0';
   const num = typeof value === 'bigint' ? value : BigInt(value.toString());
   const formatted = Number(num) / 1e18;
-  return formatted.toFixed(4);
+  return truncateAmount(formatted);
 }
 
 /**
@@ -242,13 +243,17 @@ export function useVoteGraph(founderName: string): UseVoteGraphResult {
     };
   }, [graphData]);
 
-  return {
+  // Memoize error to prevent new reference on each render
+  const errorObj = useMemo(() => error ? new Error(error.message) : null, [error]);
+
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     graphData,
     loading,
-    error: error ? new Error(error.message) : null,
+    error: errorObj,
     refetch,
     stats,
-  };
+  }), [graphData, loading, errorObj, refetch, stats]);
 }
 
 /**
@@ -260,18 +265,25 @@ export function useGlobalVoteGraph(): UseVoteGraphResult {
     skip: true, // We'll implement this with GET_ALL_PROPOSALS later
   });
 
+  // Memoize error to prevent new reference on each render
+  const errorObjGlobal = useMemo(() => error ? new Error(error.message) : null, [error]);
+
+  // Memoize static values
+  const emptyGraphData = useMemo(() => ({ nodes: [], edges: [] }), []);
+  const emptyStats = useMemo(() => ({
+    totalNodes: 0,
+    totalEdges: 0,
+    uniqueTotems: 0,
+    uniquePredicates: 0,
+    totalVotes: '0',
+  }), []);
+
   // For now, return empty data - this can be expanded later
-  return {
-    graphData: { nodes: [], edges: [] },
+  return useMemo(() => ({
+    graphData: emptyGraphData,
     loading,
-    error: error ? new Error(error.message) : null,
+    error: errorObjGlobal,
     refetch,
-    stats: {
-      totalNodes: 0,
-      totalEdges: 0,
-      uniqueTotems: 0,
-      uniquePredicates: 0,
-      totalVotes: '0',
-    },
-  };
+    stats: emptyStats,
+  }), [emptyGraphData, loading, errorObjGlobal, refetch, emptyStats]);
 }

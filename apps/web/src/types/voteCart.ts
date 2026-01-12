@@ -8,6 +8,18 @@
  */
 
 import type { Hex } from 'viem';
+import type { CurveId } from '../hooks/blockchain/useVote';
+
+/**
+ * Information about an existing position that may need to be redeemed
+ * before voting in a different direction
+ */
+export interface CurrentPositionInfo {
+  direction: 'for' | 'against';
+  shares: bigint;
+  /** The curveId of the existing position (needed for correct redeem) */
+  curveId: CurveId;
+}
 
 /**
  * Data for creating a new totem (when isNewTotem is true)
@@ -41,13 +53,12 @@ export interface VoteCartItem {
   counterTermId: Hex | null;
   /** Vote direction: 'for' or 'against' */
   direction: 'for' | 'against';
+  /** Bonding curve: 1 = Linear, 2 = Progressive */
+  curveId: CurveId;
   /** Amount to deposit in wei */
   amount: bigint;
-  /** Current user position on this claim (if any) */
-  currentPosition?: {
-    direction: 'for' | 'against';
-    shares: bigint;
-  };
+  /** Current user position on this claim (if any) - includes curveId for correct redeem */
+  currentPosition?: CurrentPositionInfo;
   /** Whether user needs to withdraw before voting (opposite position) */
   needsWithdraw: boolean;
   /** Whether this is a new totem that doesn't exist yet */
@@ -80,12 +91,16 @@ export interface VoteCartCostSummary {
   estimatedEntryFees: bigint;
   /** Cost for creating new atoms (if any) */
   atomCreationCosts: bigint;
+  /** Cost for creating new triples (~0.001 per triple) */
+  tripleCreationCosts: bigint;
   /** Net cost (deposits + fees - withdrawable) */
   netCost: bigint;
   /** Number of items needing withdrawal first */
   withdrawCount: number;
   /** Number of new totems to create */
   newTotemCount: number;
+  /** Number of new triples to create */
+  newTripleCount: number;
 }
 
 /**

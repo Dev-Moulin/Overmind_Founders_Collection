@@ -15,7 +15,14 @@
 // ============================================================================
 
 // Hook for voting on claims
-export { useVote, type UseVoteResult } from './blockchain/useVote';
+export {
+  useVote,
+  type UseVoteResult,
+  type CurveId,
+  type VoteOptions,
+  CURVE_LINEAR,
+  CURVE_PROGRESSIVE,
+} from './blockchain/useVote';
 export type { VoteStatus, VoteError, VoteWithDetails } from '../types/vote';
 
 // Hook for withdrawing TRUST from vaults
@@ -68,26 +75,7 @@ export {
   formatVoteAmount,
 } from './data/useFounderProposals';
 
-// GraphQL hooks for votes
-export {
-  useUserVotes,
-  useUserPosition,
-  filterVotesByType,
-  hasVotedOnTerm,
-  getUserVoteDirection,
-} from './data/useUserVotes';
-
-// Hooks for vote statistics and leaderboard
-export {
-  useTripleVotes,
-  useRecentVotes,
-  useTopVoters,
-  useVotesTimeline,
-  useVotesDistribution,
-} from './data/useVoteStats';
-
-// Hook for fetching voters of a specific totem
-export { useTotemVoters } from './data/useTotemVoters';
+// Type for totem voters (useTotemVoters kept for future use)
 export type { TotemVoter } from '../types/voter';
 
 // Hook for real-time founder proposals via WebSocket subscription
@@ -96,7 +84,7 @@ export { formatTimeSinceUpdate } from '../utils/formatters';
 
 // Hook for founders on HomePage with winning totems
 export { useFoundersForHomePage } from './data/useFoundersForHomePage';
-export type { TrendDirection, WinningTotem, FounderForHomePage } from '../types/founder';
+export type { TrendDirection, WinningTotem, FounderForHomePage, CurveWinnerInfo } from '../types/founder';
 
 // Hook for user's votes on a specific founder with triple details (My Votes section)
 export { useUserVotesForFounder, type UserVoteWithDetails } from './data/useUserVotesForFounder';
@@ -110,6 +98,15 @@ export { useTotemData } from './data/useTotemData';
 // Hook for top totems
 export { useTopTotems, type TopTotem } from './data/useTopTotems';
 
+// Hook for top totems with Linear/Progressive curve breakdown
+export {
+  useTopTotemsByCurve,
+  formatWinnerLabel,
+  type TotemWithCurves,
+  type CurveStats,
+  type CurveWinner,
+} from './data/useTopTotemsByCurve';
+
 // Hook for all OFC totems
 export { useAllOFCTotems } from './data/useAllOFCTotems';
 
@@ -119,8 +116,9 @@ export { useVoteGraph, type GraphNode, type GraphEdge, type GraphData } from './
 // Hook for vote market stats
 export { useVoteMarketStats } from './data/useVoteMarketStats';
 
-// Hook for votes timeline
-export { useVotesTimeline as useVotesTimelineHook } from './data/useVotesTimeline';
+// Hook for votes timeline (with Progressive curve filter by default)
+// Also provides recentVotes for activity feed with correct FOR/AGAINST detection
+export { useVotesTimeline, type CurveFilter, type RecentVote } from './data/useVotesTimeline';
 
 // Hook for founder tags
 export { useFounderTags, type FounderTag } from './data/useFounderTags';

@@ -13,7 +13,7 @@
  * @see Phase 10 - Etape 6 in TODO_FIX_01_Discussion.md
  */
 
-import { useMemo, useEffect } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useQuery } from '@apollo/client';
 import { formatEther } from 'viem';
 import {
@@ -24,6 +24,7 @@ import type {
   GetFounderPanelStatsResult,
   GetDepositsByTermIdsResult,
 } from '../../lib/graphql/types';
+import { truncateAmount } from '../../utils/formatters';
 
 export interface FounderPanelStats {
   /** Total Market Cap in wei */
@@ -44,21 +45,21 @@ interface UseFounderPanelStatsReturn {
 }
 
 /**
- * Format large numbers for display
+ * Format large numbers for display (using truncation like INTUITION)
  */
 function formatMarketCap(value: bigint): string {
   const ethValue = parseFloat(formatEther(value));
   if (ethValue >= 1000000) {
-    return `${(ethValue / 1000000).toFixed(2)}M`;
+    return `${truncateAmount(ethValue / 1000000, 2)}M`;
   }
   if (ethValue >= 1000) {
-    return `${(ethValue / 1000).toFixed(2)}k`;
+    return `${truncateAmount(ethValue / 1000, 2)}k`;
   }
   if (ethValue >= 1) {
-    return ethValue.toFixed(2);
+    return truncateAmount(ethValue, 2);
   }
   if (ethValue >= 0.001) {
-    return ethValue.toFixed(4);
+    return truncateAmount(ethValue, 5);
   }
   return '0';
 }
@@ -99,8 +100,7 @@ export function useFounderPanelStats(founderName: string): UseFounderPanelStatsR
   }, [triplesData?.triples]);
 
   // Second query: get deposits for those term_ids
-  // Note: We need to pass termIds as a stable reference, so we use JSON.stringify
-  const termIdsKey = JSON.stringify(termIds);
+  // Apollo automatically refetches when termIds changes (via variables)
   const {
     data: depositsData,
     loading: depositsLoading,
@@ -109,29 +109,8 @@ export function useFounderPanelStats(founderName: string): UseFounderPanelStatsR
   } = useQuery<GetDepositsByTermIdsResult>(GET_DEPOSITS_BY_TERM_IDS, {
     variables: { termIds },
     skip: termIds.length === 0,
-    fetchPolicy: 'network-only', // Force network fetch to ensure fresh data
+    fetchPolicy: 'cache-and-network',
   });
-
-  // Force refetch deposits when termIds change
-  useEffect(() => {
-    if (termIds.length > 0) {
-      console.log('[useFounderPanelStats] Refetching deposits for termIds:', termIds);
-      refetchDeposits({ termIds }).then((result) => {
-        console.log('[useFounderPanelStats] Refetch result:', result);
-      }).catch((err) => {
-        console.error('[useFounderPanelStats] Refetch error:', err);
-      });
-    }
-  }, [termIdsKey, refetchDeposits]);
-
-  // DEBUG: Disabled to reduce console noise
-  // useEffect(() => {
-  //   console.log('[useFounderPanelStats] DEBUG:', {
-  //     founderName,
-  //     triplesCount: triplesData?.triples?.length || 0,
-  //     depositsCount: depositsData?.deposits?.length || 0,
-  //   });
-  // }, [triplesData, depositsData, founderName]);
 
   // Calculate Total Market Cap = Σ(FOR + AGAINST)
   let totalMarketCap = 0n;
@@ -173,17 +152,19 @@ export function useFounderPanelStats(founderName: string): UseFounderPanelStatsR
   const error = triplesError || depositsError;
 
   // Combined refetch function
-  const refetch = () => {
+  // Memoize refetch to prevent unnecessary re-renders
+  const refetch = useCallback(() => {
     refetchTriples();
     if (termIds.length > 0) {
       refetchDeposits();
     }
-  };
+  }, [refetchTriples, refetchDeposits, termIds.length]);
 
-  return {
+  // Memoize return value to prevent unnecessary re-renders
+  return useMemo(() => ({
     stats,
     loading,
     error: error as Error | undefined,
     refetch,
-  };
+  }), [stats, loading, error, refetch]);
 }

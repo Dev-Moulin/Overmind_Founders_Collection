@@ -31,8 +31,12 @@ export const testConfig = createConfig({
 
 /**
  * Check if Anvil is running on local port
+ * Uses a short timeout to fail fast if Anvil is not available
  */
 export async function isAnvilRunning(): Promise<boolean> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 1000); // 1 second timeout
+
   try {
     const response = await fetch('http://127.0.0.1:8545', {
       method: 'POST',
@@ -43,9 +47,12 @@ export async function isAnvilRunning(): Promise<boolean> {
         params: [],
         id: 1,
       }),
+      signal: controller.signal,
     });
     return response.ok;
   } catch {
     return false;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }

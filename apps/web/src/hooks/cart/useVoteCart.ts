@@ -16,6 +16,8 @@
 import { useState, useCallback, useMemo, useEffect, createContext, useContext } from 'react';
 import { type Hex, parseEther, formatEther } from 'viem';
 import { useProtocolConfig } from '../config/useProtocolConfig';
+import { type CurveId, CURVE_LINEAR } from '../blockchain/useVote';
+import { truncateAmount } from '../../utils/formatters';
 import type {
   VoteCart,
   VoteCartItem,
@@ -37,10 +39,12 @@ interface SerializedVoteCartItem {
   termId: Hex | null;
   counterTermId: Hex | null;
   direction: 'for' | 'against';
+  curveId: CurveId; // 1 = Linear, 2 = Progressive
   amount: string; // bigint as string
   currentPosition?: {
     direction: 'for' | 'against';
     shares: string; // bigint as string
+    curveId: CurveId; // curveId of existing position (for correct redeem)
   };
   needsWithdraw: boolean;
   isNewTotem: boolean;
@@ -73,6 +77,7 @@ function serializeCart(cart: VoteCart): SerializedVoteCart {
         ? {
             direction: item.currentPosition.direction,
             shares: item.currentPosition.shares.toString(),
+            curveId: item.currentPosition.curveId,
           }
         : undefined,
     })),
@@ -89,11 +94,15 @@ function deserializeCart(data: SerializedVoteCart): VoteCart {
     founderName: data.founderName,
     items: data.items.map((item) => ({
       ...item,
+      // Default to Linear for old cart items that don't have curveId
+      curveId: (item as { curveId?: CurveId }).curveId ?? CURVE_LINEAR,
       amount: BigInt(item.amount),
       currentPosition: item.currentPosition
         ? {
             direction: item.currentPosition.direction,
             shares: BigInt(item.currentPosition.shares),
+            // Default to Linear for old cart items that don't have position curveId
+            curveId: item.currentPosition.curveId ?? CURVE_LINEAR,
           }
         : undefined,
     })),
@@ -167,10 +176,15 @@ export interface AddToCartInput {
   termId: Hex | null;
   counterTermId: Hex | null;
   direction: 'for' | 'against';
+  /** Bonding curve: 1 = Linear (default), 2 = Progressive */
+  curveId?: CurveId;
   amount: string; // In TRUST (will be converted to wei)
+  /** Existing position info (includes curveId for correct redeem) */
   currentPosition?: {
     direction: 'for' | 'against';
     shares: bigint;
+    /** The curveId of the existing position (needed for correct redeem) */
+    curveId: CurveId;
   };
   isNewTotem?: boolean;
   /** Data for creating a new totem (only when isNewTotem is true) */
@@ -204,14 +218,20 @@ export interface UseVoteCartResult {
   updateDirection: (itemId: string, direction: 'for' | 'against') => void;
   /** Clear all items from cart */
   clearCart: () => void;
-  /** Check if an item exists in cart by totemId */
-  hasItem: (totemId: Hex) => boolean;
-  /** Get item by totemId */
-  getItem: (totemId: Hex) => VoteCartItem | undefined;
+  /** Check if an item exists in cart by totemId (optionally filter by direction and curveId) */
+  hasItem: (totemId: Hex, direction?: 'for' | 'against', curveId?: CurveId) => boolean;
+  /** Get item by totemId (optionally filter by direction and curveId) */
+  getItem: (totemId: Hex, direction?: 'for' | 'against', curveId?: CurveId) => VoteCartItem | undefined;
+  /** Get all items for a totemId (all 4 possible positions) */
+  getItemsForTotem: (totemId: Hex) => VoteCartItem[];
   /** Formatted total cost for display */
   formattedNetCost: string;
   /** Formatted total deposits */
   formattedTotalDeposits: string;
+  /** Formatted triple creation costs */
+  formattedTripleCreationCosts: string;
+  /** Formatted effective deposit (after triple costs) */
+  formattedEffectiveDeposit: string;
   /** Is cart valid for submission */
   isValid: boolean;
   /** Validation errors */
@@ -352,16 +372,35 @@ export function useVoteCart(): UseVoteCartResult {
         itemCount: prev.items.length,
       });
 
-      // Check if item for this totem already exists
-      // For new totems (totemId is null), compare by name to avoid duplicates
+      // Check if item for this totem + direction + curve already exists
+      // This allows up to 4 positions per totem (L-Support, L-Oppose, P-Support, P-Oppose)
+      const inputCurveId = input.curveId ?? CURVE_LINEAR;
+
+      console.log('[useVoteCart] ===== MATCHING CHECK =====');
+      console.log('[useVoteCart] Input to match:', {
+        totemId: input.totemId,
+        totemName: input.totemName,
+        direction: input.direction,
+        curveId: inputCurveId,
+      });
+      console.log('[useVoteCart] Existing items in cart:');
+      prev.items.forEach((item, idx) => {
+        console.log(`[useVoteCart]   [${idx}] totemId=${item.totemId}, name=${item.totemName}, direction=${item.direction}, curveId=${item.curveId}`);
+      });
+
       const existingIndex = prev.items.findIndex((item) => {
-        if (input.totemId === null) {
-          // For new totems, match by name
-          return item.totemId === null && item.totemName === input.totemName;
-        }
-        return item.totemId === input.totemId;
+        const totemMatch = input.totemId === null
+          ? (item.totemId === null && item.totemName === input.totemName)
+          : (item.totemId === input.totemId);
+        const directionMatch = item.direction === input.direction;
+        const curveMatch = item.curveId === inputCurveId;
+
+        console.log(`[useVoteCart] Comparing with item "${item.totemName}": totemMatch=${totemMatch}, directionMatch=${directionMatch}, curveMatch=${curveMatch}`);
+
+        return totemMatch && directionMatch && curveMatch;
       });
       console.log('[useVoteCart] Existing item index:', existingIndex);
+      console.log('[useVoteCart] ===== END MATCHING =====');
 
       let amountWei: bigint;
       try {
@@ -385,6 +424,7 @@ export function useVoteCart(): UseVoteCartResult {
         termId: input.termId,
         counterTermId: input.counterTermId,
         direction: input.direction,
+        curveId: input.curveId ?? CURVE_LINEAR,
         amount: amountWei,
         currentPosition: input.currentPosition,
         needsWithdraw,
@@ -399,6 +439,7 @@ export function useVoteCart(): UseVoteCartResult {
         termId: newItem.termId,
         counterTermId: newItem.counterTermId,
         direction: newItem.direction,
+        curveId: newItem.curveId,
         amount: newItem.amount.toString(),
         isNewTotem: newItem.isNewTotem,
         needsWithdraw: newItem.needsWithdraw,
@@ -406,10 +447,21 @@ export function useVoteCart(): UseVoteCartResult {
       });
 
       if (existingIndex >= 0) {
-        // Update existing item
-        console.log('[useVoteCart] Updating existing item at index:', existingIndex);
+        // ACCUMULATE amounts instead of replacing
+        const existingItem = prev.items[existingIndex];
+        const accumulatedAmount = existingItem.amount + amountWei;
+        console.log('[useVoteCart] Accumulating amount for existing item at index:', existingIndex);
+        console.log('[useVoteCart] Existing amount:', formatEther(existingItem.amount), '+ new:', formatEther(amountWei), '= total:', formatEther(accumulatedAmount));
+
         const newItems = [...prev.items];
-        newItems[existingIndex] = { ...newItem, id: prev.items[existingIndex].id };
+        newItems[existingIndex] = {
+          ...existingItem,
+          // Accumulate the amount
+          amount: accumulatedAmount,
+          // Update position info in case it changed
+          currentPosition: input.currentPosition,
+          needsWithdraw,
+        };
         return { ...prev, items: newItems };
       }
 
@@ -497,20 +549,45 @@ export function useVoteCart(): UseVoteCartResult {
 
   /**
    * Check if an item exists in cart by totemId
+   * Optionally filter by direction and curveId for exact match
    */
   const hasItem = useCallback(
-    (totemId: Hex): boolean => {
-      return cart?.items.some((item) => item.totemId === totemId) ?? false;
+    (totemId: Hex, direction?: 'for' | 'against', curveId?: CurveId): boolean => {
+      if (!cart) return false;
+      return cart.items.some((item) => {
+        if (item.totemId !== totemId) return false;
+        if (direction !== undefined && item.direction !== direction) return false;
+        if (curveId !== undefined && item.curveId !== curveId) return false;
+        return true;
+      });
     },
     [cart]
   );
 
   /**
    * Get item by totemId
+   * Optionally filter by direction and curveId for exact match
    */
   const getItem = useCallback(
-    (totemId: Hex): VoteCartItem | undefined => {
-      return cart?.items.find((item) => item.totemId === totemId);
+    (totemId: Hex, direction?: 'for' | 'against', curveId?: CurveId): VoteCartItem | undefined => {
+      if (!cart) return undefined;
+      return cart.items.find((item) => {
+        if (item.totemId !== totemId) return false;
+        if (direction !== undefined && item.direction !== direction) return false;
+        if (curveId !== undefined && item.curveId !== curveId) return false;
+        return true;
+      });
+    },
+    [cart]
+  );
+
+  /**
+   * Get all items for a totemId (all positions)
+   */
+  const getItemsForTotem = useCallback(
+    (totemId: Hex): VoteCartItem[] => {
+      if (!cart) return [];
+      return cart.items.filter((item) => item.totemId === totemId);
     },
     [cart]
   );
@@ -524,8 +601,10 @@ export function useVoteCart(): UseVoteCartResult {
     let totalDeposits = 0n;
     let totalWithdrawable = 0n;
     let atomCreationCosts = 0n;
+    let tripleCreationCosts = 0n; // NEW: Cost to create triples
     let withdrawCount = 0;
     let newTotemCount = 0;
+    let newTripleCount = 0; // NEW: Count of new triples
 
     for (const item of cart.items) {
       totalDeposits += item.amount;
@@ -541,18 +620,31 @@ export function useVoteCart(): UseVoteCartResult {
         withdrawCount++;
       }
 
+      // isNewTotem means the triple doesn't exist yet (needs createTriples)
+      // This costs tripleCost (~0.001) which is taken from the user's amount
       if (item.isNewTotem) {
-        atomCreationCosts += BigInt(config.atomCost);
-        newTotemCount++;
+        tripleCreationCosts += BigInt(config.tripleCost);
+        newTripleCount++;
+
+        // If also creating a new atom (newTotemData exists), add atom cost
+        if (item.newTotemData) {
+          atomCreationCosts += BigInt(config.atomCost);
+          newTotemCount++;
+        }
       }
     }
 
-    // Calculate entry fees
+    // Calculate entry fees on the effective deposit (after triple costs)
+    // The tripleCreationCosts are taken from user's amount before deposit
+    const effectiveDeposits = totalDeposits > tripleCreationCosts
+      ? totalDeposits - tripleCreationCosts
+      : 0n;
     const entryFeePercent = BigInt(config.entryFee);
     const feeDenominator = BigInt(config.feeDenominator);
-    const estimatedEntryFees = (totalDeposits * entryFeePercent) / feeDenominator;
+    const estimatedEntryFees = (effectiveDeposits * entryFeePercent) / feeDenominator;
 
     // Net cost = deposits + entry fees + atom costs - withdrawable
+    // Note: tripleCreationCosts are already included in totalDeposits (taken from user's amount)
     const netCost =
       totalDeposits + estimatedEntryFees + atomCreationCosts - totalWithdrawable;
 
@@ -561,9 +653,11 @@ export function useVoteCart(): UseVoteCartResult {
       totalWithdrawable,
       estimatedEntryFees,
       atomCreationCosts,
+      tripleCreationCosts, // NEW
       netCost,
       withdrawCount,
       newTotemCount,
+      newTripleCount, // NEW
     };
   }, [cart, config]);
 
@@ -578,13 +672,27 @@ export function useVoteCart(): UseVoteCartResult {
   const formattedNetCost = useMemo(() => {
     if (!costSummary) return '0';
     const value = Number(formatEther(costSummary.netCost));
-    return value.toFixed(4);
+    return truncateAmount(value);
   }, [costSummary]);
 
   const formattedTotalDeposits = useMemo(() => {
     if (!costSummary) return '0';
     const value = Number(formatEther(costSummary.totalDeposits));
-    return value.toFixed(4);
+    return truncateAmount(value);
+  }, [costSummary]);
+
+  const formattedTripleCreationCosts = useMemo(() => {
+    if (!costSummary) return '0';
+    const value = Number(formatEther(costSummary.tripleCreationCosts));
+    return truncateAmount(value);
+  }, [costSummary]);
+
+  // Effective deposit = what will actually be deposited after triple costs
+  const formattedEffectiveDeposit = useMemo(() => {
+    if (!costSummary) return '0';
+    const effective = costSummary.totalDeposits - costSummary.tripleCreationCosts;
+    const value = Number(formatEther(effective > 0n ? effective : 0n));
+    return truncateAmount(value);
   }, [costSummary]);
 
   /**
@@ -611,6 +719,10 @@ export function useVoteCart(): UseVoteCartResult {
     const minDepositWei = BigInt(config.minDeposit);
     const tripleCostWei = BigInt(config.tripleCost);
 
+    // Small tolerance for protocol's non-round tripleCost (e.g., 0.001000000002 instead of 0.001)
+    // This allows "0.0020" to pass validation even if exact minimum is "0.002000000002"
+    const tolerance = 100000000000n; // 0.0000001 TRUST - covers any rounding dust
+
     for (const item of cart.items) {
       // For new totems, minimum = tripleCost + minDeposit
       // For existing totems, minimum = minDeposit
@@ -618,12 +730,24 @@ export function useVoteCart(): UseVoteCartResult {
         ? tripleCostWei + minDepositWei
         : minDepositWei;
 
-      if (item.amount < minRequired) {
+      if (item.amount + tolerance < minRequired) {
         const missing = minRequired - item.amount;
-        const missingFormatted = parseFloat(formatEther(missing)).toFixed(4);
-        errors.push(
-          `"${item.totemName}" : il manque ${missingFormatted} TRUST`
-        );
+        const missingValue = parseFloat(formatEther(missing));
+        // Show clean truncated minimum for display
+        const minRequiredFloat = parseFloat(formatEther(minRequired));
+        const minRequiredFormatted = truncateAmount(minRequiredFloat);
+
+        if (missingValue < 0.0001) {
+          // Very small difference - show the minimum required instead
+          errors.push(
+            `"${item.totemName}" : minimum requis ${minRequiredFormatted} TRUST`
+          );
+        } else {
+          const missingFormatted = truncateAmount(missingValue);
+          errors.push(
+            `"${item.totemName}" : il manque ${missingFormatted} TRUST`
+          );
+        }
       }
 
       if (item.amount <= 0n) {
@@ -637,7 +761,9 @@ export function useVoteCart(): UseVoteCartResult {
     };
   }, [cart, config]);
 
-  return {
+  // IMPORTANT: Memoize the return value to prevent unnecessary re-renders
+  // when this hook's result is passed to a Context Provider
+  return useMemo(() => ({
     cart,
     itemCount,
     costSummary,
@@ -649,11 +775,33 @@ export function useVoteCart(): UseVoteCartResult {
     clearCart,
     hasItem,
     getItem,
+    getItemsForTotem,
     formattedNetCost,
     formattedTotalDeposits,
+    formattedTripleCreationCosts,
+    formattedEffectiveDeposit,
     isValid: validationResult.isValid,
     validationErrors: validationResult.errors,
-  };
+  }), [
+    cart,
+    itemCount,
+    costSummary,
+    initCart,
+    addItem,
+    removeItem,
+    updateAmount,
+    updateDirection,
+    clearCart,
+    hasItem,
+    getItem,
+    getItemsForTotem,
+    formattedNetCost,
+    formattedTotalDeposits,
+    formattedTripleCreationCosts,
+    formattedEffectiveDeposit,
+    validationResult.isValid,
+    validationResult.errors,
+  ]);
 }
 
 // ============================================================================

@@ -35,8 +35,10 @@
     "default": "default"
   },
   "vote": {
-    "for": "FOR",
-    "against": "AGAINST",
+    "for": "Support",
+    "against": "Oppose",
+    "support": "Support",
+    "oppose": "Oppose",
     "step": "Step",
     "checking": "Checking balance...",
     "depositing": "Sending vote...",
@@ -122,6 +124,8 @@
     "newTotemInfo": "New totem - creation included",
     "summary": "Summary",
     "deposits": "Deposits",
+    "tripleCreation": "Triple creation ({{count}})",
+    "effectiveDeposit": "Effective deposit",
     "entryFees": "Entry fees (estimated)",
     "atomCreation": "Atom creation ({{count}})",
     "withdrawals": "Withdrawals ({{count}})",
@@ -144,7 +148,7 @@
     "withdrawAll": "Withdraw all",
     "selectWithdrawAmount": "Select amount to withdraw",
     "noPositionToWithdraw": "You don't have a position on this totem",
-    "voteFirstToWithdraw": "Vote FOR or AGAINST first to be able to withdraw"
+    "voteFirstToWithdraw": "Vote Support or Oppose first to be able to withdraw"
   },
   "creation": {
     "totemName": "Totem name",
@@ -221,7 +225,7 @@
   },
   "votePage": {
     "title": "Vote for Totems",
-    "description": "Support your favorite totem proposals by voting FOR or AGAINST",
+    "description": "Support your favorite totem proposals by voting Support or Oppose",
     "stats": {
       "totalTotems": "Total Totems",
       "founders": "Founders",
@@ -232,8 +236,8 @@
       "allFounders": "All Founders",
       "sortBy": "Sort by",
       "netScore": "Net Score (Highest)",
-      "mostFor": "Most FOR Votes",
-      "mostAgainst": "Most AGAINST Votes",
+      "mostFor": "Most Support Votes",
+      "mostAgainst": "Most Oppose Votes",
       "mostClaims": "Most Claims",
       "search": "Search",
       "searchPlaceholder": "Search totems, founders, predicates..."
@@ -269,8 +273,8 @@
     "noTotems": "No totems yet",
     "loadingError": "Loading error",
     "legend": {
-      "for": "FOR",
-      "against": "AGAINST"
+      "for": "Support",
+      "against": "Oppose"
     }
   },
   "myVotesPage": {
@@ -279,22 +283,22 @@
     "description": "Find your complete voting history on totem proposals",
     "stats": {
       "totalVotes": "Total Votes",
-      "forVotes": "FOR Votes",
-      "againstVotes": "AGAINST Votes",
+      "forVotes": "Support Votes",
+      "againstVotes": "Oppose Votes",
       "totalTrust": "Total TRUST"
     },
     "filters": {
       "all": "All ({count})",
-      "for": "FOR ({count})",
-      "against": "AGAINST ({count})",
+      "for": "Support ({count})",
+      "against": "Oppose ({count})",
       "totalAll": "Total:",
-      "totalFor": "Total FOR:",
-      "totalAgainst": "Total AGAINST:"
+      "totalFor": "Total Support:",
+      "totalAgainst": "Total Oppose:"
     },
     "votesList": {
       "title": "Vote history ({count})",
-      "forBadge": "👍 FOR",
-      "againstBadge": "👎 AGAINST",
+      "forBadge": "👍 Support",
+      "againstBadge": "👎 Oppose",
       "termId": "Term ID:",
       "explorerButton": "Explorer ↗",
       "portalButton": "Portal ↗"
@@ -303,14 +307,14 @@
       "title": "Voted proposals ({count})",
       "term": "Term",
       "votes": "Votes:",
-      "forAgainst": "FOR / AGAINST:",
+      "forAgainst": "Support / Oppose:",
       "total": "Total:"
     },
     "noVotes": {
       "title": "No votes found",
       "allDescription": "You haven't voted on any proposals yet",
-      "forDescription": "You haven't voted FOR on any proposals yet",
-      "againstDescription": "You haven't voted AGAINST on any proposals yet",
+      "forDescription": "You haven't voted Support on any proposals yet",
+      "againstDescription": "You haven't voted Oppose on any proposals yet",
       "button": "View proposals →"
     },
     "statusNotice": "Real-time data from INTUITION L3 Testnet",
