@@ -568,8 +568,8 @@ Afficher les **3 totems** avec le plus de TRUST total (FOR + AGAINST), triés pa
 
 ---
 
-**Dernière mise à jour** : 8 décembre 2025
-**Statut** : ✅ PHASE 10 COMPLÉTÉE - Toutes les étapes terminées + Fix GraphQL nested filters
+**Dernière mise à jour** : 20 décembre 2025
+**Statut** : 🔄 PHASE 17 EN COURS - Support Linear/Progressive Bonding Curves
 
 ---
 
@@ -1377,3 +1377,322 @@ Le document `01_Architecture_3_Triples.md` dans `documentation/technologies/Trip
 > "Chaque nouvelle catégorie nécessite un Triple 3"
 
 **Branche** : `investigate/corrupted-triple-totem`
+
+---
+
+## 17. SUPPORT LINEAR/PROGRESSIVE BONDING CURVES - 20 décembre 2025
+
+### 17.1 Contexte
+
+INTUITION V2 supporte deux types de bonding curves :
+- **Linear** (curveId = 1) : Courbe linéaire standard
+- **Progressive** (curveId = 4) : Courbe progressive avec offset, utilisée pour les votes "officiels"
+
+L'objectif est de permettre à l'utilisateur de :
+1. Voir les stats séparées par curve (Linear vs Progressive)
+2. Filtrer le TradingChart par curve
+3. Voir les winners par curve
+4. Voter sur la curve de son choix
+
+### 17.2 Problème critique identifié : FOR/AGAINST detection
+
+**Symptôme** : `linearWinner` et `progressiveWinner` toujours `null` sur les HomePage Cards.
+
+**Cause racine** : Le code utilisait `vault_type` (`triple_positive` / `triple_negative`) pour déterminer si un vote était FOR ou AGAINST. Cette approche n'est **pas fiable** dans INTUITION V2.
+
+**Explication INTUITION V2** :
+- Chaque triple a un `term_id` (vault FOR) et un `counter_term_id` (vault AGAINST)
+- Un dépôt sur `term_id` = vote **FOR**
+- Un dépôt sur `counter_term_id` = vote **AGAINST**
+- Le champ `vault_type` n'est pas un indicateur fiable de la direction du vote
+
+### 17.3 Solution implémentée
+
+#### Dans `useFoundersForHomePage.ts`
+
+```typescript
+// 1. Collecter tous les term_ids ET counter_term_ids
+const allTermIds = useMemo(() => {
+  const ids: string[] = [];
+  proposalsData.triples.forEach((t) => {
+    ids.push(t.term_id);
+    if (t.counter_term?.id) {
+      ids.push(t.counter_term.id);
+    }
+  });
+  return ids;
+}, [proposalsData]);
+
+// 2. Créer un map pour identifier FOR/AGAINST
+const termToTripleMap = useMemo(() => {
+  const map = new Map<string, { tripleTermId: string; isFor: boolean }>();
+  proposalsData.triples.forEach((t) => {
+    map.set(t.term_id, { tripleTermId: t.term_id, isFor: true });
+    if (t.counter_term?.id) {
+      map.set(t.counter_term.id, { tripleTermId: t.term_id, isFor: false });
+    }
+  });
+  return map;
+}, [proposalsData]);
+
+// 3. Utiliser isFor au lieu de vault_type
+depositsData.deposits.forEach((deposit) => {
+  const termInfo = termToTripleMap.get(deposit.term_id);
+  if (!termInfo) return;
+  const { tripleTermId, isFor } = termInfo;
+  // isFor détermine si c'est FOR ou AGAINST
+});
+```
+
+#### Dans `useVotesTimeline.ts`
+
+Même pattern avec `termToInfoMap` pour correctement classifier les votes dans le TradingChart.
+
+### 17.4 Fichiers créés
+
+| Fichier | Description |
+|---------|-------------|
+| `hooks/data/useTopTotemsByCurve.ts` | Hook avec breakdown Linear/Progressive par totem |
+| `components/stats/CurveStatsPanel.tsx` | Panel avec toggle Linear/Progressive/All et stats |
+
+### 17.5 Fichiers modifiés
+
+| Fichier | Modifications |
+|---------|---------------|
+| `useFoundersForHomePage.ts` | Ajout `termToTripleMap`, fix FOR/AGAINST, calcul winners par curve |
+| `useVotesTimeline.ts` | Ajout `termToInfoMap`, récupération `counter_term_id`, filtre par curve |
+| `lib/graphql/queries.ts` | Ajout `counter_term { id }` dans `GET_FOUNDER_TRIPLES_WITH_DETAILS` |
+| `FounderCenterPanel.tsx` | Intégration `CurveStatsPanel`, état `curveFilter` |
+| `FounderExpandedView.tsx` | Lifting état `curveFilter` au parent |
+| `FounderInfoPanel.tsx` | Affichage winner selon `curveFilter` |
+
+### 17.6 État actuel
+
+- [x] Fix FOR/AGAINST detection via `termToTripleMap`
+- [x] Hook `useTopTotemsByCurve` avec breakdown par curve
+- [x] Composant `CurveStatsPanel` avec toggle
+- [x] Intégration dans `FounderCenterPanel`
+- [x] Partage état `curveFilter` entre panels
+- [x] Affichage winner dans `FounderInfoPanel`
+- [ ] **À TESTER** : Vérifier que les données s'affichent correctement
+- [ ] **À VÉRIFIER** : Inversion couleurs TradingChart résolue
+
+### 17.7 Points d'attention
+
+1. **curve_id par défaut** : Si `deposit.curve_id` est `null`, on assume Linear (curveId = 1)
+2. **Query deposits** : Doit inclure les dépôts sur `term_id` ET `counter_term_id`
+3. **Filtre Progressive par défaut** : Le `curveFilter` est initialisé à `'progressive'`
+
+### 17.8 Fichiers à vérifier pour `vault_type` (12 fichiers de code)
+
+**Règle** : `vault_type` ne doit plus être utilisé pour déterminer FOR/AGAINST. Utiliser `term_id` vs `counter_term_id`.
+
+| Fichier | Occurrences | Statut |
+|---------|-------------|--------|
+| `lib/graphql/queries.ts` | 26x | [ ] À vérifier |
+| `lib/graphql/types.ts` | 5x | [ ] À vérifier |
+| `hooks/data/useVoteStats.ts` | 5x | [ ] À vérifier |
+| `hooks/data/useUserVotesForFounder.ts` | 4x | [ ] À vérifier |
+| `hooks/data/useVoteMarketStats.ts` | 3x | [ ] À vérifier |
+| `hooks/data/useUserVotes.ts` | 2x | [ ] À vérifier |
+| `hooks/data/useTotemVoters.ts` | 2x | [ ] À vérifier |
+| `components/vote/RecentActivity.tsx` | 2x | [ ] À vérifier |
+| `hooks/data/useVotesTimeline.ts` | 1x | [ ] À vérifier |
+| `hooks/data/useTopTotemsWithVoters.ts` | 1x | [ ] À vérifier |
+| `hooks/data/useTopTotemsByCurve.ts` | 1x | [ ] À vérifier |
+| `components/vote/VotePanel.tsx` | 1x | [ ] À vérifier |
+
+**Total** : 63 occurrences dans 12 fichiers
+
+#### Termes de recherche
+
+**Ancien pattern (à remplacer si utilisé pour logique FOR/AGAINST)** :
+- `vault_type`
+- `triple_positive`
+- `triple_negative`
+
+**Nouveau pattern (correct)** :
+- `term_id` (dépôt sur term_id = FOR)
+- `counter_term_id` ou `counter_term.id` (dépôt sur counter_term = AGAINST)
+- `isFor` (variable booléenne dans le map)
+- `termToTripleMap` ou `termToInfoMap` (pattern de mapping)
+
+**Branche** : `feature/results-page`
+
+### 17.9 Corrections vault_type effectuées (20 décembre 2025)
+
+#### Résultat de l'analyse des 12 fichiers
+
+| Fichier | Statut | Action |
+|---------|--------|--------|
+| `lib/graphql/queries.ts` | ✅ OK | Utilise vault_type pour filtrer triple vs atom (correct) |
+| `lib/graphql/types.ts` | ✅ OK | Définitions de types uniquement |
+| `hooks/data/useVotesTimeline.ts` | ✅ DÉJÀ CORRIGÉ | Utilise `termToInfoMap` pattern |
+| `hooks/data/useTopTotemsByCurve.ts` | ✅ DÉJÀ CORRIGÉ | Utilise `termToTotemMap` pattern |
+| `hooks/data/useVoteMarketStats.ts` | ✅ OK | Utilise `triple_vault/counter_term` pour totaux |
+| `components/vote/VotePanel.tsx` | ✅ OK | Type annotation GraphQL |
+| `hooks/data/useUserVotesForFounder.ts` | ✅ CORRIGÉ | Implémenté `termToVoteInfo` map |
+| `components/vote/RecentActivity.tsx` | ✅ CORRIGÉ | Utilise `useRecentVotesForFounder` (voir 17.10) |
+| `hooks/data/useVoteStats.ts` | ⏸️ COMMENTÉ | Non utilisé dans le codebase |
+| `hooks/data/useUserVotes.ts` | ⏸️ COMMENTÉ | Non utilisé, utiliser useUserVotesForFounder |
+| `hooks/data/useTotemVoters.ts` | ⏸️ COMMENTÉ | Non utilisé |
+| `hooks/data/useTopTotemsWithVoters.ts` | ⏸️ COMMENTÉ | Non utilisé |
+
+#### Exports mis à jour dans `hooks/index.ts`
+
+Les hooks commentés ont été retirés des exports avec des notes explicatives.
+
+### 17.10 ✅ RÉSOLU : GET_FOUNDER_RECENT_VOTES - Réutilisation de useVotesTimeline
+
+#### Le problème (résolu)
+
+La requête `GET_FOUNDER_RECENT_VOTES` filtrait ainsi :
+```graphql
+deposits(
+  where: {
+    term: {
+      subject: { label: { _eq: $founderName } }  # ← Filtre sur SUBJECT
+    }
+    vault_type: { _in: ["triple_positive", "triple_negative"] }
+  }
+)
+```
+
+Cela ne retournait que les votes FOR car les votes AGAINST sont sur `counter_term_id` qui n'a pas de subject/predicate/object.
+
+#### Solution implémentée (22 décembre 2025)
+
+Au lieu de créer un nouveau hook, on réutilise `useVotesTimeline` qui faisait déjà l'approche two-query :
+
+1. **`useVotesTimeline`** expose maintenant `recentVotes: RecentVote[]`
+2. Le `termToInfoMap` inclut maintenant `totemLabel` en plus de `objectId` et `isFor`
+3. Les 5 votes les plus récents sont extraits des deposits déjà récupérés
+
+#### Fichiers modifiés
+
+1. **`hooks/data/useVotesTimeline.ts`** :
+   - Ajouté type `RecentVote` avec `id`, `sender_id`, `assets_after_fees`, `created_at`, `isFor`, `totemLabel`
+   - Enrichi `termToInfoMap` avec `totemLabel`
+   - Ajouté `recentVotes` dans le retour du hook
+
+2. **`hooks/index.ts`** :
+   - Export de `useVotesTimeline` et type `RecentVote`
+
+3. **`components/vote/VotePanel.tsx`** :
+   - Utilise `useVotesTimeline(founder.name)` pour obtenir `recentVotes`
+
+4. **`components/vote/RecentActivity.tsx`** :
+   - Type changé vers `RecentVote`
+
+5. **`lib/graphql/queries.ts`** :
+   - `GET_FOUNDER_RECENT_VOTES` marqué comme DEPRECATED
+
+#### Résultat
+
+- Moins de duplication de code (pas de nouveau hook)
+- Un seul hook fait la two-query approach
+- `RecentActivity` affiche correctement les votes FOR ET AGAINST
+
+---
+
+## 18. FIX STEP COUNTER & MY VOTES CONSOLIDATION - 6 janvier 2026
+
+### 18.1 B5 - Step Counter (Affichage étapes)
+
+**Problème** : L'UI affichait "1/1" alors qu'il y avait 3+ transactions MetaMask à signer.
+
+**Cause** : Le calcul de `totalSteps` ne prenait pas en compte le process 3-step pour Progressive ni les étapes AGAINST.
+
+**Solution** : Pattern `useRef` avec compteur centralisé
+
+1. **Ref pour le compteur** :
+```typescript
+const stepCounterRef = useRef({ current: 0, total: 1 });
+```
+
+2. **Fonction centralisée `incrementStep()`** :
+```typescript
+const incrementStep = useCallback(() => {
+  stepCounterRef.current.current++;
+  setCurrentStep(stepCounterRef.current.current);
+}, []);
+```
+
+3. **Appels après chaque transaction** :
+```typescript
+await publicClient.waitForTransactionReceipt({ hash: txHash });
+incrementStep();
+```
+
+4. **Calcul précis du `totalSteps`** (lignes 1280-1327) :
+   - Nouveaux totems : 1 tx (+1 si Progressive)
+   - Nouveaux triples : 1 tx (+2 si Progressive, +2 si Linear AGAINST, +2 si Progressive AGAINST)
+   - Redeems : 1 tx
+   - Deposits existants : 1 tx (+2 si Progressive AGAINST, +1 si Linear AGAINST)
+
+**Fichier** : `apps/web/src/hooks/blockchain/useBatchVote.ts`
+
+---
+
+### 18.2 B6 - Doublons dans "My Votes"
+
+**Problème** : Les totems apparaissaient plusieurs fois dans "My Votes" (ex: Falcon 2 fois).
+
+**Analyse** : Le système MultiVault V2 permet 4 positions **indépendantes** par totem :
+
+| Position | term_id | curve_id | Description |
+|----------|---------|----------|-------------|
+| Linear FOR | termId | 1 | Support sur courbe linéaire |
+| Linear AGAINST | counterTermId | 1 | Oppose sur courbe linéaire |
+| Progressive FOR | termId | 2 | Support sur courbe progressive |
+| Progressive AGAINST | counterTermId | 2 | Oppose sur courbe progressive |
+
+**Cause** : L'ancienne consolidation utilisait `${totem}_${direction}` ce qui fusionnait Linear et Progressive en une seule ligne.
+
+**Solution** : Nouvelle clé de consolidation `${totem}_${direction}_${curveId}` (Option B)
+
+1. **Ajout `curve_id` à la query GraphQL** (`queries.ts`) :
+```graphql
+query GetUserDepositsSimple($walletAddress: String!) {
+  deposits(...) {
+    ...
+    curve_id
+  }
+}
+```
+
+2. **Nouvelle consolidation** (`useUserVotesForFounder.ts`) :
+```typescript
+const curveId = deposit.curve_id ?? 1; // Default to Linear
+const key = `${triple.object.term_id}_${isFor}_${curveId}`;
+```
+
+3. **Badge visuel L/P** (`MyVotesItem.tsx`) :
+```typescript
+const isLinear = curveId === 1;
+const curveLabel = isLinear ? 'L' : 'P';
+const curveColor = isLinear ? 'bg-green-500/30' : 'bg-purple-500/30';
+```
+
+**Fichiers modifiés** :
+- `apps/web/src/lib/graphql/queries.ts`
+- `apps/web/src/hooks/data/useUserVotesForFounder.ts`
+- `apps/web/src/components/vote/MyVotesItem.tsx`
+
+---
+
+### 18.3 Problème potentiel identifié
+
+**Observation** : Tous les votes affichent "P" (Progressive) même pour les Linear.
+
+**Hypothèses** :
+1. `curve_id` retourne toujours `2` depuis GraphQL
+2. `curve_id` retourne `null` et le default `?? 1` ne fonctionne pas
+3. L'indexeur n'a pas le champ ou il est mal mappé
+
+**Statut** : À investiguer
+
+---
+
+**Branche** : `feature/results-page`
+**Date** : 6 janvier 2026

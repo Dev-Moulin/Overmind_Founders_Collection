@@ -41,6 +41,13 @@ Documentation de recherche sur le SDK INTUITION V2 pour la refonte du système d
 |---|---------|---------|
 | 17 | [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md) | Signatures réelles contrat V2, batch functions, structures, différences SDK vs contrat, **Multicall3 ABANDONNÉ** (incompatible msg.sender) |
 
+### Doc 5 : Tests & Règles Portal INTUITION (Observations Manuelles)
+
+| # | Fichier | Contenu |
+|---|---------|---------|
+| 19 | [19_INTUITION_Portal_Rules.md](./19_INTUITION_Portal_Rules.md) | Règles exactes du protocole observées sur le portal testnet, matrice de compatibilité Support/Oppose × Linear/Progressive |
+| 20 | [20_BUGS_ANALYSIS.md](./20_BUGS_ANALYSIS.md) | **NOUVEAU** - Analyse centralisée des bugs, statuts, corrections appliquées, tests du 30/12/2025 |
+
 ---
 
 ## Index de recherche
@@ -281,6 +288,23 @@ Documentation de recherche sur le SDK INTUITION V2 pour la refonte du système d
 - ~~Multicall3~~ **ABANDONNÉ** → [17_EthMultiVault_V2_Reference.md](./17_EthMultiVault_V2_Reference.md#15-transaction-atomique-redeem--deposit---impossible-via-multicall3)
 - Switch position FOR→AGAINST → **2 transactions séquentielles** (redeemBatch + depositBatch)
 
+### Règles Portal INTUITION (Doc 5)
+- Support (FOR) / Oppose (AGAINST) → [19_INTUITION_Portal_Rules.md](./19_INTUITION_Portal_Rules.md)
+- Linear vs Offset Progressive → [19_INTUITION_Portal_Rules.md](./19_INTUITION_Portal_Rules.md#2-curves-bonding-curves)
+- Matrice compatibilité Support/Oppose × Linear/Progressive → [19_INTUITION_Portal_Rules.md](./19_INTUITION_Portal_Rules.md#4-règles-de-compatibilité-crucial)
+- Règle "pas Support ET Oppose sur même curve" → [19_INTUITION_Portal_Rules.md](./19_INTUITION_Portal_Rules.md#4-règles-de-compatibilité-crucial)
+- Blocage si positions sur les deux curves → [19_INTUITION_Portal_Rules.md](./19_INTUITION_Portal_Rules.md#cas-spécial--positions-sur-les-deux-curves)
+- Workflow changement direction → [19_INTUITION_Portal_Rules.md](./19_INTUITION_Portal_Rules.md#6-workflow-pour-changer-de-direction-même-curve)
+- Création triple force Support → [19_INTUITION_Portal_Rules.md](./19_INTUITION_Portal_Rules.md#8-création-de-triple)
+
+### Bugs & Analyse (Doc 5)
+- Liste des bugs identifiés → [20_BUGS_ANALYSIS.md](./20_BUGS_ANALYSIS.md)
+- Bug B1 Progressive→Linear (CORRIGÉ) → [20_BUGS_ANALYSIS.md](./20_BUGS_ANALYSIS.md#b1--progressive--linear-)
+- Bug B2 TripleExists (CORRIGÉ) → [20_BUGS_ANALYSIS.md](./20_BUGS_ANALYSIS.md#b2--tripleexists-error-)
+- Bug B3 "il manque 0.0000" → [20_BUGS_ANALYSIS.md](./20_BUGS_ANALYSIS.md#b3--il-manque-00000-trust-)
+- Bug B4 AGAINST→FOR → [20_BUGS_ANALYSIS.md](./20_BUGS_ANALYSIS.md#b4--direction-against--for--haute-priorité)
+- Tests du 30/12/2025 → [20_BUGS_ANALYSIS.md](./20_BUGS_ANALYSIS.md#résultats-tests-du-30122025)
+
 ---
 
 ## Sources principales
@@ -416,11 +440,141 @@ Pour chaque totem, on a besoin de :
 ---
 
 **Créé** : 28/11/2025
-**Mis à jour** : 10/12/2025 - Clarification catégories dynamiques + Fix graphiques radar + Spec ResultsPage
+**Mis à jour** : 06/01/2026 - Corrections bugs B5 & B6
 
 ---
 
-## Dernières mises à jour (10 décembre 2025)
+## Dernières mises à jour (6 janvier 2026)
+
+### Corrections Bugs B5 & B6
+
+#### B5 : Affichage étapes incorrect ✅
+
+**Problème** : L'UI affichait "1/1" alors qu'il y avait 3+ transactions MetaMask.
+
+**Solution** : Pattern `useRef` avec compteur centralisé `stepCounterRef` et fonction `incrementStep()` appelée après chaque `waitForTransactionReceipt`.
+
+**Fichier** : `apps/web/src/hooks/blockchain/useBatchVote.ts`
+
+#### B6 : Doublons dans "My Votes" ✅
+
+**Problème** : Les totems apparaissaient plusieurs fois (Linear + Progressive fusionnés).
+
+**Analyse** : MultiVault V2 permet 4 positions indépendantes par totem :
+- Linear FOR, Linear AGAINST, Progressive FOR, Progressive AGAINST
+
+**Solution** : Nouvelle clé de consolidation `${totem}_${direction}_${curveId}` + badge visuel "L" (vert) ou "P" (violet).
+
+**Fichiers** :
+- `apps/web/src/lib/graphql/queries.ts` - Ajout `curve_id`
+- `apps/web/src/hooks/data/useUserVotesForFounder.ts` - Consolidation par curve
+- `apps/web/src/components/vote/MyVotesItem.tsx` - Badge L/P
+
+#### Problème potentiel identifié
+
+**Observation** : Tous les votes affichent "P" même pour les Linear. À investiguer.
+
+**Voir** : [20_BUGS_ANALYSIS.md](./20_BUGS_ANALYSIS.md#b5--affichage-étapes-incorrect-) et [TODO_FIX_01_Discussion.md §18](./TODO_FIX_01_Discussion.md#18-fix-step-counter--my-votes-consolidation---6-janvier-2026)
+
+---
+
+## Mises à jour précédentes (30 décembre 2025)
+
+### Corrections Bugs B1 & B2 + Tests de Validation
+
+**Nouvelle documentation** : [20_BUGS_ANALYSIS.md](./20_BUGS_ANALYSIS.md)
+
+#### Bugs Corrigés ✅
+
+| Bug | Description | Fichier |
+|-----|-------------|---------|
+| **B1** | Progressive → Linear | `useBatchVote.ts` - Process 3-step implémenté |
+| **B2** | TripleExists error | `useBatchVote.ts` - Vérification GraphQL ajoutée |
+
+#### Nouveaux Bugs Identifiés
+
+| Bug | Description | Priorité | Statut |
+|-----|-------------|----------|--------|
+| **B4** | AGAINST → FOR (direction ignorée) | HAUTE | ✅ CORRIGÉ |
+| **B5** | Affichage étapes incorrect (1/1 vs 3 tx) | BASSE | ✅ CORRIGÉ |
+| **B6** | Doublons dans "my vote" | MOYENNE | ✅ CORRIGÉ |
+| **B8** | Montant total incorrect | MOYENNE | ❌ À CORRIGER |
+
+#### Résultat Test du 30/12
+- **Progressive fonctionne** : Les votes finissent bien en "Offset Progressive" ✅
+- **Direction cassée** : AGAINST devient FOR sur le testnet ❌
+
+**Voir** : [20_BUGS_ANALYSIS.md](./20_BUGS_ANALYSIS.md)
+
+---
+
+## Mises à jour précédentes (29 décembre 2025)
+
+### Tests Manuels Portal INTUITION
+
+Tests approfondis effectués sur le portal testnet INTUITION pour comprendre le comportement exact du protocole.
+
+**Documentation** : [19_INTUITION_Portal_Rules.md](./19_INTUITION_Portal_Rules.md)
+
+#### Règles Découvertes
+
+1. **Deux curves indépendantes** : Linear (curveId=1) et Offset Progressive (curveId=2)
+2. **Règle fondamentale** : Impossible d'avoir Support ET Oppose sur la même curve
+3. **Blocage total** : Si positions des deux côtés sur les deux curves, l'utilisateur est bloqué
+4. **Création triple** : Force toujours un dépôt initial en Support (FOR)
+
+---
+
+## Mises à jour précédentes (20 décembre 2025)
+
+### Support Linear/Progressive Bonding Curves
+
+Implémentation du support pour les deux types de bonding curves INTUITION V2 :
+- **Linear** (curveId = 1) : Courbe linéaire standard
+- **Progressive** (curveId = 4) : Courbe progressive avec offset
+
+#### Fichiers créés
+
+| Fichier | Description |
+|---------|-------------|
+| `hooks/data/useTopTotemsByCurve.ts` | Hook pour récupérer les totems avec breakdown Linear/Progressive |
+| `components/stats/CurveStatsPanel.tsx` | Panel affichant les stats par curve avec toggle |
+
+#### Fichiers modifiés
+
+| Fichier | Modifications |
+|---------|---------------|
+| `hooks/data/useFoundersForHomePage.ts` | Ajout `linearWinner`/`progressiveWinner` par fondateur, fix FOR/AGAINST via `termToTripleMap` |
+| `hooks/data/useVotesTimeline.ts` | Ajout paramètre `curveFilter`, fix FOR/AGAINST via `termToInfoMap`, récupération `counter_term_id` |
+| `hooks/blockchain/useVote.ts` | Ajout paramètre `curveId` pour voter sur Linear ou Progressive |
+| `hooks/blockchain/useWithdraw.ts` | Ajout paramètre `curveId` pour retirer de Linear ou Progressive |
+| `components/founder/FounderCenterPanel.tsx` | Intégration `CurveStatsPanel`, état `curveFilter` partagé |
+| `components/founder/FounderExpandedView.tsx` | Lifting de l'état `curveFilter` au niveau parent |
+| `components/founder/FounderInfoPanel.tsx` | Affichage du winner selon le `curveFilter` sélectionné |
+| `components/founder/VoteTotemPanel.tsx` | Sélecteur de curve (Linear/Progressive) |
+| `lib/graphql/queries.ts` | Ajout `counter_term { id }` dans les queries |
+
+#### Correction critique : FOR/AGAINST detection
+
+**Problème identifié** : Le code utilisait `vault_type` pour déterminer si un vote était FOR ou AGAINST, ce qui n'est pas fiable dans INTUITION V2.
+
+**Solution** : Dans INTUITION V2 :
+- Dépôt sur `term_id` du triple = vote **FOR**
+- Dépôt sur `counter_term_id` du triple = vote **AGAINST**
+
+Les hooks `useFoundersForHomePage` et `useVotesTimeline` créent maintenant un map `termId/counterTermId → { isFor: boolean }` pour correctement classifier les votes.
+
+#### État actuel
+
+- ✅ Hooks de vote/withdraw supportent `curveId`
+- ✅ TradingChart filtrable par curve
+- ✅ CurveStatsPanel avec toggle Linear/Progressive/All
+- ✅ Winners par curve affichés dans FounderInfoPanel
+- ⚠️ **À TESTER** : Vérifier que les données s'affichent correctement
+
+---
+
+## Mises à jour précédentes (10 décembre 2025)
 
 ### Clarification Catégories Dynamiques
 

@@ -647,9 +647,10 @@ function calculateCartCost(cart: VoteCart, config: MultivaultConfig) {
 | ~~**8**~~ | ~~Batch Triples~~ | Phase 2 | ~~Basse~~ | ✅ Fait |
 | ~~**9**~~ | ~~Refonte UI 3 Panneaux~~ | Phases 4-7 | ~~Basse~~ | ✅ Fait |
 | ~~**10**~~ | ~~Graphe de Visualisation~~ | - | ~~Nice to have~~ | ✅ Fait |
-| **11** | **Results Page** | - | Haute | 🔄 En cours |
+| **11** | **Results Page** | - | Haute | ⏸️ En pause |
+| **12** | **Linear/Progressive Curves** | - | Haute | 🔄 En cours |
 
-**Phases 1-10 complétées !** Phase 11 (Results Page) en cours.
+**Phases 1-10 complétées !** Phase 12 (Linear/Progressive Curves) en cours.
 
 ---
 
@@ -726,6 +727,71 @@ interface TopTotemWithVoters {
 
 ---
 
+## Phase 12: Support Linear/Progressive Bonding Curves
+
+**Date** : 20 décembre 2025
+**Objectif** : Supporter les deux types de bonding curves INTUITION V2
+
+### 12.1 Contexte
+
+INTUITION V2 supporte deux bonding curves :
+- **Linear** (curveId = 1) : Courbe linéaire standard
+- **Progressive** (curveId = 4) : Courbe progressive avec offset
+
+### 12.2 Tâches
+
+- [x] **12.1** Ajouter support `curveId` aux hooks de vote/withdraw
+  - `useVote.ts` : paramètre `curveId` optionnel
+  - `useWithdraw.ts` : paramètre `curveId` optionnel
+
+- [x] **12.2** Créer hook `useTopTotemsByCurve.ts`
+  - Breakdown Linear/Progressive par totem
+  - Winners par curve
+  - Stats agrégées
+
+- [x] **12.3** Créer composant `CurveStatsPanel.tsx`
+  - Toggle Linear/Progressive/All
+  - Stats par curve avec NET score
+  - Affichage winners
+
+- [x] **12.4** Fix critique : FOR/AGAINST detection
+  - Problème : `vault_type` non fiable
+  - Solution : Utiliser `term_id` vs `counter_term_id`
+  - Fichiers : `useFoundersForHomePage.ts`, `useVotesTimeline.ts`
+
+- [x] **12.5** Intégration dans les panels
+  - `FounderCenterPanel` : CurveStatsPanel + curveFilter
+  - `FounderExpandedView` : État partagé curveFilter
+  - `FounderInfoPanel` : Affichage winner selon curveFilter
+
+- [ ] **12.6** Tests et validation
+  - Vérifier affichage des données
+  - Vérifier couleurs TradingChart (FOR=vert, AGAINST=orange)
+  - Tester toggle curve
+
+### 12.3 Points techniques
+
+**FOR/AGAINST dans INTUITION V2** :
+```typescript
+// Dépôt sur term_id = vote FOR
+// Dépôt sur counter_term_id = vote AGAINST
+
+const termToTripleMap = new Map<string, { tripleTermId: string; isFor: boolean }>();
+triples.forEach((t) => {
+  map.set(t.term_id, { tripleTermId: t.term_id, isFor: true });
+  if (t.counter_term?.id) {
+    map.set(t.counter_term.id, { tripleTermId: t.term_id, isFor: false });
+  }
+});
+```
+
+**curve_id** :
+- `"1"` = Linear
+- `"4"` = Progressive
+- `null` = défaut Linear
+
+---
+
 ## Historique des modifications
 
 | Date | Changement |
@@ -744,4 +810,5 @@ interface TopTotemWithVoters {
 | 2 déc 2025 | **Phase 9 complétée**: FounderInfoPanel, FounderCenterPanel, VoteTotemPanel, refonte FounderExpandedView 3-panels |
 | 2 déc 2025 | **Phase 10 complétée**: useVoteGraph.ts, VoteGraph.tsx avec reagraph (WebGL), onglet Graphe dans FounderCenterPanel |
 | 2 déc 2025 | **PROJET TERMINÉ** - Toutes les 10 phases implémentées ! |
-| 5 déc 2025 | **i18n Internationalisation**: Tous les composants traduits EN/FR (VoteGraph, TradingChart, RefreshIndicator, VoteCartPanel, VoteMarket, FoundersTab Admin, etc.) |
+| 5 déc 2025 | **i18n Internationalisation**: Tous les composants traduits EN/FR |
+| 20 déc 2025 | **Phase 12 en cours**: Support Linear/Progressive Bonding Curves, fix FOR/AGAINST detection |

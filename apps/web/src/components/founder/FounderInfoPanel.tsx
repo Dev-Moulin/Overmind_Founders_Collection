@@ -24,6 +24,22 @@ import { useFounderPanelStats } from '../../hooks';
 import { useFounderTags } from '../../hooks';
 import { useTopTotemsByCurve, type CurveWinner, type TotemWithCurves, type CurveStats } from '../../hooks/data/useTopTotemsByCurve';
 import { SUPPORT_COLORS, OPPOSE_COLORS, CURVE_COLORS } from '../../config/colors';
+import { GooeySwitch } from '../common';
+
+/**
+ * Trophy icon for winners - Laurel wreath
+ */
+function TrophyIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="currentColor"
+    >
+      <path d="m9.654,8.86c-.199-.19-.206-.508-.015-.707l1.742-1.814c.278-.277.682-.36,1.037-.211.354.146.583.489.583.872v8.5c0,.276-.224.5-.5.5s-.5-.224-.5-.5V7.139l-1.639,1.708c-.191.198-.509.206-.707.014Zm-6.257,3.641c.005,0,.01,0,.015,0-.01-.008-.044-.024-.015,0Zm1.721-1.879v-.009c-.014-.021-.005,0,0,.009Zm15.659,1.878s.005,0,.008,0c.02-.011,0-.004-.008,0Zm3.206,1.062c.191.394.194.846.006,1.24-.475,1-1.32,2.297-2.745,3.189.133.101.257.201.372.299.358.304.551.746.528,1.212-.023.459-.253.872-.632,1.134-.788.544-1.977,1.181-3.376,1.331.02.046.039.092.057.136.156.381.128.807-.076,1.166s-.555.602-.962.664c-.49.074-.939.108-1.351.108-1.913,0-3.026-.734-3.675-1.582-.648.849-1.762,1.582-3.674,1.582-.412,0-.861-.034-1.351-.108-.408-.062-.759-.305-.963-.665-.204-.359-.231-.784-.076-1.166.018-.044.037-.089.057-.135-1.4-.15-2.588-.787-3.376-1.331-.379-.262-.609-.675-.632-1.134-.023-.466.169-.908.528-1.212.098-.084.204-.169.315-.255-1.468-.893-2.333-2.217-2.816-3.233-.188-.395-.185-.847.006-1.24.204-.419.589-.72,1.057-.825.126-.029.259-.056.397-.082-.455-.348-.851-.795-1.06-1.334-.608-1.569-.432-3.521-.178-4.881.08-.423.36-.778.751-.951.359-.16.769-.146,1.118.029-.168-.632-.15-1.293.188-1.935C3.202,2.096,4.726.927,5.867.208c.379-.239.831-.272,1.239-.099.427.184.738.576.833,1.049.539,2.705-.04,5.217-1.674,7.314-.932,7.465,2.922,11.545,5.879,11.99,2.947-.444,6.787-4.526,5.849-12.001-2.228-2.915-1.926-6.036-1.673-7.303.094-.473.406-.865.833-1.049.409-.175.859-.14,1.238.099,1.141.719,2.666,1.888,3.449,3.374.338.642.355,1.303.188,1.935.349-.175.759-.188,1.118-.03.391.174.672.529.751.951.255,1.361.431,3.312-.177,4.882-.214.551-.62,1.004-1.085,1.354.101.02.2.041.294.062.467.105.852.406,1.056.825ZM5.299,8.076c1.606-1.925,2.164-4.185,1.658-6.723-.03-.15-.123-.271-.247-.325-.036-.016-.081-.028-.132-.028-.054,0-.115.014-.179.054-.849.535-2.38,1.636-3.096,2.995-.756,1.437,1.17,3.314,1.996,4.027Zm-1.903,4.425c.592.014,1.228.096,1.844.287-.086-.682-.129-1.404-.123-2.166.003.006.005.007,0-.009-.759-2.181-2.246-3.534-3.311-4.189-.128-.079-.245-.042-.289-.021-.054.023-.147.084-.173.222-.189,1.009-.424,2.914.127,4.335.279.719,1.282,1.319,1.925,1.542Zm.491,4.907c.676-.389,1.484-.718,2.402-.849-.362-.786-.656-1.665-.859-2.638,0,0,0,0,0,0-1.407-.606-2.955-.45-4.006-.21-.17.039-.308.144-.378.288-.042.085-.076.22-.002.373.465.979,1.332,2.284,2.845,3.036Zm2.71,3.59c.331-.588.775-1.24,1.366-1.878-.425-.467-.822-1.003-1.177-1.608-1.513.105-2.731.887-3.499,1.539-.12.102-.184.248-.176.4.004.086.036.247.202.361.759.524,1.935,1.146,3.285,1.185Zm5.029.385c-.978-.22-2.006-.741-2.949-1.563-.887.965-1.404,1.962-1.689,2.661-.054.132-.011.241.02.295.052.092.141.154.244.17,2.203.336,3.672-.192,4.374-1.563Zm7.512-10.718s0,.002,0,0c.004.731-.037,1.426-.117,2.083.593-.168,1.188-.239,1.754-.248-.005.002-.006.004.008,0,.743-.224,1.72-.817,2.001-1.541.551-1.421.316-3.326.127-4.336-.026-.137-.12-.197-.173-.221-.044-.02-.16-.057-.29.021-1.096.675-2.567,1.975-3.309,4.241Zm-.18-2.59c.828-.715,2.749-2.591,1.994-4.025-.716-1.359-2.248-2.46-3.097-2.995-.063-.04-.124-.054-.178-.054-.051,0-.097.013-.132.028-.125.054-.217.175-.247.325-.231,1.16-.509,4.064,1.661,6.721Zm-1.693,14.406c-.285-.698-.8-1.691-1.681-2.652-.945.824-1.975,1.344-2.954,1.56.703,1.366,2.172,1.887,4.372,1.557.141-.021.213-.115.243-.169.031-.054.074-.164.021-.296Zm3.878-3.028c.008-.152-.057-.299-.176-.4-.247-.21-1.469-1.321-3.489-1.539-.356.608-.754,1.147-1.18,1.616.586.635,1.028,1.284,1.358,1.87,1.35-.039,2.527-.661,3.286-1.185.166-.114.197-.275.202-.361Zm1.938-5.453c-.07-.145-.208-.249-.377-.288-1.016-.229-2.495-.385-3.864.151-.203.998-.5,1.897-.868,2.7.887.127,1.673.441,2.333.813,1.471-.756,2.32-2.036,2.778-3.002.073-.153.039-.288-.002-.373Zm-3.943-3.334h0s.001-.004,0,0Z"/>
+    </svg>
+  );
+}
 
 /**
  * Format TRUST value for display (using truncation like INTUITION)
@@ -84,17 +100,27 @@ function CurveStatsCard({
     );
   }
 
+  // Determine direction (Support or Oppose) based on netScore
+  const isSupport = stats.netScore >= 0;
+  const directionLabel = isSupport ? 'Support' : 'Oppose';
+  const directionColors = isSupport ? SUPPORT_COLORS : OPPOSE_COLORS;
+
   return (
     <div className="p-2 rounded-lg bg-white/5 border border-white/10">
-      {/* Header: Curve label + Totem name */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          {isWinner && <span className="text-yellow-400">🏆</span>}
-          {!isWinner && <span className="text-white/40">📍</span>}
-          <span className="text-[10px] font-medium" style={{ color: curveColors.text }}>{curveLabel}</span>
-        </div>
-        <span className="text-xs text-white font-medium truncate max-w-[100px]">
+      {/* Header: Trophy icon + Totem name */}
+      <div className="flex items-center gap-1.5 mb-1">
+        {isWinner && <TrophyIcon className="w-4 h-4 text-yellow-400" />}
+        <span className="text-sm text-white font-medium truncate flex-1">
           {totemLabel}
+        </span>
+      </div>
+      {/* Direction + Curve label */}
+      <div className="flex items-center gap-1 mb-2">
+        <span className="text-xs font-medium" style={{ color: directionColors.base }}>
+          {directionLabel}
+        </span>
+        <span className="text-xs font-medium" style={{ color: curveColors.text }}>
+          {curveLabel}
         </span>
       </div>
 
@@ -109,12 +135,12 @@ function CurveStatsCard({
           style={{ width: `${100 - forPercentage}%`, backgroundColor: OPPOSE_COLORS.base }}
         />
       </div>
-      <div className="flex items-center justify-between mt-1 text-[10px]">
+      <div className="flex items-center justify-between mt-1 text-xs">
         <span style={{ color: SUPPORT_COLORS.base }}>{Math.round(forPercentage)}% FOR</span>
       </div>
 
       {/* FOR / AGAINST values */}
-      <div className="flex items-center justify-between mt-1.5 text-[10px]">
+      <div className="flex items-center justify-between mt-1.5 text-xs">
         <span className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: SUPPORT_COLORS.base }} />
           <span style={{ color: SUPPORT_COLORS.base }}>{formatTrust(stats.trustFor)}</span>
@@ -127,13 +153,17 @@ function CurveStatsCard({
       </div>
 
       {/* Balance + Voters */}
-      <div className="flex items-center justify-between mt-1 text-[10px]">
-        <span className="text-white/40">Balance:</span>
-        <span className={stats.netScore >= 0 ? 'text-green-400' : 'text-red-400'}>
-          {stats.netScore >= 0 ? '+' : ''}{formatTrust(stats.netScore)}
-        </span>
-        <span className="text-white/30">·</span>
-        <span className="text-white/50">{totalVoters} votants</span>
+      <div className="flex items-center justify-between mt-1 text-xs">
+        <div className="flex items-center gap-1">
+          <span className="text-white/40">Balance:</span>
+          <span className={stats.netScore >= 0 ? 'text-green-400' : 'text-red-400'}>
+            {stats.netScore >= 0 ? '+' : ''}{formatTrust(stats.netScore)}
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="text-white/30">·</span>
+          <span className="text-white/50">{totalVoters} votants</span>
+        </div>
       </div>
     </div>
   );
@@ -288,7 +318,7 @@ export function FounderInfoPanel({
           <img
             src={imageUrl}
             alt={founder.name}
-            className="w-28 h-28 rounded-full object-cover border-1 border-slate-500/50 shadow-lg shadow-slate-500/20"
+            className="w-28 h-28 rounded-full object-cover border border-slate-500/50 shadow-lg shadow-slate-500/20"
             onError={(e) => {
               (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(founder.name)}`;
             }}
@@ -314,13 +344,13 @@ export function FounderInfoPanel({
           {tags.slice(0, 5).map((tag) => (
             <span
               key={tag.id}
-              className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-slate-500/20 text-slate-300 border border-slate-500/30"
+              className="px-2 py-0.5 text-xs font-medium rounded-full bg-slate-500/20 text-slate-300 border border-slate-500/30"
             >
               {tag.label}
             </span>
           ))}
           {tags.length > 5 && (
-            <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-white/10 text-white/50">
+            <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-white/10 text-white/50">
               +{tags.length - 5}
             </span>
           )}
@@ -417,29 +447,24 @@ export function FounderInfoPanel({
 
       {/* Graph Tabs */}
       <div className="mt-4 shrink-0">
-        {/* Tab buttons */}
-        <div className="flex gap-1 mb-2">
-          <button
-            onClick={() => setGraphTab('topTotems')}
-            className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-colors ${
-              graphTab === 'topTotems'
-                ? 'bg-white/15 text-white'
-                : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/70'
-            }`}
-          >
-            Top Totems
-          </button>
-          <button
-            onClick={() => setGraphTab('voteGraph')}
-            className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-colors ${
-              graphTab === 'voteGraph'
-                ? 'bg-white/15 text-white'
-                : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/70'
-            }`}
-          >
-            Vote Graph
-          </button>
-        </div>
+        {/* Tab buttons - GooeySwitch */}
+        <GooeySwitch
+          options={[
+            { id: 'topTotems', label: 'Top Totems' },
+            { id: 'voteGraph', label: 'Vote Graph' },
+          ]}
+          value={graphTab}
+          onChange={(id) => setGraphTab(id as GraphTab)}
+          columns={2}
+          className="mb-2"
+          renderOption={(option, isSelected) => (
+            <div className="flex items-center justify-center px-0 py-0">
+              <span className={`text-sm font-medium leading-none ${isSelected ? 'text-white' : 'text-white/60'}`}>
+                {option.label}
+              </span>
+            </div>
+          )}
+        />
 
         {/* Graph content */}
         {graphTab === 'topTotems' ? (

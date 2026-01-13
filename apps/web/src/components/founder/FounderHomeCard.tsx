@@ -37,7 +37,7 @@ export const FounderHomeCard = memo(function FounderHomeCard({ founder, onSelect
   return (
     <div
       onClick={handleCardClick}
-      className={`glass-card p-4 flex flex-col h-full w-full min-w-0 transition-all duration-200 cursor-pointer relative
+      className={`glass-card glass-shine p-4 flex flex-col h-full w-full min-w-0 cursor-pointer relative
         ${isSelected ? 'border-slate-500 ring-2 ring-slate-500/50' : 'hover:border-slate-500/50'}`}
     >
       {/* Badge for recent activity */}

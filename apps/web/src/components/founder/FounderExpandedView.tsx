@@ -28,9 +28,6 @@ function FounderExpandedViewInner({ founder, onClose }: FounderExpandedViewProps
   // Real-time subscription for founder proposals
   const {
     secondsSinceUpdate,
-    isConnected,
-    isPaused,
-    isLoading,
     pause,
     resume,
   } = useFounderSubscription(founder.name);

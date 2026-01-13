@@ -182,3 +182,6 @@ export {
 
 // Hook for vote submission
 export { useVoteSubmit } from './utils/useVoteSubmit';
+
+// Hook for WebGL liquid glass effect
+export { useLiquidGlass, type LiquidGlassOptions } from './utils/useLiquidGlass';

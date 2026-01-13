@@ -9,3 +9,5 @@ export { SuccessNotification } from './SuccessNotification';
 export { ErrorNotification } from './ErrorNotification';
 export { CurveSwitch, CurveSwitchExtended } from './CurveSwitch';
 export type { CurveSwitchProps, CurveSwitchExtendedProps } from './CurveSwitch';
+export { GooeySwitch } from './GooeySwitch';
+export type { GooeySwitchOption } from './GooeySwitch';

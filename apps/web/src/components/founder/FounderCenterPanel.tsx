@@ -19,15 +19,16 @@ import type { FounderForHomePage } from '../../hooks';
 import { useFounderProposals, type CurveId } from '../../hooks';
 import { useVotesTimeline } from '../../hooks/data/useVotesTimeline';
 import { useAllOFCTotems } from '../../hooks';
-import { useUserVotesForFounder } from '../../hooks';
+import { useUserVotesForFounder, type UserVoteWithDetails } from '../../hooks';
 import { TradingChart, type Timeframe, type ChartTitleInfo } from '../graph/TradingChart';
 import { useTopTotemsByCurve } from '../../hooks/data/useTopTotemsByCurve';
-import { MyVotesItem, MyVotesSkeleton } from '../vote/MyVotesItem';
+import { MyVotesSkeleton } from '../vote/MyVotesItem';
 import { truncateAmount } from '../../utils/formatters';
 import { filterValidTriples, type RawTriple } from '../../utils/tripleGuards';
 import { TotemCreationForm, type NewTotemData } from './TotemCreationForm';
 import type { CurveFilter } from '../../hooks/data/useVotesTimeline';
 import { SUPPORT_COLORS, OPPOSE_COLORS, CURVE_COLORS } from '../../config/colors';
+import { GooeySwitch } from '../common';
 
 /** Unified totem type for display */
 interface DisplayTotem {
@@ -322,10 +323,11 @@ export function FounderCenterPanel({
     if (!winner) return null;
 
     return {
-      label: `🏆 ${winner.totemLabel}`,
+      label: winner.totemLabel,
       trust: Math.abs(winner.netScore),
       curve: useLinear ? 'linear' : 'progressive',
       direction: winner.netScore > 0 ? 'for' : winner.netScore < 0 ? 'against' : 'neutral',
+      isWinner: true,
     };
   }, [selectedTotemId, totemsByCurve, curveFilter, linearWinner, progressiveWinner]);
 
@@ -461,34 +463,29 @@ export function FounderCenterPanel({
 
       {/* SECTION 1: Totems / Création */}
       <div className="shrink-0" style={{ height: section1Height ?? 150 }}>
-        {/* Section 1 Tabs */}
+        {/* Section 1 Tabs - GooeySwitch */}
         <div className="flex items-center justify-between mb-2">
-          <div className="flex bg-white/5 rounded-lg p-0.5">
-            <button
-              onClick={() => setSection1Tab('totems')}
-              className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                section1Tab === 'totems'
-                  ? 'bg-slate-500/30 text-slate-300'
-                  : 'text-white/60 hover:text-white'
-              }`}
-            >
-              Totems
-            </button>
-            <button
-              onClick={() => setSection1Tab('creation')}
-              className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                section1Tab === 'creation'
-                  ? 'bg-slate-500/30 text-slate-300'
-                  : 'text-white/60 hover:text-white'
-              }`}
-            >
-              {t('founderExpanded.creation') || 'Création'}
-            </button>
-          </div>
+          <GooeySwitch
+            options={[
+              { id: 'totems', label: 'Totems' },
+              { id: 'creation', label: t('founderExpanded.creation') || 'Création' },
+            ]}
+            value={section1Tab}
+            onChange={(id) => setSection1Tab(id as 'totems' | 'creation')}
+            columns={2}
+            className="w-fit"
+            renderOption={(option, isSelected) => (
+              <div className="flex items-center justify-center px-0 py-0">
+                <span className={`text-sm font-medium leading-none ${isSelected ? 'text-white' : 'text-white/60'}`}>
+                  {option.label}
+                </span>
+              </div>
+            )}
+          />
         </div>
 
         {/* Section 1 Content - height adapts to section1Height minus tabs (~32px) */}
-        <div className="overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent" style={{ height: (section1Height ?? 150) - 32, overscrollBehavior: 'contain' }}>
+        <div className="overflow-y-auto overflow-x-hidden hide-scrollbar" style={{ height: (section1Height ?? 150) - 32, overscrollBehavior: 'contain' }}>
           {loading ? (
             <div className="grid grid-cols-2 gap-2">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -500,322 +497,145 @@ export function FounderCenterPanel({
             </div>
           ) : section1Tab === 'totems' ? (
             allTotems.length > 0 ? (
-              <div className="flex gap-2">
-                {/* Left column - even indices (0, 2, 4...) */}
-                <div className="flex-1 min-w-0 flex flex-col gap-2 ml-[10px] mr-[5px]">
-                  {allTotems.filter((_, i) => i % 2 === 0).map((totem, colIndex) => {
-                    const originalIndex = colIndex * 2; // Map back to original index for cascade
-                    const isSelected = totem.id === selectedTotemId;
-                    const userPosition = isConnected ? userPositionsByTotem.get(totem.id) : null;
-                    const hasTrust = userPosition && userPosition.trust > 0n;
-                    const trustValue = hasTrust ? parseFloat(formatEther(userPosition.trust)) : 0;
-                    const sharesValue = hasTrust ? parseFloat(formatEther(userPosition.shares)) : 0;
+              <GooeySwitch
+                options={allTotems.map(t => ({ id: t.id, label: t.label, category: t.category }))}
+                value={selectedTotemId || ''}
+                onChange={(id) => {
+                  const totem = allTotems.find(t => t.id === id);
+                  if (totem) onSelectTotem?.(id, totem.label);
+                }}
+                columns={2}
+                gap={8}
+                padding={10}
+                transparent={true}
+                renderOption={(option, isSelected, index) => {
+                  const userPosition = isConnected ? userPositionsByTotem.get(option.id) : null;
+                  const hasTrust = userPosition && userPosition.trust > 0n;
+                  const trustValue = hasTrust ? parseFloat(formatEther(userPosition.trust)) : 0;
+                  const sharesValue = hasTrust ? parseFloat(formatEther(userPosition.shares)) : 0;
 
-                    // Cascade pulse: row-based delay
-                    const cascadeClass = !selectedTotemId
-                      ? `cascade-pulse cascade-delay-${Math.min(colIndex, 7)}`
-                      : '';
+                  // Cascade pulse effect when no totem selected
+                  const rowIndex = Math.floor(index / 2);
+                  const cascadeClass = !selectedTotemId
+                    ? `cascade-pulse cascade-delay-${Math.min(rowIndex, 7)}`
+                    : '';
 
-                    // Check if totem should be expanded (selected AND has positions)
-                    const shouldExpand = isSelected && hasTrust;
+                  // Position details for expanded view
+                  const linearSupportValue = userPosition ? parseFloat(formatEther(userPosition.linearSupport)) : 0;
+                  const linearOpposeValue = userPosition ? parseFloat(formatEther(userPosition.linearOppose)) : 0;
+                  const progressiveSupportValue = userPosition ? parseFloat(formatEther(userPosition.progressiveSupport)) : 0;
+                  const progressiveOpposeValue = userPosition ? parseFloat(formatEther(userPosition.progressiveOppose)) : 0;
 
-                    // Position details for expanded view
-                    const linearSupportValue = userPosition ? parseFloat(formatEther(userPosition.linearSupport)) : 0;
-                    const linearOpposeValue = userPosition ? parseFloat(formatEther(userPosition.linearOppose)) : 0;
-                    const progressiveSupportValue = userPosition ? parseFloat(formatEther(userPosition.progressiveSupport)) : 0;
-                    const progressiveOpposeValue = userPosition ? parseFloat(formatEther(userPosition.progressiveOppose)) : 0;
+                  // Should expand details when selected AND has positions
+                  const shouldExpand = isSelected && hasTrust;
 
-                    return (
-                      <button
-                        key={totem.id || `totem-left-${originalIndex}`}
-                        onClick={() => onSelectTotem?.(totem.id, totem.label)}
-                        className={`text-left p-2 rounded-lg transition-all ${
-                          colIndex === 0 ? 'mt-[10px]' : ''
-                        } ${
-                          isSelected
-                            ? 'bg-slate-500/30 ring-1 ring-slate-500/50 animate-ring-pulse'
-                            : `bg-white/5 hover:bg-white/10 ${cascadeClass}`
-                        }`}
-                      >
-                        {/* Header: Totem name + Category */}
-                        <div className="flex items-start justify-between gap-1">
-                          <span className="text-xs font-medium text-white truncate flex-1">
-                            {totem.label}
+                  return (
+                    <div className={`text-left p-2 rounded-lg transition-all ${
+                      isSelected
+                        ? 'bg-slate-500/30 ring-1 ring-slate-500/50 animate-ring-pulse'
+                        : `bg-white/5 hover:bg-white/10 ${cascadeClass}`
+                    }`}>
+                      {/* Header: Totem name + Category */}
+                      <div className="flex items-start justify-between gap-1">
+                        <span className={`text-sm font-medium truncate flex-1 ${isSelected ? 'text-white' : 'text-white/80'}`}>
+                          {option.label}
+                        </span>
+                        <span className="text-xs text-white/40 truncate max-w-[60px]">
+                          {(option.category as string) || ''}
+                        </span>
+                      </div>
+                      {/* User position (only if connected) */}
+                      {isConnected && (
+                        <div className="flex items-center gap-1.5 mt-1 text-xs">
+                          <span className={hasTrust ? 'text-cyan-400' : 'text-white/30'}>
+                            {truncateAmount(trustValue)} TRUST
                           </span>
-                          <span className="text-[10px] text-white/40 truncate max-w-[60px]">
-                            {totem.category || ''}
+                          <span className="text-white/20">·</span>
+                          <span className={hasTrust ? 'text-white/60' : 'text-white/30'}>
+                            {truncateAmount(sharesValue, 2)} shares
                           </span>
-                          {isSelected && (
-                            <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-slate-400" />
+                          {/* Position badges [S/O] [L/P] */}
+                          {userPosition && (userPosition.linearTrust > 0n || userPosition.progressiveTrust > 0n) && (
+                            <>
+                              <span className="text-white/20">·</span>
+                              {userPosition.linearSupport > 0n && (
+                                <span className="flex gap-0.5">
+                                  <span className="w-4 h-4 flex items-center justify-center rounded text-[10px] font-bold" style={{ backgroundColor: `${SUPPORT_COLORS.base}30`, color: SUPPORT_COLORS.base }}>S</span>
+                                  <span className="w-4 h-4 flex items-center justify-center rounded text-[10px] font-bold" style={{ backgroundColor: `${SUPPORT_COLORS.base}20`, color: SUPPORT_COLORS.base }}>L</span>
+                                </span>
+                              )}
+                              {userPosition.linearOppose > 0n && (
+                                <span className="flex gap-0.5">
+                                  <span className="w-4 h-4 flex items-center justify-center rounded text-[10px] font-bold" style={{ backgroundColor: `${OPPOSE_COLORS.base}30`, color: OPPOSE_COLORS.base }}>O</span>
+                                  <span className="w-4 h-4 flex items-center justify-center rounded text-[10px] font-bold" style={{ backgroundColor: `${OPPOSE_COLORS.base}20`, color: OPPOSE_COLORS.base }}>L</span>
+                                </span>
+                              )}
+                              {userPosition.progressiveSupport > 0n && (
+                                <span className="flex gap-0.5">
+                                  <span className="w-4 h-4 flex items-center justify-center rounded text-[10px] font-bold" style={{ backgroundColor: `${SUPPORT_COLORS.base}30`, color: SUPPORT_COLORS.base }}>S</span>
+                                  <span className="w-4 h-4 flex items-center justify-center rounded text-[10px] font-bold" style={{ backgroundColor: `${SUPPORT_COLORS.base}20`, color: SUPPORT_COLORS.base }}>P</span>
+                                </span>
+                              )}
+                              {userPosition.progressiveOppose > 0n && (
+                                <span className="flex gap-0.5">
+                                  <span className="w-4 h-4 flex items-center justify-center rounded text-[10px] font-bold" style={{ backgroundColor: `${OPPOSE_COLORS.base}30`, color: OPPOSE_COLORS.base }}>O</span>
+                                  <span className="w-4 h-4 flex items-center justify-center rounded text-[10px] font-bold" style={{ backgroundColor: `${OPPOSE_COLORS.base}20`, color: OPPOSE_COLORS.base }}>P</span>
+                                </span>
+                              )}
+                            </>
                           )}
                         </div>
-                        {/* User position (only if connected) */}
-                        {isConnected && (
-                          <div className="flex items-center gap-1.5 mt-1 text-[10px]">
-                            <span className="text-white/50">👤</span>
-                            <span className={hasTrust ? 'text-cyan-400' : 'text-white/30'}>
-                              {truncateAmount(trustValue)} TRUST
-                            </span>
-                            <span className="text-white/20">·</span>
-                            <span className={hasTrust ? 'text-white/60' : 'text-white/30'}>
-                              {truncateAmount(sharesValue, 2)} shares
-                            </span>
-                            {/* Position badges [S/O] [L/P] - colored by direction */}
-                            {userPosition && (userPosition.linearTrust > 0n || userPosition.progressiveTrust > 0n) && (
-                              <>
-                                <span className="text-white/20">·</span>
-                                {/* Linear Support */}
-                                {userPosition.linearSupport > 0n && (
-                                  <span className="flex gap-0.5">
-                                    <span className="w-4 h-4 flex items-center justify-center rounded text-[8px] font-bold" style={{ backgroundColor: `${SUPPORT_COLORS.base}30`, color: SUPPORT_COLORS.base }}>S</span>
-                                    <span className="w-4 h-4 flex items-center justify-center rounded text-[8px] font-bold" style={{ backgroundColor: `${SUPPORT_COLORS.base}20`, color: SUPPORT_COLORS.base }}>L</span>
-                                  </span>
-                                )}
-                                {/* Linear Oppose */}
-                                {userPosition.linearOppose > 0n && (
-                                  <span className="flex gap-0.5">
-                                    <span className="w-4 h-4 flex items-center justify-center rounded text-[8px] font-bold" style={{ backgroundColor: `${OPPOSE_COLORS.base}30`, color: OPPOSE_COLORS.base }}>O</span>
-                                    <span className="w-4 h-4 flex items-center justify-center rounded text-[8px] font-bold" style={{ backgroundColor: `${OPPOSE_COLORS.base}20`, color: OPPOSE_COLORS.base }}>L</span>
-                                  </span>
-                                )}
-                                {/* Progressive Support */}
-                                {userPosition.progressiveSupport > 0n && (
-                                  <span className="flex gap-0.5">
-                                    <span className="w-4 h-4 flex items-center justify-center rounded text-[8px] font-bold" style={{ backgroundColor: `${SUPPORT_COLORS.base}30`, color: SUPPORT_COLORS.base }}>S</span>
-                                    <span className="w-4 h-4 flex items-center justify-center rounded text-[8px] font-bold" style={{ backgroundColor: `${SUPPORT_COLORS.base}20`, color: SUPPORT_COLORS.base }}>P</span>
-                                  </span>
-                                )}
-                                {/* Progressive Oppose */}
-                                {userPosition.progressiveOppose > 0n && (
-                                  <span className="flex gap-0.5">
-                                    <span className="w-4 h-4 flex items-center justify-center rounded text-[8px] font-bold" style={{ backgroundColor: `${OPPOSE_COLORS.base}30`, color: OPPOSE_COLORS.base }}>O</span>
-                                    <span className="w-4 h-4 flex items-center justify-center rounded text-[8px] font-bold" style={{ backgroundColor: `${OPPOSE_COLORS.base}20`, color: OPPOSE_COLORS.base }}>P</span>
-                                  </span>
-                                )}
-                              </>
+                      )}
+
+                      {/* Expanded Details - Animated open/close */}
+                      {hasTrust && (
+                        <div className={`overflow-hidden transition-all duration-500 ease-out ${
+                          shouldExpand ? 'max-h-24 opacity-100 mt-2' : 'max-h-0 opacity-0 mt-0'
+                        }`}>
+                          <div className="border-t border-white/10 pt-2 space-y-1">
+                            {linearSupportValue > 0 && (
+                              <div className="flex justify-between items-center text-xs">
+                                <span>
+                                  <span className="font-medium" style={{ color: SUPPORT_COLORS.base }}>Support</span>
+                                  <span className="ml-1" style={{ color: `${CURVE_COLORS.linear.text}B0` }}>Linear</span>
+                                </span>
+                                <span className="text-white/80 font-medium">{truncateAmount(linearSupportValue)}</span>
+                              </div>
+                            )}
+                            {linearOpposeValue > 0 && (
+                              <div className="flex justify-between items-center text-xs">
+                                <span>
+                                  <span className="font-medium" style={{ color: OPPOSE_COLORS.base }}>Oppose</span>
+                                  <span className="ml-1" style={{ color: `${CURVE_COLORS.linear.text}B0` }}>Linear</span>
+                                </span>
+                                <span className="text-white/80 font-medium">{truncateAmount(linearOpposeValue)}</span>
+                              </div>
+                            )}
+                            {progressiveSupportValue > 0 && (
+                              <div className="flex justify-between items-center text-xs">
+                                <span>
+                                  <span className="font-medium" style={{ color: SUPPORT_COLORS.base }}>Support</span>
+                                  <span className="ml-1" style={{ color: `${CURVE_COLORS.progressive.text}B0` }}>Progressive</span>
+                                </span>
+                                <span className="text-white/80 font-medium">{truncateAmount(progressiveSupportValue)}</span>
+                              </div>
+                            )}
+                            {progressiveOpposeValue > 0 && (
+                              <div className="flex justify-between items-center text-xs">
+                                <span>
+                                  <span className="font-medium" style={{ color: OPPOSE_COLORS.base }}>Oppose</span>
+                                  <span className="ml-1" style={{ color: `${CURVE_COLORS.progressive.text}B0` }}>Progressive</span>
+                                </span>
+                                <span className="text-white/80 font-medium">{truncateAmount(progressiveOpposeValue)}</span>
+                              </div>
                             )}
                           </div>
-                        )}
-
-                        {/* Expanded Details - Always rendered but animated open/close */}
-                        {hasTrust && (
-                          <div className={`overflow-hidden transition-all duration-500 ease-out ${
-                            shouldExpand ? 'max-h-24 opacity-100 mt-2' : 'max-h-0 opacity-0 mt-0'
-                          }`}>
-                            <div className="border-t border-white/10 pt-2 space-y-1">
-                              {/* Linear Support - Intuition colors */}
-                              {linearSupportValue > 0 && (
-                                <div className="flex justify-between items-center text-[10px]">
-                                  <span>
-                                    <span className="font-medium" style={{ color: SUPPORT_COLORS.base }}>Support</span>
-                                    <span className="ml-1" style={{ color: `${CURVE_COLORS.linear.text}B0` }}>Linear</span>
-                                  </span>
-                                  <span className="text-white/80 font-medium">
-                                    {truncateAmount(linearSupportValue)}
-                                  </span>
-                                </div>
-                              )}
-                              {/* Linear Oppose */}
-                              {linearOpposeValue > 0 && (
-                                <div className="flex justify-between items-center text-[10px]">
-                                  <span>
-                                    <span className="font-medium" style={{ color: OPPOSE_COLORS.base }}>Oppose</span>
-                                    <span className="ml-1" style={{ color: `${CURVE_COLORS.linear.text}B0` }}>Linear</span>
-                                  </span>
-                                  <span className="text-white/80 font-medium">
-                                    {truncateAmount(linearOpposeValue)}
-                                  </span>
-                                </div>
-                              )}
-                              {/* Progressive Support */}
-                              {progressiveSupportValue > 0 && (
-                                <div className="flex justify-between items-center text-[10px]">
-                                  <span>
-                                    <span className="font-medium" style={{ color: SUPPORT_COLORS.base }}>Support</span>
-                                    <span className="ml-1" style={{ color: `${CURVE_COLORS.progressive.text}B0` }}>Progressive</span>
-                                  </span>
-                                  <span className="text-white/80 font-medium">
-                                    {truncateAmount(progressiveSupportValue)}
-                                  </span>
-                                </div>
-                              )}
-                              {/* Progressive Oppose */}
-                              {progressiveOpposeValue > 0 && (
-                                <div className="flex justify-between items-center text-[10px]">
-                                  <span>
-                                    <span className="font-medium" style={{ color: OPPOSE_COLORS.base }}>Oppose</span>
-                                    <span className="ml-1" style={{ color: `${CURVE_COLORS.progressive.text}B0` }}>Progressive</span>
-                                  </span>
-                                  <span className="text-white/80 font-medium">
-                                    {truncateAmount(progressiveOpposeValue)}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-                {/* Right column - odd indices (1, 3, 5...) */}
-                <div className="flex-1 min-w-0 flex flex-col gap-2 ml-[5px] mr-[10px]">
-                  {allTotems.filter((_, i) => i % 2 === 1).map((totem, colIndex) => {
-                    const originalIndex = colIndex * 2 + 1; // Map back to original index for cascade
-                    const isSelected = totem.id === selectedTotemId;
-                    const userPosition = isConnected ? userPositionsByTotem.get(totem.id) : null;
-                    const hasTrust = userPosition && userPosition.trust > 0n;
-                    const trustValue = hasTrust ? parseFloat(formatEther(userPosition.trust)) : 0;
-                    const sharesValue = hasTrust ? parseFloat(formatEther(userPosition.shares)) : 0;
-
-                    // Cascade pulse: row-based delay (same row as left neighbor)
-                    const cascadeClass = !selectedTotemId
-                      ? `cascade-pulse cascade-delay-${Math.min(colIndex, 7)}`
-                      : '';
-
-                    // Check if totem should be expanded (selected AND has positions)
-                    const shouldExpand = isSelected && hasTrust;
-
-                    // Position details for expanded view
-                    const linearSupportValue = userPosition ? parseFloat(formatEther(userPosition.linearSupport)) : 0;
-                    const linearOpposeValue = userPosition ? parseFloat(formatEther(userPosition.linearOppose)) : 0;
-                    const progressiveSupportValue = userPosition ? parseFloat(formatEther(userPosition.progressiveSupport)) : 0;
-                    const progressiveOpposeValue = userPosition ? parseFloat(formatEther(userPosition.progressiveOppose)) : 0;
-
-                    return (
-                      <button
-                        key={totem.id || `totem-right-${originalIndex}`}
-                        onClick={() => onSelectTotem?.(totem.id, totem.label)}
-                        className={`text-left p-2 rounded-lg transition-all ${
-                          colIndex === 0 ? 'mt-[10px]' : ''
-                        } ${
-                          isSelected
-                            ? 'bg-slate-500/30 ring-1 ring-slate-500/50 animate-ring-pulse'
-                            : `bg-white/5 hover:bg-white/10 ${cascadeClass}`
-                        }`}
-                      >
-                        {/* Header: Totem name + Category */}
-                        <div className="flex items-start justify-between gap-1">
-                          <span className="text-xs font-medium text-white truncate flex-1">
-                            {totem.label}
-                          </span>
-                          <span className="text-[10px] text-white/40 truncate max-w-[60px]">
-                            {totem.category || ''}
-                          </span>
-                          {isSelected && (
-                            <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-slate-400" />
-                          )}
                         </div>
-                        {/* User position (only if connected) */}
-                        {isConnected && (
-                          <div className="flex items-center gap-1.5 mt-1 text-[10px]">
-                            <span className="text-white/50">👤</span>
-                            <span className={hasTrust ? 'text-cyan-400' : 'text-white/30'}>
-                              {truncateAmount(trustValue)} TRUST
-                            </span>
-                            <span className="text-white/20">·</span>
-                            <span className={hasTrust ? 'text-white/60' : 'text-white/30'}>
-                              {truncateAmount(sharesValue, 2)} shares
-                            </span>
-                            {/* Position badges [S/O] [L/P] - colored by direction */}
-                            {userPosition && (userPosition.linearTrust > 0n || userPosition.progressiveTrust > 0n) && (
-                              <>
-                                <span className="text-white/20">·</span>
-                                {/* Linear Support */}
-                                {userPosition.linearSupport > 0n && (
-                                  <span className="flex gap-0.5">
-                                    <span className="w-4 h-4 flex items-center justify-center rounded text-[8px] font-bold" style={{ backgroundColor: `${SUPPORT_COLORS.base}30`, color: SUPPORT_COLORS.base }}>S</span>
-                                    <span className="w-4 h-4 flex items-center justify-center rounded text-[8px] font-bold" style={{ backgroundColor: `${SUPPORT_COLORS.base}20`, color: SUPPORT_COLORS.base }}>L</span>
-                                  </span>
-                                )}
-                                {/* Linear Oppose */}
-                                {userPosition.linearOppose > 0n && (
-                                  <span className="flex gap-0.5">
-                                    <span className="w-4 h-4 flex items-center justify-center rounded text-[8px] font-bold" style={{ backgroundColor: `${OPPOSE_COLORS.base}30`, color: OPPOSE_COLORS.base }}>O</span>
-                                    <span className="w-4 h-4 flex items-center justify-center rounded text-[8px] font-bold" style={{ backgroundColor: `${OPPOSE_COLORS.base}20`, color: OPPOSE_COLORS.base }}>L</span>
-                                  </span>
-                                )}
-                                {/* Progressive Support */}
-                                {userPosition.progressiveSupport > 0n && (
-                                  <span className="flex gap-0.5">
-                                    <span className="w-4 h-4 flex items-center justify-center rounded text-[8px] font-bold" style={{ backgroundColor: `${SUPPORT_COLORS.base}30`, color: SUPPORT_COLORS.base }}>S</span>
-                                    <span className="w-4 h-4 flex items-center justify-center rounded text-[8px] font-bold" style={{ backgroundColor: `${SUPPORT_COLORS.base}20`, color: SUPPORT_COLORS.base }}>P</span>
-                                  </span>
-                                )}
-                                {/* Progressive Oppose */}
-                                {userPosition.progressiveOppose > 0n && (
-                                  <span className="flex gap-0.5">
-                                    <span className="w-4 h-4 flex items-center justify-center rounded text-[8px] font-bold" style={{ backgroundColor: `${OPPOSE_COLORS.base}30`, color: OPPOSE_COLORS.base }}>O</span>
-                                    <span className="w-4 h-4 flex items-center justify-center rounded text-[8px] font-bold" style={{ backgroundColor: `${OPPOSE_COLORS.base}20`, color: OPPOSE_COLORS.base }}>P</span>
-                                  </span>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Expanded Details - Always rendered but animated open/close */}
-                        {hasTrust && (
-                          <div className={`overflow-hidden transition-all duration-500 ease-out ${
-                            shouldExpand ? 'max-h-24 opacity-100 mt-2' : 'max-h-0 opacity-0 mt-0'
-                          }`}>
-                            <div className="border-t border-white/10 pt-2 space-y-1">
-                              {/* Linear Support - Intuition colors */}
-                              {linearSupportValue > 0 && (
-                                <div className="flex justify-between items-center text-[10px]">
-                                  <span>
-                                    <span className="font-medium" style={{ color: SUPPORT_COLORS.base }}>Support</span>
-                                    <span className="ml-1" style={{ color: `${CURVE_COLORS.linear.text}B0` }}>Linear</span>
-                                  </span>
-                                  <span className="text-white/80 font-medium">
-                                    {truncateAmount(linearSupportValue)}
-                                  </span>
-                                </div>
-                              )}
-                              {/* Linear Oppose */}
-                              {linearOpposeValue > 0 && (
-                                <div className="flex justify-between items-center text-[10px]">
-                                  <span>
-                                    <span className="font-medium" style={{ color: OPPOSE_COLORS.base }}>Oppose</span>
-                                    <span className="ml-1" style={{ color: `${CURVE_COLORS.linear.text}B0` }}>Linear</span>
-                                  </span>
-                                  <span className="text-white/80 font-medium">
-                                    {truncateAmount(linearOpposeValue)}
-                                  </span>
-                                </div>
-                              )}
-                              {/* Progressive Support */}
-                              {progressiveSupportValue > 0 && (
-                                <div className="flex justify-between items-center text-[10px]">
-                                  <span>
-                                    <span className="font-medium" style={{ color: SUPPORT_COLORS.base }}>Support</span>
-                                    <span className="ml-1" style={{ color: `${CURVE_COLORS.progressive.text}B0` }}>Progressive</span>
-                                  </span>
-                                  <span className="text-white/80 font-medium">
-                                    {truncateAmount(progressiveSupportValue)}
-                                  </span>
-                                </div>
-                              )}
-                              {/* Progressive Oppose */}
-                              {progressiveOpposeValue > 0 && (
-                                <div className="flex justify-between items-center text-[10px]">
-                                  <span>
-                                    <span className="font-medium" style={{ color: OPPOSE_COLORS.base }}>Oppose</span>
-                                    <span className="ml-1" style={{ color: `${CURVE_COLORS.progressive.text}B0` }}>Progressive</span>
-                                  </span>
-                                  <span className="text-white/80 font-medium">
-                                    {truncateAmount(progressiveOpposeValue)}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+                      )}
+                    </div>
+                  );
+                }}
+              />
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center">
                 <p className="text-white/50 text-xs">{t('founderExpanded.noTotemForFounder')}</p>
@@ -848,52 +668,174 @@ export function FounderCenterPanel({
 
       {/* SECTION 2: My Votes / Best Triples */}
       <div className="flex-1 min-h-0 flex flex-col pt-1">
-        {/* Section 2 Tabs */}
+        {/* Section 2 Tabs - GooeySwitch */}
         <div className="flex items-center justify-between mb-3">
-          <div className="flex bg-white/5 rounded-lg p-0.5">
-            <button
-              onClick={() => setSection2Tab('myVotes')}
-              className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                section2Tab === 'myVotes'
-                  ? 'bg-slate-500/30 text-slate-300'
-                  : 'text-white/60 hover:text-white'
-              }`}
-            >
-              {t('header.nav.myVotes')}
-            </button>
-            <button
-              onClick={() => setSection2Tab('bestTriples')}
-              className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                section2Tab === 'bestTriples'
-                  ? 'bg-slate-500/30 text-slate-300'
-                  : 'text-white/60 hover:text-white'
-              }`}
-            >
-              Best Triples
-            </button>
-          </div>
+          <GooeySwitch
+            options={[
+              { id: 'myVotes', label: t('header.nav.myVotes') },
+              { id: 'bestTriples', label: 'Best Triples' },
+            ]}
+            value={section2Tab}
+            onChange={(id) => setSection2Tab(id as 'myVotes' | 'bestTriples')}
+            columns={2}
+            className="w-fit"
+            renderOption={(option, isSelected) => (
+              <div className="flex items-center justify-center px-0 py-0">
+                <span className={`text-sm font-medium leading-none ${isSelected ? 'text-white' : 'text-white/60'}`}>
+                  {option.label}
+                </span>
+              </div>
+            )}
+          />
         </div>
 
         {/* Section 2 Content */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent" style={{ overscrollBehavior: 'contain' }}>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 hide-scrollbar" style={{ overscrollBehavior: 'contain' }}>
           {section2Tab === 'myVotes' ? (
-            // My Votes - User's votes on this founder
+            // My Votes - User's votes on this founder (GooeySwitch style like totem grid)
             isConnected ? (
               votesLoading ? (
                 <MyVotesSkeleton />
               ) : userVotes.length > 0 ? (
-                <div className="space-y-1.5 px-[10px] pt-[10px]">
-                  {userVotes
-                    .filter((vote) => vote.term?.object?.term_id)
-                    .map((vote) => (
-                      <MyVotesItem
-                        key={vote.id}
-                        vote={vote}
-                        onClick={onSelectTotem}
-                        isSelected={vote.term.object.term_id === selectedTotemId}
-                      />
-                    ))}
-                </div>
+                (() => {
+                  // Filter valid votes
+                  const validVotes = userVotes.filter((vote) => vote.term?.object?.term_id);
+                  // Find the selected vote id (first vote matching selectedTotemId)
+                  const selectedVoteId = selectedTotemId
+                    ? validVotes.find(v => v.term.object.term_id === selectedTotemId)?.id || ''
+                    : '';
+                  return (
+                    <GooeySwitch
+                      options={validVotes.map((vote) => ({
+                        id: vote.id,
+                        label: vote.term.object.label,
+                        vote, // Pass full vote data for renderOption
+                      }))}
+                      value={selectedVoteId}
+                      onChange={(id) => {
+                        const vote = validVotes.find(v => v.id === id);
+                        if (vote) onSelectTotem?.(vote.term.object.term_id, vote.term.object.label);
+                      }}
+                      columns={1}
+                      gap={6}
+                      padding={10}
+                      transparent={true}
+                      hideIndicator={true}
+                      renderOption={(option, isSelected, index) => {
+                        const vote = (option as unknown as { vote: UserVoteWithDetails }).vote;
+                        const { term, isPositive, signedAmount, curveId } = vote;
+                        const directionLabel = isPositive ? 'S' : 'O';
+                        const curveLabel = curveId === 1 ? 'L' : 'P';
+                        const directionColors = isPositive ? SUPPORT_COLORS : OPPOSE_COLORS;
+
+                        // Cascade pulse effect when no totem selected
+                        const cascadeClass = !selectedTotemId
+                          ? `cascade-pulse cascade-delay-${Math.min(index, 7)}`
+                          : '';
+
+                        return (
+                          <div className={`text-left p-2.5 rounded-lg transition-all ${
+                            isSelected
+                              ? 'ring-1 animate-ring-pulse'
+                              : `bg-white/5 hover:bg-white/10 ${cascadeClass}`
+                          }`}
+                          style={isSelected ? {
+                            backgroundColor: `${directionColors.base}20`,
+                            boxShadow: `0 0 0 1px ${directionColors.base}50`,
+                          } : undefined}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              {/* Triple: Subject - Predicate - Object (Tags/Bulles style) */}
+                              <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
+                                {/* Subject Tag */}
+                                <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/10 rounded-full shrink-0">
+                                  {term.subject.image ? (
+                                    <img
+                                      src={term.subject.image}
+                                      alt={term.subject.label}
+                                      className="w-5 h-5 rounded object-cover shrink-0"
+                                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                    />
+                                  ) : (
+                                    <div className="w-5 h-5 rounded bg-white/10 flex items-center justify-center shrink-0">
+                                      <span className="text-[10px]">{term.subject.emoji || term.subject.label.charAt(0).toUpperCase()}</span>
+                                    </div>
+                                  )}
+                                  <span className="text-xs text-white/80 truncate max-w-[60px]">
+                                    {term.subject.label.split(' ')[0]}
+                                  </span>
+                                </div>
+
+                                <span className="text-white/30 text-xs shrink-0">-</span>
+
+                                {/* Predicate Tag */}
+                                <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-500/30 rounded-full shrink-0">
+                                  {term.predicate.image ? (
+                                    <img
+                                      src={term.predicate.image}
+                                      alt={term.predicate.label}
+                                      className="w-5 h-5 rounded object-cover shrink-0"
+                                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                    />
+                                  ) : (
+                                    <div className="w-5 h-5 rounded bg-white/10 flex items-center justify-center shrink-0">
+                                      <span className="text-[10px]">{term.predicate.emoji || term.predicate.label.charAt(0).toUpperCase()}</span>
+                                    </div>
+                                  )}
+                                  <span className="text-xs text-slate-300 truncate max-w-[70px]">
+                                    {term.predicate.label}
+                                  </span>
+                                </div>
+
+                                <span className="text-white/30 text-xs shrink-0">-</span>
+
+                                {/* Object (Totem) Tag */}
+                                <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/10 rounded-full min-w-0">
+                                  {term.object.image ? (
+                                    <img
+                                      src={term.object.image}
+                                      alt={term.object.label}
+                                      className="w-5 h-5 rounded object-cover shrink-0"
+                                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                    />
+                                  ) : (
+                                    <div className="w-5 h-5 rounded bg-white/10 flex items-center justify-center shrink-0">
+                                      <span className="text-[10px]">{term.object.emoji || term.object.label.charAt(0).toUpperCase()}</span>
+                                    </div>
+                                  )}
+                                  <span className="text-xs text-white font-medium truncate">
+                                    {term.object.label}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Amount + Direction/Curve badges */}
+                              <div className="flex items-center gap-1 shrink-0">
+                                <span className="text-sm font-medium" style={{ color: directionColors.base }}>
+                                  {signedAmount}
+                                </span>
+                                {/* Direction badge: S (Support) or O (Oppose) */}
+                                <span
+                                  className="text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded"
+                                  style={{ backgroundColor: `${directionColors.base}30`, color: directionColors.base }}
+                                >
+                                  {directionLabel}
+                                </span>
+                                {/* Curve badge: L (Linear) or P (Progressive) */}
+                                <span
+                                  className="text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded"
+                                  style={{ backgroundColor: `${directionColors.base}20`, color: directionColors.base }}
+                                >
+                                  {curveLabel}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }}
+                    />
+                  );
+                })()
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center py-4">
                   <p className="text-white/50 text-xs">{t('founderExpanded.noVotesYet')}</p>
