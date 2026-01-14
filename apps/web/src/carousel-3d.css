@@ -1,0 +1,308 @@
+/* ========================================
+   3D CAROUSEL - Full Page avec Scroll Snap
+   ========================================
+
+   Structure:
+   - .carousel-page-container : container avec scroll snap
+   - .carousel-screen : chaque écran (100vh)
+   - .banner-fullscreen : container du carrousel
+   - .slider : le carrousel qui tourne
+   - .item : chaque card
+
+   Variables CSS disponibles:
+   - var(--position) : position de l'item (1, 2, 3, ...)
+   - var(--quantity) : nombre total d'items
+*/
+
+/* ========================================
+   SCROLL SNAP - 2 écrans
+   ======================================== */
+.carousel-page-container {
+   position: fixed;
+   top: 40px; /* Espace pour la navbar */
+   left: 0;
+   right: 0;
+   bottom: 0;
+   height: calc(100vh - 64px);
+   height: calc(100dvh - 64px);
+   overflow-y: scroll;
+   scroll-snap-type: y mandatory;
+   scroll-behavior: smooth;
+   z-index: 0; /* En dessous de la navbar */
+   margin-top: 10px; /* Espace pour le glow de la card */
+   
+
+   /* Cacher la scrollbar */
+   scrollbar-width: none; /* Firefox */
+   -ms-overflow-style: none; /* IE/Edge */
+}
+
+.carousel-page-container::-webkit-scrollbar {
+   display: none; /* Chrome, Safari, Opera */
+}
+
+.carousel-screen {
+   height: calc(100vh - 64px);
+   height: calc(100dvh - 64px);
+   width: 100%;
+   scroll-snap-align: start;
+   scroll-snap-stop: always;
+   position: relative;
+}
+
+.hero-screen {
+   display: flex;
+   flex-direction: column;
+   justify-content: center;
+   align-items: center;
+   background: transparent;
+}
+
+
+
+/* ========================================
+   CARROUSEL 3D - 42 founders
+   ======================================== */
+.banner-fullscreen {
+   width: 100%;
+   height: 100%;
+   overflow: visible;
+   position: relative;
+   /* Perspective sur le PARENT pour rotation sur place */
+   perspective: 2000px;
+   perspective-origin: center center;
+}
+
+.banner-fullscreen .slider {
+   position: absolute;
+   width: 300px;
+   height: 400px;
+   top: 50%;
+   left: 50%;
+   transform-style: preserve-3d;
+   transform-origin: center center;
+   /* Le transform rotateY est ajouté dynamiquement */
+   margin-left: -150px;  /* Centrer (300/2) */
+   margin-top: -200px;   /* Centrer (400/2) */
+   transition: transform 0.9s ease-out;
+}
+
+.banner-fullscreen .slider .item {
+   position: absolute;
+   left: 50%;
+   top: 50%;
+   transform:
+      translate(-50%, -50%)
+      rotateY(calc( (var(--position) - 1) * (360 / var(--quantity)) * 1deg))
+      translateZ(800px)  /* Rayon plus grand pour 42 cards */
+      scale(0.35);  /* Plus petit pour éviter chevauchement */
+
+   transition: transform 0.5s ease-out;
+}
+
+/* Card frontale - zoom automatique */
+.banner-fullscreen .slider .item.is-front {
+   transform:
+      translate(-50%, -50%)
+      rotateY(calc( (var(--position) - 1) * (360 / var(--quantity)) * 1deg))
+      translateZ(900px)
+      scale(0.8);  /* Zoom mais pas trop pour rester lisible */
+   z-index: 100;
+}
+
+/* Animation pulse (utilisée par l'overlay front-card-glass) */
+@keyframes carouselFrontPulse {
+   0%, 100% {
+      box-shadow:
+         0 8px 32px rgba(0, 0, 0, 0.37),
+         inset 0 1px 0 rgba(255, 255, 255, 0.1),
+         0 0 0 2px rgba(255, 255, 255, 0.5),
+         0 0 8px 2px rgba(255, 255, 255, 0.15);
+   }
+   50% {
+      box-shadow:
+         0 8px 32px rgba(0, 0, 0, 0.37),
+         inset 0 1px 0 rgba(255, 255, 255, 0.1),
+         0 0 0 2px rgba(255, 255, 255, 0.7),
+         0 0 12px 4px rgba(255, 255, 255, 0.25);
+   }
+}
+
+/* ========================================
+   ANCIEN BANNER (pour compatibilité)
+   ======================================== */
+.banner {
+   width: 100%;
+   height: 50vh;
+   text-align: center;
+   overflow: visible;
+   position: relative;
+   margin-bottom: 400px;
+   perspective: 2500px;
+   perspective-origin: center center;
+}
+
+.banner .slider {
+   position: absolute;
+   width: 350px;
+   height: 450px;
+   top: 20%;
+   left: calc(50% - 175px);
+   transform-style: preserve-3d;
+   transform-origin: center center;
+}
+
+.banner .slider .item {
+   position: absolute;
+   left: 50%;
+   top: 50%;
+   transform:
+      translate(-50%, -50%)
+      rotateY(calc( (var(--position) - 1) * (360 / var(--quantity)) * 1deg))
+      translateZ(700px)
+      scale(0.50);
+
+   transition: transform 0.5s ease-out;
+}
+
+.banner .slider .item.is-front {
+   transform:
+      translate(-50%, -50%)
+      rotateY(calc( (var(--position) - 1) * (360 / var(--quantity)) * 1deg))
+      translateZ(700px)
+      scale(1);
+}
+
+/* ========================================
+   Cards arrière-plan - fond opaque (matière à flouter)
+   ======================================== */
+.banner-fullscreen .item .glass-card,
+.banner .item .glass-card {
+   background: rgb(48, 67, 79);
+   border: 1px solid rgba(255, 255, 255, 0.18);
+   box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.37),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* ========================================
+   Card frontale dans le carrousel - invisible (on affiche l'overlay)
+   ======================================== */
+.banner-fullscreen .item.is-front .glass-card {
+   opacity: 0;
+   pointer-events: none;
+}
+
+/* ========================================
+   FRONT CARD OVERLAY - Hors du contexte 3D
+   Workaround pour backdrop-filter + preserve-3d
+   Bug Chromium: https://issues.chromium.org/issues/323735424
+   ======================================== */
+.front-card-overlay {
+   position: absolute;
+   top: 50%;
+   left: 50%;
+   transform: translate(-50%, -50%);
+   width: 430px;
+   height: 600px;
+   z-index: 200;
+   pointer-events: auto;
+}
+
+.front-card-glass {
+   width: 100%;
+   height: 100%;
+   border-radius: 16px;
+
+}
+
+/* Apple Liquid Glass Effect - fonctionne ici car hors du contexte 3D */
+.front-card-glass .glass-card {
+   background: rgba(30, 30, 30, 0.1);
+   backdrop-filter: blur(2px) saturate(100%);
+   -webkit-backdrop-filter: blur(2px) saturate(100%);
+   border: 1px solid rgba(255, 255, 255, 0.18);
+   box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.37),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+   animation: carouselFrontPulse 2s ease-in-out infinite;
+}
+
+/* ========================================
+   RESPONSIVE - Tablette (max 1024px)
+   ======================================== */
+@media (max-width: 1024px) {
+   .banner-fullscreen {
+      perspective: 1500px;
+   }
+
+   .banner-fullscreen .slider {
+      width: 260px;
+      height: 350px;
+      margin-left: -130px;
+      margin-top: -175px;
+   }
+
+   .banner-fullscreen .slider .item {
+      transform:
+         translate(-50%, -50%)
+         rotateY(calc( (var(--position) - 1) * (360 / var(--quantity)) * 1deg))
+         translateZ(600px)
+         scale(0.30);
+   }
+
+   .banner-fullscreen .slider .item.is-front {
+      transform:
+         translate(-50%, -50%)
+         rotateY(calc( (var(--position) - 1) * (360 / var(--quantity)) * 1deg))
+         translateZ(700px)
+         scale(0.7);
+   }
+
+   .front-card-overlay {
+      width: 350px;
+      height: 490px;
+   }
+}
+
+/* ========================================
+   RESPONSIVE - Mobile (max 640px)
+   ======================================== */
+@media (max-width: 640px) {
+   .banner-fullscreen {
+      perspective: 1000px;
+   }
+
+   .banner-fullscreen .slider {
+      width: 220px;
+      height: 300px;
+      margin-left: -110px;
+      margin-top: -150px;
+   }
+
+   .banner-fullscreen .slider .item {
+      transform:
+         translate(-50%, -50%)
+         rotateY(calc( (var(--position) - 1) * (360 / var(--quantity)) * 1deg))
+         translateZ(400px)
+         scale(0.25);
+   }
+
+   .banner-fullscreen .slider .item.is-front {
+      transform:
+         translate(-50%, -50%)
+         rotateY(calc( (var(--position) - 1) * (360 / var(--quantity)) * 1deg))
+         translateZ(500px)
+         scale(0.6);
+   }
+
+   .front-card-overlay {
+      width: 280px;
+      height: 400px;
+   }
+
+   /* Réduire les paddings de la card sur mobile */
+   .front-card-glass .glass-card {
+      padding: 12px;
+   }
+}

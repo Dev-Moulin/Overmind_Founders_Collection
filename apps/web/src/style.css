@@ -323,7 +323,7 @@ button:focus-visible {
 
 /* Arrêt de la pulsation */
 .pulse-stop {
-  animation: none !important;
+  animation: none;
 }
 
 /* ========================================
@@ -426,6 +426,36 @@ button:focus-visible {
 
 .animate-ring-pulse {
   animation: ringPulseSelection 2s ease-in-out infinite;
+}
+
+/* Version spéciale pour glass-card (qui a déjà un box-shadow) */
+.glass-card.animate-ring-pulse {
+  animation: ringPulseGlassCard 2s ease-in-out infinite;
+}
+
+@keyframes ringPulseGlassCard {
+  0%, 100% {
+    box-shadow:
+      /* Ombres de base de glass-card */
+      inset 0 1px 1px rgba(255, 255, 255, 0.15),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.1),
+      0 8px 32px rgba(0, 0, 0, 0.2),
+      0 2px 8px rgba(0, 0, 0, 0.1),
+      /* Effet pulse */
+      0 0 0 2px rgba(255, 255, 255, 0.5),
+      0 0 8px 2px rgba(255, 255, 255, 0.15);
+  }
+  50% {
+    box-shadow:
+      /* Ombres de base de glass-card */
+      inset 0 1px 1px rgba(255, 255, 255, 0.15),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.1),
+      0 8px 32px rgba(0, 0, 0, 0.2),
+      0 2px 8px rgba(0, 0, 0, 0.1),
+      /* Effet pulse (plus intense) */
+      0 0 0 2px rgba(255, 255, 255, 0.7),
+      0 0 12px 4px rgba(255, 255, 255, 0.25);
+  }
 }
 
 /* Totem grid - items align to top to prevent neighbor stretching */

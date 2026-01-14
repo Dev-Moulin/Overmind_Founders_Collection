@@ -571,7 +571,7 @@ export const TopTotemsRadar = memo(function TopTotemsRadar({
     const maxNetVotes = Math.max(...sortedTotems.map((t) => Math.abs(t.netVotes)), 1);
 
     return (
-      <div className="p-2 h-full overflow-auto space-y-1.5">
+      <div className="p-2 h-full overflow-hidden flex flex-col justify-evenly">
         {sortedTotems.map((totem, index) => {
           const barWidth = Math.abs(totem.netVotes) / maxNetVotes * 100;
           const isPositive = totem.netVotes >= 0;
@@ -579,7 +579,7 @@ export const TopTotemsRadar = memo(function TopTotemsRadar({
           return (
             <div
               key={totem.id || `totem-${index}`}
-              className="relative bg-white/5 rounded p-2 cursor-pointer hover:bg-white/10 transition-colors"
+              className="relative bg-white/10 backdrop-blur-[5px] rounded p-2 cursor-pointer hover:bg-white/12 transition-colors"
               onClick={() => onTotemClick?.(totem.id, totem.label)}
             >
               {/* Background bar - Intuition colors */}

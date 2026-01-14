@@ -8,6 +8,8 @@ interface FounderHomeCardProps {
   founder: FounderForHomePage;
   onSelect?: (founderId: string) => void;
   isSelected?: boolean;
+  /** Card is in front position in the 3D carousel */
+  isFront?: boolean;
   /** Pre-computed top totems from batched query (avoids 42 individual API calls) */
   topTotems: TopTotem[];
 }
@@ -21,7 +23,7 @@ interface FounderHomeCardProps {
  *
  * Wrapped in React.memo to prevent unnecessary re-renders (42 cards on HomePage)
  */
-export const FounderHomeCard = memo(function FounderHomeCard({ founder, onSelect, isSelected, topTotems }: FounderHomeCardProps) {
+export const FounderHomeCard = memo(function FounderHomeCard({ founder, onSelect, isSelected, isFront, topTotems }: FounderHomeCardProps) {
   const { t } = useTranslation();
   const imageUrl = getFounderImageUrl(founder);
 
@@ -38,7 +40,8 @@ export const FounderHomeCard = memo(function FounderHomeCard({ founder, onSelect
     <div
       onClick={handleCardClick}
       className={`glass-card glass-shine p-4 flex flex-col h-full w-full min-w-0 cursor-pointer relative
-        ${isSelected ? 'border-slate-500 ring-2 ring-slate-500/50' : 'hover:border-slate-500/50'}`}
+        ${isSelected ? 'border-slate-500 ring-2 ring-slate-500/50' : 'hover:border-slate-500/50'}
+        ${isFront ? 'animate-ring-pulse' : ''}`}
     >
       {/* Badge for recent activity */}
       {founder.recentActivityCount > 0 && (

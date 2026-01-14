@@ -1,7 +1,9 @@
 import { createBrowserRouter, Outlet } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import { NetworkGuard } from './components/layout/NetworkGuard';
-import { HomePage } from './pages/HomePage';
+// DEPRECATED - Ancienne HomePage remplacée par HomePage3DCarousel le 14/01/2026
+// import { HomePage } from './pages/HomePage';
+import { HomePage3DCarousel } from './pages/HomePage3DCarousel';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { AdminAuditPage } from './pages/AdminAuditPage';
 
@@ -43,8 +45,13 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <HomePage />,
+        element: <HomePage3DCarousel />,
       },
+      // DEPRECATED - Route temporaire supprimée le 14/01/2026
+      // {
+      //   path: 'carousel-3d',
+      //   element: <HomePage3DCarousel />,
+      // },
       // DEPRECATED - Routes à supprimer - Commenté le 27/11/2025
       // {
       //   path: 'propose',
