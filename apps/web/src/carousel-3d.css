@@ -200,7 +200,7 @@
    content: '';
    position: absolute;
    inset: -20px;
-   background: url(/Background_INTUITION_3.png) center center / cover no-repeat fixed;
+   background: var(--bg-blur-url) center center / cover no-repeat fixed;
    filter: blur(8px);
    z-index: -1;
    opacity: 0.4;

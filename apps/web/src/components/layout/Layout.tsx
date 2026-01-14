@@ -11,7 +11,7 @@ export function Layout({ children }: LayoutProps) {
     <div
       className="min-h-screen flex flex-col"
       style={{
-        background: 'linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.6)), url(/Background_INTUITION_3.png) center center / cover no-repeat fixed',
+        background: `linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.6)), url(${import.meta.env.BASE_URL}Background_INTUITION_3.png) center center / cover no-repeat fixed`,
         backgroundColor: '#0a0a0a' // Fallback color
       }}
     >

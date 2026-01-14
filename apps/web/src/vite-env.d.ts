@@ -1,9 +1,10 @@
 /// <reference types="vite/client" />
 
-interface ImportMetaEnv {
-  readonly VITE_WALLETCONNECT_PROJECT_ID: string;
+declare global {
+  interface ImportMetaEnv {
+    readonly VITE_WALLETCONNECT_PROJECT_ID: string;
+    readonly BASE_URL: string;
+  }
 }
 
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
-}
+export {};
