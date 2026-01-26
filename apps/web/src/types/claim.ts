@@ -9,6 +9,10 @@ export interface ExistingClaimInfo {
   subjectLabel: string;
   predicateLabel: string;
   objectLabel: string;
+  /** Total assets (ETH deposited) on FOR side */
   forVotes?: string;
+  /** Total assets (ETH deposited) on AGAINST side */
   againstVotes?: string;
+  /** Total shares on FOR side (for comparing with user shares) */
+  forTotalShares?: string;
 }

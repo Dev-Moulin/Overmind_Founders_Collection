@@ -55,6 +55,7 @@ export function useProactiveClaimCheck({
       object: { label: string };
       triple_vault?: {
         total_assets: string;
+        total_shares: string;
       };
       counter_term?: {
         id: string;
@@ -103,6 +104,7 @@ export function useProactiveClaimCheck({
         objectLabel: triple.object.label,
         forVotes: vault?.total_assets || '0',
         againstVotes: counterTerm?.total_assets || '0',
+        forTotalShares: vault?.total_shares || '0',
       };
       setProactiveClaimInfo(newInfo);
     } else if (claimCheckData?.triples?.length === 0) {

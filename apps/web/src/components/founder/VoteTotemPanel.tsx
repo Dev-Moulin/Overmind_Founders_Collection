@@ -53,8 +53,10 @@ import { CrossPredicatePopup, type CrossPredicateRedeemInfo } from './VoteTotemP
 import {
   DirectionChangeSection,
   PendingRedeemMessage,
+  PendingRedeemBothMessage,
   type DirectionChangeInfo as DirectionChangeInfoType,
   type PendingRedeemInfo as PendingRedeemInfoType,
+  type PendingRedeemBothInfo as PendingRedeemBothInfoType,
 } from './VoteTotemPanel/DirectionChangeAlert';
 import { CurveSelector } from './VoteTotemPanel/CurveSelector';
 import { NeedsRedeemAlert } from './VoteTotemPanel/NeedsRedeemAlert';
@@ -377,6 +379,31 @@ export function VoteTotemPanel({
   // isNewTotem = triple doesn't exist yet, isCreatingNewTotem = user is creating a brand new totem
   const isOpposeBlockedByProtocol = isNewTotem || isCreatingNewTotem;
 
+  // RÈGLE UX: Si l'utilisateur est le SEUL votant FOR, il ne peut pas voter AGAINST
+  // Car voter AGAINST contre soi-même n'a pas de sens. Il peut seulement retirer sa position.
+  // On compare SHARES avec SHARES (pas assets)
+  // Note: On utilise une marge de 99% car il peut y avoir des frais de protocole qui créent une légère différence
+  const userTotalForShares = forSharesLinear + forSharesProgressive;
+  const tripleTotalForShares = BigInt(proactiveClaimInfo?.forTotalShares || '0');
+  // Si l'utilisateur a >= 99% des shares FOR, on considère qu'il est le seul votant significatif
+  const isSoleForVoter = tripleTotalForShares > 0n && userTotalForShares > 0n &&
+    (userTotalForShares * 100n / tripleTotalForShares >= 99n);
+
+  // DEBUG: Log pour vérifier les valeurs (temporaire) - se déclenche quand les données changent
+  useEffect(() => {
+    if (proactiveClaimInfo?.forTotalShares && userTotalForShares > 0n) {
+      const percentage = tripleTotalForShares > 0n
+        ? Number(userTotalForShares * 100n / tripleTotalForShares)
+        : 0;
+      console.log('[VoteTotemPanel] isSoleForVoter check:', {
+        userTotalForShares: userTotalForShares.toString(),
+        tripleTotalForShares: tripleTotalForShares.toString(),
+        percentage: `${percentage}%`,
+        isSoleForVoter,
+      });
+    }
+  }, [userTotalForShares, tripleTotalForShares, proactiveClaimInfo?.forTotalShares, isSoleForVoter]);
+
   const isFormValid = useMemo(() => {
     // Must have either an existing totem selected OR new totem data
     if (!selectedTotemId && !newTotemData) return false;
@@ -490,9 +517,12 @@ export function VoteTotemPanel({
   const {
     directionChangeInfo,
     pendingRedeemInfo,
+    pendingRedeemBothInfo,
     pendingRedeemCurve,
+    pendingRedeemBoth,
     setPendingRedeemCurve,
     handleDirectionChangeCurveChoice,
+    handleBothCurvesAutoSelect,
   } = useDirectionChange({
     curveAvailability,
     voteDirection,
@@ -671,22 +701,29 @@ export function VoteTotemPanel({
             hasAnyPosition={hasAnyPosition}
             positionDirection={positionDirection}
             isOpposeBlockedByProtocol={isOpposeBlockedByProtocol}
+            isSoleForVoter={isSoleForVoter}
             blurClass={getBlurClass(1, currentFormStep)}
             getPulseClass={getPulseClass}
           />
         )}
 
-        {/* Direction Change Section - Inline curve choice when both curves are blocked */}
-        {directionChangeInfo && !pendingRedeemCurve && (
+        {/* Direction Change Section - Inline curve choice when curves are blocked */}
+        {directionChangeInfo && !pendingRedeemCurve && !pendingRedeemBoth && (
           <DirectionChangeSection
             info={directionChangeInfo as DirectionChangeInfoType}
             onCurveChoice={(curveId) => handleDirectionChangeCurveChoice(curveId, setSelectedCurve)}
+            onBothCurvesAutoSelect={() => handleBothCurvesAutoSelect(setSelectedCurve)}
           />
         )}
 
-        {/* Pending Redeem Info Message - Shows AFTER user chose a curve */}
-        {pendingRedeemInfo && (
+        {/* Pending Redeem Info Message - Shows AFTER user chose a SINGLE curve */}
+        {pendingRedeemInfo && !pendingRedeemBoth && (
           <PendingRedeemMessage info={pendingRedeemInfo as PendingRedeemInfoType} />
+        )}
+
+        {/* Pending Redeem BOTH Message - Shows AFTER user confirmed both curves */}
+        {pendingRedeemBothInfo && pendingRedeemBoth && (
+          <PendingRedeemBothMessage info={pendingRedeemBothInfo as PendingRedeemBothInfoType} />
         )}
 
         {/* Curve Selector - Only show for FOR/AGAINST, not withdraw */}
