@@ -3,7 +3,7 @@
  * Avec animations d'entrée et de sortie élastiques (3s chacune)
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 interface SuccessNotificationProps {
   message: string;
