@@ -463,39 +463,48 @@ button:focus-visible {
    ======================================== */
 
 /* Slide down from top with elastic bounce - iOS contact list style */
+/* EXPLICATION: L'élément arrive du haut et rebondit de manière "punchy" */
 @keyframes slideDownElastic {
   0% {
     opacity: 0;
-    transform: translateY(-100%);
+    transform: translateY(-100%);    /* Hors écran, au-dessus */
   }
-  60% {
+  40% {
     opacity: 1;
-    transform: translateY(8%);
+    transform: translateY(15%);      /* Dépasse bien sa position (rebond fort) */
   }
-  80% {
-    transform: translateY(-3%);
+  55% {
+    transform: translateY(-8%);      /* Contre-rebond marqué */
   }
-  90% {
-    transform: translateY(1%);
+  70% {
+    transform: translateY(5%);       /* Rebond secondaire */
+  }
+  85% {
+    transform: translateY(-2%);      /* Micro ajustement */
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0);        /* Position finale */
   }
 }
 
 /* Slide up to disappear with soft bounce */
+/* EXPLICATION: L'élément descend d'abord (prend de l'élan) puis remonte et disparaît */
 @keyframes slideUpElastic {
   0% {
-    opacity: 1;
-    transform: translateY(0);
+    opacity: 1;                      /* Visible au départ */
+    transform: translateY(0);        /* Position normale */
   }
-  20% {
-    transform: translateY(5%);
+  15% {
+    opacity: 1;
+    transform: translateY(10%);      /* Descend d'abord (comme pour prendre de l'élan) */
+  }
+  30% {
+    transform: translateY(5%);       /* Commence à remonter */
   }
   100% {
-    opacity: 0;
-    transform: translateY(-100%);
+    opacity: 0;                      /* Invisible à la fin */
+    transform: translateY(-100%);    /* Sort par le haut */
   }
 }
 
@@ -522,12 +531,65 @@ button:focus-visible {
   }
 }
 
+/* EXPLICATION: forwards = garde l'état final après l'animation */
+/* cubic-bezier(0.22, 1, 0.36, 1) = courbe "ease-out" douce */
 .animate-slide-down {
-  animation: slideDownElastic 3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: slideDownElastic 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .animate-slide-up {
-  animation: slideUpElastic 3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: slideUpElastic 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* ========================================
+   "Added to Cart" Popup - Slide horizontale
+   ======================================== */
+/*
+ * La popup est positionnée en absolute right-0 (derrière le bouton)
+ * Elle glisse vers la gauche (translateX négatif) pour apparaître
+ * Le bouton a z-10, la popup z-0, donc le bouton la masque quand elle est à translateX(0)
+ */
+
+/* Entrée: slide vers la gauche (sort de derrière le bouton) */
+@keyframes slideLeftFromButton {
+  0% {
+    opacity: 0;
+    transform: translateX(0);           /* Cachée derrière le bouton */
+  }
+  40% {
+    opacity: 1;
+    transform: translateX(-90px);       /* Dépasse rapidement */
+  }
+  70% {
+    transform: translateX(-70px);       /* Rebond */
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-80px);       /* Position finale visible */
+  }
+}
+
+/* Sortie: slide vers la droite (retourne derrière le bouton) */
+@keyframes slideRightToButton {
+  0% {
+    opacity: 1;
+    transform: translateX(-80px);       /* Position visible */
+  }
+  30% {
+    transform: translateX(-90px);       /* Prend de l'élan */
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(0);           /* Retourne derrière le bouton */
+  }
+}
+
+.animate-slide-left {
+  animation: slideLeftFromButton 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-slide-right {
+  animation: slideRightToButton 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 /* ========================================
@@ -572,9 +634,13 @@ button:focus-visible {
 }
 
 /* Cart button pulse - slide in with bounce then pulse */
+/* EXPLICATION:
+   - cartButtonAppear 2s = le bouton apparaît en 2 secondes
+   - ringPulseSelection 2s ... 2s infinite = la pulsation commence APRÈS 2s (quand l'apparition est finie)
+*/
 .animate-cart-pulse {
-  animation: cartButtonAppear 3s cubic-bezier(0.22, 1, 0.36, 1) forwards,
-             ringPulseSelection 2s ease-in-out 3s infinite;
+  animation: cartButtonAppear 2s cubic-bezier(0.22, 1, 0.36, 1) forwards,
+             ringPulseSelection 2s ease-in-out 2s infinite;
 }
 
 /* Green flash animation when item is added to cart - with elastic bounce */
@@ -601,13 +667,21 @@ button:focus-visible {
   }
 }
 
+/* EXPLICATION: Flash vert quand on ajoute un item - dure 2s */
 .animate-cart-item-added {
-  animation: cartItemAdded 3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: cartItemAdded 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 /* Cart button hidden state (for disappearing animation) */
+/* EXPLICATION: Le bouton disparaît en 2s (mais on ne l'utilise plus - voir plus bas) */
 .animate-cart-disappear {
-  animation: cartButtonDisappear 3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: cartButtonDisappear 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* EXPLICATION: État stable du bouton (après l'animation d'apparition) */
+/* Le bouton a juste la pulsation, pas d'animation d'entrée qui recommence */
+.animate-cart-stable {
+  animation: ringPulseSelection 2s ease-in-out infinite;
 }
 
 /* Totem grid - items align to top to prevent neighbor stretching */

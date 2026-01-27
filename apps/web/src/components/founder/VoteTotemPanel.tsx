@@ -43,8 +43,6 @@ import { useWithdraw } from '../../hooks/blockchain/vault/useWithdraw';
 import { useUserVotesForFounder } from '../../hooks/data/useUserVotesForFounder';
 import { GET_ATOMS_BY_LABELS } from '../../lib/graphql/queries';
 import { PresetButtonsCompact } from '../vote/PresetButtons';
-import { SuccessNotification } from '../common/SuccessNotification';
-import { ErrorNotification } from '../common/ErrorNotification';
 import predicatesData from '../../../../../packages/shared/src/data/predicates.json';
 import type { Predicate } from '../../types/predicate';
 import type { NewTotemData } from './TotemCreationForm';
@@ -104,35 +102,55 @@ export function VoteTotemPanel({
   } = useVoteCartContext();
   // Note: initCart is called by FounderExpandedView which provides the context
 
-  // Cart button animation - flash green when item is added + exit animation
+  // ============================================
+  // ANIMATION SIMPLIFIÉE
+  // ============================================
+  //
+  // BOUTON PANIER:
+  //   - Visible si itemCount > 0 (simple, pas de séquençage compliqué)
+  //   - Flash vert quand on ajoute un nouvel item
+  //
+  // CONTENU:
+  //   - Se décale vers le bas quand il y a une popup (success/error)
+  //   - Remonte quand la popup disparaît
+  // ============================================
+
+  // État: flash vert quand on ajoute un item
   const [cartItemAdded, setCartItemAdded] = useState(false);
-  const [cartButtonVisible, setCartButtonVisible] = useState(false);
-  const [cartButtonLeaving, setCartButtonLeaving] = useState(false);
+
+  // État: le bouton vient d'apparaître (pour animation d'entrée)
+  const [cartButtonJustAppeared, setCartButtonJustAppeared] = useState(false);
+
+  // Référence pour détecter les changements de itemCount
   const prevItemCountRef = useRef(itemCount);
 
+  // EFFET: Détecte quand le bouton doit apparaître (itemCount passe de 0 à >0)
   useEffect(() => {
-    // Handle cart button visibility with enter/exit animations
-    if (itemCount > 0 && !cartButtonVisible && !cartButtonLeaving) {
-      // Show button with enter animation
-      setCartButtonVisible(true);
-    } else if (itemCount === 0 && cartButtonVisible && !cartButtonLeaving) {
-      // Start exit animation
-      setCartButtonLeaving(true);
-      setTimeout(() => {
-        setCartButtonVisible(false);
-        setCartButtonLeaving(false);
-      }, 3000); // Wait for exit animation
-    }
-  }, [itemCount, cartButtonVisible, cartButtonLeaving]);
+    const prevCount = prevItemCountRef.current;
 
-  useEffect(() => {
-    // Detect when itemCount increases (item added) - green flash
-    if (itemCount > prevItemCountRef.current && itemCount > 0) {
-      setCartItemAdded(true);
-      // Remove animation class after animation completes (3s)
-      const timer = setTimeout(() => setCartItemAdded(false), 3000);
+    if (itemCount > 0 && prevCount === 0) {
+      // Le panier passe de vide à non-vide → le bouton apparaît avec animation
+      setCartButtonJustAppeared(true);
+      setCartItemAdded(true); // Flash vert aussi
+
+      // Après 2s, les animations sont finies
+      const timer = setTimeout(() => {
+        setCartButtonJustAppeared(false);
+        setCartItemAdded(false);
+      }, 2000);
+
+      prevItemCountRef.current = itemCount;
       return () => clearTimeout(timer);
     }
+
+    // Si itemCount augmente et le bouton existe déjà → juste le flash vert
+    if (itemCount > prevCount && prevCount > 0) {
+      setCartItemAdded(true);
+      const timer = setTimeout(() => setCartItemAdded(false), 2000);
+      prevItemCountRef.current = itemCount;
+      return () => clearTimeout(timer);
+    }
+
     prevItemCountRef.current = itemCount;
   }, [itemCount]);
 
@@ -172,7 +190,61 @@ export function VoteTotemPanel({
   const [selectedCurve, setSelectedCurve] = useState<CurveId | null>(null); // null = not selected
   const [trustAmount, setTrustAmount] = useState<string>('');
   const [success, setSuccess] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null); // _error non utilisé pour le moment (popup simplifiée)
+
+  // ============================================
+  // POPUP "ADDED TO CART" - Simple et efficace
+  // ============================================
+  // Apparaît à gauche du bouton panier avec translation horizontale
+  // - Entrée: slide de droite à gauche (1s) avec rebond
+  // - Reste visible 3s
+  // - Sortie: slide de gauche à droite (1s) avec rebond inverse
+  // ============================================
+
+  // État de la popup: 'entering' | 'visible' | 'exiting' | null
+  const [addedToCartState, setAddedToCartState] = useState<'entering' | 'visible' | 'exiting' | null>(null);
+
+  // Key pour forcer le remount et relancer les animations
+  const [addedToCartKey, setAddedToCartKey] = useState(0);
+
+  // Timer ref pour pouvoir annuler
+  const addedToCartTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Quand success change (item ajouté au panier), afficher la popup
+  useEffect(() => {
+    if (success) {
+      // Annuler le timer précédent si existe
+      if (addedToCartTimerRef.current) {
+        clearTimeout(addedToCartTimerRef.current);
+      }
+
+      // Démarrer la séquence
+      setAddedToCartKey(k => k + 1); // Force remount pour relancer l'animation
+      setAddedToCartState('entering');
+
+      // Après 1s (fin animation entrée), passer en visible
+      const t1 = setTimeout(() => {
+        setAddedToCartState('visible');
+
+        // Après 3s d'affichage, commencer la sortie
+        const t2 = setTimeout(() => {
+          setAddedToCartState('exiting');
+
+          // Après 1s (fin animation sortie), nettoyer
+          const t3 = setTimeout(() => {
+            setAddedToCartState(null);
+            setSuccess(null);
+          }, 1000);
+          addedToCartTimerRef.current = t3;
+        }, 3000);
+        addedToCartTimerRef.current = t2;
+      }, 1000);
+      addedToCartTimerRef.current = t1;
+    }
+  }, [success]);
+
+  // Pour les erreurs, on les affiche simplement sans animation complexe
+  // (on peut améliorer plus tard si besoin)
 
   // Sync voteDirection with operationMode
   // Note: We intentionally exclude voteDirection from deps to avoid infinite loops
@@ -637,36 +709,54 @@ export function VoteTotemPanel({
 
   return (
     <div className="glass-card p-4 h-full flex flex-col overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent" style={{ overscrollBehavior: 'contain' }}>
-      {/* Header with cart button */}
+      {/* Header with cart button and "Added to cart" popup */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-white">Vote Totem</h3>
-        {/* Cart button - animated appearance/disappearance with elastic bounce */}
-        {cartButtonVisible && (
-          <button
-            onClick={onOpenCart}
-            disabled={cartButtonLeaving}
-            className={`flex items-center gap-2 px-3 py-1.5 bg-slate-500/20 hover:bg-slate-500/30 rounded-lg transition-colors ${
-              cartButtonLeaving
-                ? 'animate-cart-disappear'
-                : cartItemAdded
-                  ? 'animate-cart-item-added'
-                  : 'animate-cart-pulse'
-            }`}
-          >
-            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            <span className="text-sm text-slate-300">{itemCount}</span>
-          </button>
+
+        {/* Container pour le bouton panier + popup "Added to cart"
+            - relative: permet le positionnement absolu de la popup
+            - La popup est en z-0 (derrière), le bouton en z-10 (devant)
+        */}
+        {itemCount > 0 && (
+          <div className="relative flex items-center">
+            {/* Popup "Added to cart" - positionnée en absolu, derrière le bouton (z-0) */}
+            <div
+              key={addedToCartKey}
+              className={`absolute right-0 z-0 px-3 py-1.5 bg-green-500/20 border border-green-500/50 rounded-lg text-green-300 text-sm whitespace-nowrap ${
+                addedToCartState === 'exiting' ? 'animate-slide-right' :
+                addedToCartState ? 'animate-slide-left' :
+                'translate-x-0 opacity-0 pointer-events-none'  /* Caché derrière le bouton */
+              }`}
+            >
+              ✓ Added to cart
+            </div>
+
+            {/* Cart button - toujours au-dessus (z-10) */}
+            <button
+              onClick={onOpenCart}
+              className={`relative z-10 flex items-center gap-2 px-3 py-1.5 bg-slate-500/20 hover:bg-slate-500/30 rounded-lg transition-colors ${
+                cartItemAdded
+                  ? 'animate-cart-item-added'      // Flash vert (prioritaire)
+                  : cartButtonJustAppeared
+                    ? 'animate-cart-pulse'         // Animation d'entrée
+                    : 'animate-cart-stable'        // État stable (juste pulsation)
+              }`}
+            >
+              <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <span className="text-sm text-slate-300">{itemCount}</span>
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Notifications */}
-      {success && <SuccessNotification message={success} onClose={() => setSuccess(null)} />}
-      {error && <ErrorNotification message={error} onClose={() => setError(null)} />}
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto space-y-4 px-[5px]" style={{ overscrollBehavior: 'contain' }}>
+      <div
+        className="flex-1 overflow-y-auto space-y-4 px-[5px]"
+        style={{ overscrollBehavior: 'contain' }}
+      >
         {/* Triple Header: Tags/Bulles style */}
         <TripleHeader
           founder={founder}

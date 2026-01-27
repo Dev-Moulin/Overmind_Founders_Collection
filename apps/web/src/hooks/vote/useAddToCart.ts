@@ -234,8 +234,9 @@ export function useAddToCart({
       addItem(cartItem);
 
       console.log('[useAddToCart] Item added to cart successfully!');
-      setSuccess(t('founderExpanded.addedToCart', 'Ajouté au panier !'));
-      setTimeout(() => setSuccess(null), 3000);
+      // Timestamp unique pour que React détecte toujours un changement
+      // (permet de relancer l'animation même si on clique plusieurs fois rapidement)
+      setSuccess(`added-${Date.now()}`);
 
       // Reset amount after adding
       if (minRequiredDisplay) {

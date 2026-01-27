@@ -45,7 +45,7 @@ export function TripleHeader({
   selectedTotemInfo,
 }: TripleHeaderProps) {
   return (
-    <div className="flex flex-wrap items-center gap-2 mt-[5px]">
+    <div className="flex flex-wrap items-center gap-2 mt-[15px]">
       {/* Founder Tag */}
       <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/10 rounded-full">
         <img

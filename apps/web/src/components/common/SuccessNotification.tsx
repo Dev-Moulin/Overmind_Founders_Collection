@@ -1,29 +1,18 @@
 /**
  * SuccessNotification - Affiche une notification de succès
- * Avec animations d'entrée et de sortie élastiques (3s chacune)
+ * Animation contrôlée par le parent via isExiting prop
  */
-
-import { useState } from 'react';
 
 interface SuccessNotificationProps {
   message: string;
   onClose: () => void;
+  isExiting?: boolean; // Si true, joue l'animation de sortie
 }
 
-export function SuccessNotification({ message, onClose }: SuccessNotificationProps) {
-  const [isLeaving, setIsLeaving] = useState(false);
-
-  const handleClose = () => {
-    setIsLeaving(true);
-    // Wait for exit animation to complete (3s)
-    setTimeout(() => {
-      onClose();
-    }, 3000);
-  };
-
+export function SuccessNotification({ message, onClose, isExiting = false }: SuccessNotificationProps) {
   return (
     <div className={`mb-4 p-3 bg-green-500/20 border border-green-500/50 rounded-lg ${
-      isLeaving ? 'animate-slide-up' : 'animate-slide-down'
+      isExiting ? 'animate-slide-up' : 'animate-slide-down'
     }`}>
       <div className="flex items-start gap-2">
         <svg className="w-5 h-5 text-green-400 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -33,9 +22,9 @@ export function SuccessNotification({ message, onClose }: SuccessNotificationPro
           <p className="text-green-300 text-sm whitespace-pre-line">{message}</p>
         </div>
         <button
-          onClick={handleClose}
+          onClick={onClose}
           className="text-green-400/60 hover:text-green-400"
-          disabled={isLeaving}
+          disabled={isExiting}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
