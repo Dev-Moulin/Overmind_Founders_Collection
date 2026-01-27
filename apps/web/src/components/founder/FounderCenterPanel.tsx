@@ -3,16 +3,17 @@
  *
  * Displays:
  * - Trading chart at the top (always visible) - FOR/AGAINST votes over time
- * - Two sections with tabs:
- *   - Section 1: Totems / Création
- *   - Section 2: My Votes / Best Triples
+ * - Unified tab navigation with 4 tabs side by side:
+ *   - Totems: Grid of available totems
+ *   - Création: Form to create new totems
+ *   - My Votes: User's votes on this founder
+ *   - Best Triples: Top triples by total TRUST
  * - Click on totem to select for voting
  *
  * @see Phase 10 in TODO_FIX_01_Discussion.md
  */
 
 import { useState, useMemo, useEffect, useRef, lazy, Suspense } from 'react';
-import { useResizableDivider } from '../../hooks/utils';
 import { useAccount } from 'wagmi';
 import { useTranslation } from 'react-i18next';
 import type { FounderForHomePage } from '../../hooks';
@@ -119,10 +120,8 @@ export function FounderCenterPanel({
     }
   }, [refetchTrigger, refetchProposals, refetchVotes]);
 
-  // Section 1: Totems / Création
-  const [section1Tab, setSection1Tab] = useState<'totems' | 'creation'>('totems');
-  // Section 2: My Votes / Best Triples
-  const [section2Tab, setSection2Tab] = useState<'myVotes' | 'bestTriples'>('myVotes');
+  // Single tab state for all 4 tabs (unified navigation)
+  const [activeTab, setActiveTab] = useState<'totems' | 'creation' | 'myVotes' | 'bestTriples'>('totems');
 
   // Track previous selectedTotemId to detect when it CHANGES (not just when it's defined)
   const prevSelectedTotemIdRef = useRef<string | undefined>(undefined);
@@ -134,29 +133,20 @@ export function FounderCenterPanel({
     const isNowDefined = selectedTotemId !== undefined;
 
     // Only switch tab when going from undefined -> defined (new selection)
-    if (wasUndefined && isNowDefined && section1Tab === 'creation') {
-      setSection1Tab('totems');
+    if (wasUndefined && isNowDefined && activeTab === 'creation') {
+      setActiveTab('totems');
     }
 
     prevSelectedTotemIdRef.current = selectedTotemId;
-  }, [selectedTotemId, section1Tab]);
+  }, [selectedTotemId, activeTab]);
   const [timeframe, setTimeframe] = useState<Timeframe>('24H');
   // Curve filter - use prop if controlled, otherwise use local state
   const [localCurveFilter, setLocalCurveFilter] = useState<CurveFilter>('progressive');
   const curveFilter = curveFilterProp ?? localCurveFilter;
   const setCurveFilter = onCurveFilterChange ?? setLocalCurveFilter;
 
-  // Resizable divider - extracted to useResizableDivider hook
-  const {
-    height: section1Height,
-    isDragging,
-    containerRef,
-    handleMouseDown,
-  } = useResizableDivider({
-    minHeight: 60,
-    overhead: 248, // chart (~156px) + footer (~40px) + divider (~32px) + margins (~20px)
-    otherSectionMinHeight: 100,
-  });
+  // Container ref for the panel
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const loading = proposalsLoading || ofcLoading;
 
@@ -298,22 +288,24 @@ export function FounderCenterPanel({
         </Suspense>
       </div>
 
-      {/* SECTION 1: Totems / Création */}
-      <div className="shrink-0" style={{ height: section1Height ?? 150 }}>
-        {/* Section 1 Tabs - GooeySwitch */}
-        <div className="flex items-center justify-between mb-2">
+      {/* UNIFIED TABS - All 4 tabs side by side */}
+      <div className="flex-1 min-h-0 flex flex-col">
+        {/* Single GooeySwitch with 4 tabs */}
+        <div className="flex items-center justify-center mb-3 shrink-0">
           <GooeySwitch
             options={[
               { id: 'totems', label: 'Totems' },
               { id: 'creation', label: t('founderExpanded.creation') || 'Création' },
+              { id: 'myVotes', label: t('header.nav.myVotes') },
+              { id: 'bestTriples', label: 'Best Triples' },
             ]}
-            value={section1Tab}
-            onChange={(id) => setSection1Tab(id as 'totems' | 'creation')}
-            columns={2}
-            className="w-fit"
+            value={activeTab}
+            onChange={(id) => setActiveTab(id as 'totems' | 'creation' | 'myVotes' | 'bestTriples')}
+            columns={4}
+            className="w-full"
             renderOption={(option, isSelected) => (
-              <div className="flex items-center justify-center px-0 py-0">
-                <span className={`text-sm font-medium leading-none ${isSelected ? 'text-white' : 'text-white/60'}`}>
+              <div className="flex items-center justify-center px-1 py-0">
+                <span className={`text-xs font-medium leading-none ${isSelected ? 'text-white' : 'text-white/60'}`}>
                   {option.label}
                 </span>
               </div>
@@ -321,19 +313,20 @@ export function FounderCenterPanel({
           />
         </div>
 
-        {/* Section 1 Content - height adapts to section1Height minus tabs (~32px) */}
-        <div className="overflow-y-auto overflow-x-hidden hide-scrollbar" style={{ height: (section1Height ?? 150) - 32, overscrollBehavior: 'contain' }}>
-          {loading ? (
-            <div className="grid grid-cols-2 gap-2">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="bg-white/5 rounded-lg p-2 animate-pulse">
-                  <div className="h-3 bg-white/10 rounded w-2/3 mb-1" />
-                  <div className="h-2 bg-white/10 rounded w-1/3" />
-                </div>
-              ))}
-            </div>
-          ) : section1Tab === 'totems' ? (
-            allTotems.length > 0 ? (
+        {/* Unified Content Area */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 hide-scrollbar" style={{ overscrollBehavior: 'contain' }}>
+          {/* TOTEMS TAB */}
+          {activeTab === 'totems' && (
+            loading ? (
+              <div className="grid grid-cols-2 gap-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="bg-white/5 rounded-lg p-2 animate-pulse">
+                    <div className="h-3 bg-white/10 rounded w-2/3 mb-1" />
+                    <div className="h-2 bg-white/10 rounded w-1/3" />
+                  </div>
+                ))}
+              </div>
+            ) : allTotems.length > 0 ? (
               <GooeySwitch
                 options={allTotems.map(t => ({ id: t.id, label: t.label, category: t.category }))}
                 value={selectedTotemId || ''}
@@ -365,67 +358,25 @@ export function FounderCenterPanel({
                 <p className="text-white/50 text-xs">{t('founderExpanded.noTotemForFounder')}</p>
               </div>
             )
-          ) : (
-            // Création tab - Totem creation form
+          )}
+
+          {/* CRÉATION TAB */}
+          {activeTab === 'creation' && (
             <TotemCreationForm
               onChange={(data) => onNewTotemChange?.(data)}
               dynamicCategories={dynamicCategories}
               onTotemCreated={onTotemCreated}
             />
           )}
-        </div>
-      </div>
 
-      {/* Resizable Divider - Fade blur effect: glass-card top → blur middle → transparent bottom */}
-      <div
-        className="group relative flex items-center justify-center cursor-row-resize shrink-0 h-8"
-        onMouseDown={handleMouseDown}
-      >
-        {/* Top fade: glass-card color to blur (hides totems) */}
-        <div className="absolute inset-x-0 top-0 h-1/2 bg-linear-to-b from-[#0f172a]/80 to-white/5 backdrop-blur-md" />
-        {/* Bottom fade: blur to transparent (blends with My Votes) */}
-        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-b from-white/5 to-transparent backdrop-blur-sm" />
-        {/* Drag handle indicator */}
-        <div className={`relative z-10 w-10 h-1.5 rounded-full transition-colors ${
-          isDragging ? 'bg-white/50' : 'bg-white/25 group-hover:bg-white/40'
-        }`} />
-      </div>
-
-      {/* SECTION 2: My Votes / Best Triples */}
-      <div className="flex-1 min-h-0 flex flex-col pt-1">
-        {/* Section 2 Tabs - GooeySwitch */}
-        <div className="flex items-center justify-between mb-3">
-          <GooeySwitch
-            options={[
-              { id: 'myVotes', label: t('header.nav.myVotes') },
-              { id: 'bestTriples', label: 'Best Triples' },
-            ]}
-            value={section2Tab}
-            onChange={(id) => setSection2Tab(id as 'myVotes' | 'bestTriples')}
-            columns={2}
-            className="w-fit"
-            renderOption={(option, isSelected) => (
-              <div className="flex items-center justify-center px-0 py-0">
-                <span className={`text-sm font-medium leading-none ${isSelected ? 'text-white' : 'text-white/60'}`}>
-                  {option.label}
-                </span>
-              </div>
-            )}
-          />
-        </div>
-
-        {/* Section 2 Content */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 hide-scrollbar" style={{ overscrollBehavior: 'contain' }}>
-          {section2Tab === 'myVotes' ? (
-            // My Votes - User's votes on this founder (GooeySwitch style like totem grid)
+          {/* MY VOTES TAB */}
+          {activeTab === 'myVotes' && (
             isConnected ? (
               votesLoading ? (
                 <MyVotesSkeleton />
               ) : userVotes.length > 0 ? (
                 (() => {
-                  // Filter valid votes
                   const validVotes = userVotes.filter((vote) => vote.term?.object?.term_id);
-                  // Find the selected vote id (first vote matching selectedTotemId)
                   const selectedVoteId = selectedTotemId
                     ? validVotes.find(v => v.term.object.term_id === selectedTotemId)?.id || ''
                     : '';
@@ -434,7 +385,7 @@ export function FounderCenterPanel({
                       options={validVotes.map((vote) => ({
                         id: vote.id,
                         label: vote.term.object.label,
-                        vote, // Pass full vote data for renderOption
+                        vote,
                       }))}
                       value={selectedVoteId}
                       onChange={(id) => {
@@ -479,8 +430,10 @@ export function FounderCenterPanel({
                 <p className="text-white/50 text-xs">{t('common.connectWallet')}</p>
               </div>
             )
-          ) : (
-            // Best Triples - Top triples by total TRUST
+          )}
+
+          {/* BEST TRIPLES TAB */}
+          {activeTab === 'bestTriples' && (
             bestTriples.length > 0 ? (
               <div className="space-y-1.5">
                 {bestTriples.map((triple, index) => {
