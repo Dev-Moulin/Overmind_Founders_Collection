@@ -53,7 +53,7 @@ const GET_FOUNDER_VOTE_MARKET = gql`
           subject: { label: { _eq: $founderName } }
           predicate: { label: { _in: $predicateLabels } }
         }
-        vault_type: { _in: ["triple_positive", "triple_negative"] }
+        vault_type: { _in: ["Triple", "CounterTriple"] }
       }
     ) {
       sender_id
@@ -88,7 +88,7 @@ interface TripleData {
  */
 interface DepositData {
   sender_id: string;
-  vault_type: 'triple_positive' | 'triple_negative';
+  vault_type: 'Triple' | 'CounterTriple';
   assets_after_fees: string;
   term_id: string;
 }

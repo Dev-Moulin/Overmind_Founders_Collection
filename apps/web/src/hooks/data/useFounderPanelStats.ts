@@ -25,6 +25,7 @@ import type {
   GetDepositsByTermIdsResult,
 } from '../../lib/graphql/types';
 import { truncateAmount } from '../../utils/formatters';
+import { useAllOFCTotems } from './useAllOFCTotems';
 
 export interface FounderPanelStats {
   /** Total Market Cap in wei */
@@ -81,6 +82,9 @@ function formatMarketCap(value: bigint): string {
  * ```
  */
 export function useFounderPanelStats(founderName: string): UseFounderPanelStatsReturn {
+  // Get OFC category map for filtering
+  const { categoryMap, loading: categoryLoading } = useAllOFCTotems();
+
   // First query: get triples for this founder
   const {
     data: triplesData,
@@ -93,11 +97,27 @@ export function useFounderPanelStats(founderName: string): UseFounderPanelStatsR
     fetchPolicy: 'cache-and-network',
   });
 
-  // Extract term_ids from triples for the deposits query
-  const termIds = useMemo(() => {
+  // Filter triples to only include OFC totems
+  const filteredTriples = useMemo(() => {
     if (!triplesData?.triples) return [];
-    return triplesData.triples.map((t) => t.term_id);
-  }, [triplesData?.triples]);
+    return triplesData.triples.filter((t) => {
+      // Only keep triples where the totem (object) has an OFC category
+      return t.object?.term_id && categoryMap.has(t.object.term_id);
+    });
+  }, [triplesData?.triples, categoryMap]);
+
+  // Extract term_ids from filtered triples for the deposits query
+  // Include both term_id (FOR) and counter_term.id (AGAINST)
+  const termIds = useMemo(() => {
+    const ids: string[] = [];
+    filteredTriples.forEach((t) => {
+      ids.push(t.term_id);
+      if (t.counter_term?.id) {
+        ids.push(t.counter_term.id);
+      }
+    });
+    return ids;
+  }, [filteredTriples]);
 
   // Second query: get deposits for those term_ids
   // Apollo automatically refetches when termIds changes (via variables)
@@ -112,18 +132,16 @@ export function useFounderPanelStats(founderName: string): UseFounderPanelStatsR
     fetchPolicy: 'cache-and-network',
   });
 
-  // Calculate Total Market Cap = Σ(FOR + AGAINST)
+  // Calculate Total Market Cap = Σ(FOR + AGAINST) on filtered OFC triples
   let totalMarketCap = 0n;
-  if (triplesData?.triples) {
-    for (const triple of triplesData.triples) {
-      // FOR votes (triple_vault)
-      if (triple.triple_vault?.total_assets) {
-        totalMarketCap += BigInt(triple.triple_vault.total_assets);
-      }
-      // AGAINST votes (counter_term)
-      if (triple.counter_term?.total_assets) {
-        totalMarketCap += BigInt(triple.counter_term.total_assets);
-      }
+  for (const triple of filteredTriples) {
+    // FOR votes (triple_vault)
+    if (triple.triple_vault?.total_assets) {
+      totalMarketCap += BigInt(triple.triple_vault.total_assets);
+    }
+    // AGAINST votes (counter_term)
+    if (triple.counter_term?.total_assets) {
+      totalMarketCap += BigInt(triple.counter_term.total_assets);
     }
   }
 
@@ -135,8 +153,8 @@ export function useFounderPanelStats(founderName: string): UseFounderPanelStatsR
     }
   }
 
-  // Claims = number of distinct triples
-  const claims = triplesData?.triples?.length || 0;
+  // Claims = number of distinct OFC triples
+  const claims = filteredTriples.length;
 
   const stats: FounderPanelStats = {
     totalMarketCap,
@@ -145,8 +163,8 @@ export function useFounderPanelStats(founderName: string): UseFounderPanelStatsR
     claims,
   };
 
-  // Combined loading state
-  const loading = triplesLoading || (termIds.length > 0 && depositsLoading);
+  // Combined loading state (includes category loading for OFC filtering)
+  const loading = triplesLoading || categoryLoading || (termIds.length > 0 && depositsLoading);
 
   // Combined error (return first error encountered)
   const error = triplesError || depositsError;

@@ -7,6 +7,7 @@ import { GET_ATOMS_BY_LABELS, GET_ALL_PROPOSALS, GET_DEPOSITS_BY_TERM_IDS } from
 import type { Triple, GetDepositsByTermIdsResult } from '../../lib/graphql/types';
 import { aggregateTriplesByObject } from '../../utils/aggregateVotes';
 import type { TopTotem } from '../data/useTopTotems';
+import { useAllOFCTotems } from './useAllOFCTotems';
 
 // Re-export for backward compatibility
 export type { TrendDirection, WinningTotem, FounderForHomePage, CurveWinnerInfo };
@@ -83,33 +84,45 @@ export function useFoundersForHomePage() {
     fetchPolicy: 'cache-and-network',
   });
 
-  // Extract all term_ids AND counter_term_ids from proposals for batched deposits query
+  // Get OFC category map for filtering
+  const { categoryMap, loading: categoryLoading } = useAllOFCTotems();
+
+  // Filter triples to only include OFC totems
+  const filteredTriples = useMemo(() => {
+    if (!proposalsData?.triples) return [];
+    return proposalsData.triples.filter((t) => {
+      // Only keep triples where the totem (object) has an OFC category
+      return t.object?.term_id && categoryMap.has(t.object.term_id);
+    });
+  }, [proposalsData?.triples, categoryMap]);
+
+  // Extract all term_ids AND counter_term_ids from filtered OFC proposals for batched deposits query
   // We need BOTH to properly track FOR (term_id) and AGAINST (counter_term_id) votes
   const allTermIds = useMemo(() => {
-    if (!proposalsData?.triples) return [];
+    if (filteredTriples.length === 0) return [];
     const ids: string[] = [];
-    proposalsData.triples.forEach((t) => {
+    filteredTriples.forEach((t) => {
       ids.push(t.term_id);
       if (t.counter_term?.id) {
         ids.push(t.counter_term.id);
       }
     });
     return ids;
-  }, [proposalsData]);
+  }, [filteredTriples]);
 
   // Create a map: termId/counterTermId -> { tripleTermId, isFor }
   // This allows us to know if a deposit is FOR or AGAINST based on which term_id it's on
   const termToTripleMap = useMemo(() => {
     const map = new Map<string, { tripleTermId: string; isFor: boolean }>();
-    if (!proposalsData?.triples) return map;
-    proposalsData.triples.forEach((t) => {
+    if (filteredTriples.length === 0) return map;
+    filteredTriples.forEach((t) => {
       map.set(t.term_id, { tripleTermId: t.term_id, isFor: true });
       if (t.counter_term?.id) {
         map.set(t.counter_term.id, { tripleTermId: t.term_id, isFor: false });
       }
     });
     return map;
-  }, [proposalsData]);
+  }, [filteredTriples]);
 
   // Query 3: BATCHED deposits query - ONE query for ALL triples (term_id + counter_term_id)
   // This replaces 42 individual queries that caused 429 rate limiting
@@ -204,10 +217,10 @@ export function useFoundersForHomePage() {
     // Calculate 24 hours ago timestamp
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    if (proposalsData?.triples) {
+    if (filteredTriples.length > 0) {
       // Group triples by founder (subject.label)
       const founderTriples = new Map<string, Triple[]>();
-      proposalsData.triples.forEach((triple) => {
+      filteredTriples.forEach((triple) => {
         const founderName = triple.subject.label;
         if (!founderTriples.has(founderName)) {
           founderTriples.set(founderName, []);
@@ -270,6 +283,10 @@ export function useFoundersForHomePage() {
           const totemWallets = totemWalletsMap.get(agg.objectId);
           const walletsFor = totemWallets?.forWallets.size || 0;
           const walletsAgainst = totemWallets?.againstWallets.size || 0;
+          // Calculate unique wallets (same wallet voting FOR and AGAINST = 1)
+          const uniqueWallets = totemWallets
+            ? new Set([...totemWallets.forWallets, ...totemWallets.againstWallets]).size
+            : 0;
 
           topTotems.push({
             id: agg.objectId,
@@ -281,7 +298,7 @@ export function useFoundersForHomePage() {
             netScore: trustFor - trustAgainst,
             walletsFor,
             walletsAgainst,
-            totalWallets: walletsFor + walletsAgainst,
+            totalWallets: uniqueWallets,
             netVotes: walletsFor - walletsAgainst,
           });
         });
@@ -412,10 +429,10 @@ export function useFoundersForHomePage() {
       },
       topTotemsMap,
     };
-  }, [founders, atomsData, proposalsData, depositsData, termToTripleMap]);
+  }, [founders, atomsData, filteredTriples, depositsData, termToTripleMap]);
 
-  // Memoize combined loading and error states
-  const loading = atomsLoading || proposalsLoading || depositsLoading;
+  // Memoize combined loading and error states (includes category loading for OFC filtering)
+  const loading = atomsLoading || proposalsLoading || categoryLoading || depositsLoading;
   const error = useMemo(() => atomsError || proposalsError || null, [atomsError, proposalsError]);
 
   // Memoize return value to prevent unnecessary re-renders

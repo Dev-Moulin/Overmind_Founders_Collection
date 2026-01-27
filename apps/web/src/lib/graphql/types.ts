@@ -11,8 +11,11 @@ export type AtomType = 'Thing' | 'Person' | 'Organization' | 'Account';
 
 /**
  * Vault types - differentiate between atom vaults and triple vaults
+ * - Atom: deposit on an atom
+ * - Triple: FOR vote on a triple (term_id)
+ * - CounterTriple: AGAINST vote on a triple (counter_term_id)
  */
-export type VaultType = 'atom' | 'triple_positive' | 'triple_negative';
+export type VaultType = 'Atom' | 'Triple' | 'CounterTriple';
 
 /**
  * Account/User in INTUITION
@@ -409,10 +412,14 @@ export interface GetUserVotesForFounderResult {
 export interface GetFounderPanelStatsResult {
   triples: Array<{
     term_id: string;
+    object?: {
+      term_id: string;
+    } | null;
     triple_vault?: {
       total_assets: string;
     } | null;
     counter_term?: {
+      id: string;
       total_assets: string;
     } | null;
   }>;
