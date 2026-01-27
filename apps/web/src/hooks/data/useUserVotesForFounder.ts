@@ -284,7 +284,7 @@ export function useUserVotesForFounder(
         id: latestPosition.id,
         sender_id: latestPosition.account_id,
         term_id: latestPosition.term_id,
-        vault_type: isFor ? 'triple_positive' : 'triple_negative',
+        vault_type: isFor ? 'Triple' : 'CounterTriple',
         shares: totalShares.toString(),
         assets_after_fees: currentValue.toString(),
         created_at: latestPosition.created_at,

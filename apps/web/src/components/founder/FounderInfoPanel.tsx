@@ -80,7 +80,8 @@ function CurveStatsCard({
   // Calculate FOR percentage for the bar
   const totalTrust = stats.trustFor + stats.trustAgainst;
   const forPercentage = totalTrust > 0 ? (stats.trustFor / totalTrust) * 100 : 50;
-  const totalVoters = stats.walletsFor + stats.walletsAgainst;
+  // Use uniqueWallets to count voters (same wallet voting FOR and AGAINST = 1 voter)
+  const totalVoters = stats.uniqueWallets;
 
   // No activity on this curve
   if (totalTrust === 0 && totalVoters === 0) {

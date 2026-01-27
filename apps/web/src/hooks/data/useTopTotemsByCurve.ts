@@ -17,6 +17,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@apollo/client';
 import { formatEther } from 'viem';
 import { useFounderProposals } from './useFounderProposals';
+import { useAllOFCTotems } from './useAllOFCTotems';
 import { filterValidTriples, type RawTriple } from '../../utils/tripleGuards';
 import { GET_DEPOSITS_FOR_TERMS_BY_CURVE } from '../../lib/graphql/queries';
 
@@ -34,6 +35,8 @@ export interface CurveStats {
   walletsAgainst: number;
   /** Net Votes (walletsFor - walletsAgainst) */
   netVotes: number;
+  /** Total unique wallets (same wallet voting FOR and AGAINST = 1) */
+  uniqueWallets: number;
 }
 
 /** Totem with curve breakdown */
@@ -108,12 +111,15 @@ interface GetDepositsForTermsByCurveResult {
  */
 export function useTopTotemsByCurve(founderName: string): UseTopTotemsByCurveReturn {
   const { proposals, loading: proposalsLoading, error: proposalsError } = useFounderProposals(founderName);
+  const { categoryMap, loading: categoryLoading } = useAllOFCTotems();
 
-  // Filter valid proposals
+  // Filter valid proposals AND only keep totems with OFC category
   const validProposals = useMemo(() => {
     if (!proposals || proposals.length === 0) return [];
-    return filterValidTriples(proposals as RawTriple[], 'useTopTotemsByCurve');
-  }, [proposals]);
+    const filtered = filterValidTriples(proposals as RawTriple[], 'useTopTotemsByCurve');
+    // Only keep proposals where the totem (object) has an OFC category
+    return filtered.filter((p) => categoryMap.has(p.object.term_id));
+  }, [proposals, categoryMap]);
 
   // Collect all term_ids and counter_term_ids for deposits query
   const termIds = useMemo(() => {
@@ -182,6 +188,11 @@ export function useTopTotemsByCurve(founderName: string): UseTopTotemsByCurveRet
     const getWalletKey = (totemId: string, curveId: string, isFor: boolean) =>
       `${totemId}-${curveId}-${isFor ? 'for' : 'against'}`;
 
+    // Track ALL unique wallets per curve per totem (regardless of FOR/AGAINST)
+    const uniqueWalletTracker = new Map<string, Set<string>>();
+    const getUniqueWalletKey = (totemId: string, curveId: string) =>
+      `${totemId}-${curveId}-all`;
+
     // Process deposits
     let totalLinear = 0;
     let totalProgressive = 0;
@@ -213,12 +224,19 @@ export function useTopTotemsByCurve(founderName: string): UseTopTotemsByCurveRet
         stats.trustAgainst += assets;
       }
 
-      // Track unique wallets
+      // Track unique wallets by direction (FOR/AGAINST)
       const walletKey = getWalletKey(totemId, curveId, isFor);
       if (!walletTracker.has(walletKey)) {
         walletTracker.set(walletKey, new Set());
       }
       walletTracker.get(walletKey)!.add(deposit.sender_id.toLowerCase());
+
+      // Track ALL unique wallets (FOR + AGAINST combined)
+      const uniqueKey = getUniqueWalletKey(totemId, curveId);
+      if (!uniqueWalletTracker.has(uniqueKey)) {
+        uniqueWalletTracker.set(uniqueKey, new Set());
+      }
+      uniqueWalletTracker.get(uniqueKey)!.add(deposit.sender_id.toLowerCase());
     });
 
     // Calculate netScore, netVotes, and total for each totem
@@ -228,20 +246,27 @@ export function useTopTotemsByCurve(founderName: string): UseTopTotemsByCurveRet
       totem.linear.walletsFor = walletTracker.get(getWalletKey(totemId, '1', true))?.size || 0;
       totem.linear.walletsAgainst = walletTracker.get(getWalletKey(totemId, '1', false))?.size || 0;
       totem.linear.netVotes = totem.linear.walletsFor - totem.linear.walletsAgainst;
+      totem.linear.uniqueWallets = uniqueWalletTracker.get(getUniqueWalletKey(totemId, '1'))?.size || 0;
 
       // Progressive
       totem.progressive.netScore = totem.progressive.trustFor - totem.progressive.trustAgainst;
       totem.progressive.walletsFor = walletTracker.get(getWalletKey(totemId, '2', true))?.size || 0;
       totem.progressive.walletsAgainst = walletTracker.get(getWalletKey(totemId, '2', false))?.size || 0;
       totem.progressive.netVotes = totem.progressive.walletsFor - totem.progressive.walletsAgainst;
+      totem.progressive.uniqueWallets = uniqueWalletTracker.get(getUniqueWalletKey(totemId, '2'))?.size || 0;
 
-      // Total (Linear + Progressive combined)
+      // Total (Linear + Progressive combined) - need to merge unique wallets from both curves
+      const allLinearWallets = uniqueWalletTracker.get(getUniqueWalletKey(totemId, '1')) || new Set();
+      const allProgressiveWallets = uniqueWalletTracker.get(getUniqueWalletKey(totemId, '2')) || new Set();
+      const allUniqueWallets = new Set([...allLinearWallets, ...allProgressiveWallets]);
+
       totem.total.trustFor = totem.linear.trustFor + totem.progressive.trustFor;
       totem.total.trustAgainst = totem.linear.trustAgainst + totem.progressive.trustAgainst;
       totem.total.netScore = totem.total.trustFor - totem.total.trustAgainst;
       totem.total.walletsFor = totem.linear.walletsFor + totem.progressive.walletsFor;
       totem.total.walletsAgainst = totem.linear.walletsAgainst + totem.progressive.walletsAgainst;
       totem.total.netVotes = totem.total.walletsFor - totem.total.walletsAgainst;
+      totem.total.uniqueWallets = allUniqueWallets.size;
     });
 
     // Convert to array and sort by total netScore
@@ -263,7 +288,7 @@ export function useTopTotemsByCurve(founderName: string): UseTopTotemsByCurveRet
   }, [validProposals, depositsData]);
 
   // Memoize loading and error
-  const loading = proposalsLoading || depositsLoading;
+  const loading = proposalsLoading || depositsLoading || categoryLoading;
   const errorObj = useMemo(
     () => (proposalsError || depositsError) as Error | undefined,
     [proposalsError, depositsError]
@@ -286,6 +311,7 @@ function createEmptyStats(): CurveStats {
     walletsFor: 0,
     walletsAgainst: 0,
     netVotes: 0,
+    uniqueWallets: 0,
   };
 }
 

@@ -163,7 +163,7 @@ export const GET_USER_VOTES_DETAILED = gql`
     deposits(
       where: {
         sender_id: { _eq: $walletAddress }
-        vault_type: { _in: ["triple_positive", "triple_negative"] }
+        vault_type: { _in: ["Triple", "CounterTriple"] }
       }
       order_by: { created_at: desc }
     ) {
@@ -371,7 +371,7 @@ export const GET_TRIPLE_VOTES = gql`
     deposits(
       where: {
         term_id: { _eq: $termId }
-        vault_type: { _in: ["triple_positive", "triple_negative"] }
+        vault_type: { _in: ["Triple", "CounterTriple"] }
       }
       order_by: { assets_after_fees: desc }
     ) {
@@ -395,7 +395,7 @@ export const GET_TRIPLE_VOTES = gql`
 export const GET_RECENT_VOTES = gql`
   query GetRecentVotes($limit: Int = 20) {
     deposits(
-      where: { vault_type: { _in: ["triple_positive", "triple_negative"] } }
+      where: { vault_type: { _in: ["Triple", "CounterTriple"] } }
       order_by: { created_at: desc }
       limit: $limit
     ) {
@@ -419,7 +419,7 @@ export const GET_RECENT_VOTES = gql`
 export const GET_VOTE_STATS = gql`
   query GetVoteStats {
     deposits_aggregate(
-      where: { vault_type: { _in: ["triple_positive", "triple_negative"] } }
+      where: { vault_type: { _in: ["Triple", "CounterTriple"] } }
     ) {
       aggregate {
         count
@@ -442,7 +442,7 @@ export const GET_VOTE_STATS = gql`
 export const GET_TOP_VOTERS = gql`
   query GetTopVoters($limit: Int = 10) {
     deposits(
-      where: { vault_type: { _in: ["triple_positive", "triple_negative"] } }
+      where: { vault_type: { _in: ["Triple", "CounterTriple"] } }
       order_by: { assets_after_fees: desc }
       limit: $limit
     ) {
@@ -463,7 +463,7 @@ export const GET_VOTES_TIMELINE = gql`
     deposits(
       where: {
         term_id: { _eq: $termId }
-        vault_type: { _in: ["triple_positive", "triple_negative"] }
+        vault_type: { _in: ["Triple", "CounterTriple"] }
       }
       order_by: { created_at: asc }
     ) {
@@ -485,7 +485,7 @@ export const GET_VOTES_DISTRIBUTION = gql`
     deposits(
       where: {
         term_id: { _eq: $termId }
-        vault_type: { _in: ["triple_positive", "triple_negative"] }
+        vault_type: { _in: ["Triple", "CounterTriple"] }
       }
       order_by: { assets_after_fees: desc }
     ) {
@@ -527,7 +527,7 @@ export const GET_FOUNDER_STATS = gql`
     }
     deposits(
       where: {
-        vault_type: { _in: ["triple_positive", "triple_negative"] }
+        vault_type: { _in: ["Triple", "CounterTriple"] }
       }
       order_by: { created_at: desc }
       limit: 1
@@ -632,7 +632,7 @@ export const GET_FOUNDER_RECENT_VOTES = gql`
         term: {
           subject: { label: { _eq: $founderName } }
         }
-        vault_type: { _in: ["triple_positive", "triple_negative"] }
+        vault_type: { _in: ["Triple", "CounterTriple"] }
       }
       order_by: { created_at: desc }
       limit: $limit
@@ -783,7 +783,7 @@ export const GET_TOTEM_VOTERS = gql`
     deposits(
       where: {
         term_id: { _eq: $termId }
-        vault_type: { _in: ["triple_positive", "triple_negative"] }
+        vault_type: { _in: ["Triple", "CounterTriple"] }
       }
       order_by: { created_at: desc }
       limit: $limit
@@ -875,10 +875,14 @@ export const GET_FOUNDER_PANEL_STATS = gql`
       }
     ) {
       term_id
+      object {
+        term_id
+      }
       triple_vault {
         total_assets
       }
       counter_term {
+        id
         total_assets
       }
     }
@@ -899,7 +903,7 @@ export const GET_DEPOSITS_BY_TERM_IDS = gql`
     deposits(
       where: {
         term_id: { _in: $termIds }
-        vault_type: { _in: ["triple_positive", "triple_negative"] }
+        vault_type: { _in: ["Triple", "CounterTriple"] }
       }
     ) {
       term_id
