@@ -22,6 +22,7 @@ import {
 import type { Timeframe, VoteDataPoint } from '../../components/graph/TradingChart';
 import { filterValidTriples, type RawTriple } from '../../utils/tripleGuards';
 import { truncateAmount } from '../../utils/formatters';
+import { getCacheFetchPolicy, FIVE_MINUTES } from '../../lib/queryCacheTTL';
 
 /**
  * Triple info from query (may have null fields due to data integrity issues)
@@ -182,6 +183,13 @@ export function useVotesTimeline(
   // Fetch more data for All timeframe
   const limit = timeframe === 'All' ? 500 : 100;
 
+  // TTL-based cache policy: only fetch if data is older than 5 minutes
+  const triplesFetchPolicy = getCacheFetchPolicy(
+    'GetFounderTriplesWithDetails_Timeline',
+    { founderName },
+    FIVE_MINUTES
+  );
+
   // Query 1: Get founder's triples to get term_ids
   const {
     data: triplesData,
@@ -190,7 +198,9 @@ export function useVotesTimeline(
   } = useQuery<{ triples: TripleInfo[] }>(GET_FOUNDER_TRIPLES_WITH_DETAILS, {
     variables: { founderName },
     skip: !founderName,
-    fetchPolicy: 'cache-and-network',
+    // TTL-based: 'cache-first' if fresh, 'cache-and-network' if stale
+    fetchPolicy: triplesFetchPolicy,
+    nextFetchPolicy: 'cache-first',
   });
 
   // Filter valid triples first (removes those with null object/subject/predicate)
@@ -237,6 +247,13 @@ export function useVotesTimeline(
     return map;
   }, [validTriples]);
 
+  // TTL-based cache policy for deposits (per founder)
+  const depositsFetchPolicy = getCacheFetchPolicy(
+    'GetDepositsForTimeline',
+    { founderName, limit },
+    FIVE_MINUTES
+  );
+
   // Query 2: Get deposits for those term_ids
   const {
     data: depositsData,
@@ -246,7 +263,9 @@ export function useVotesTimeline(
   } = useQuery<{ deposits: RawDeposit[] }>(GET_DEPOSITS_FOR_TIMELINE, {
     variables: { termIds, limit },
     skip: termIds.length === 0,
-    fetchPolicy: 'cache-and-network',
+    // TTL-based: 'cache-first' if fresh, 'cache-and-network' if stale
+    fetchPolicy: depositsFetchPolicy,
+    nextFetchPolicy: 'cache-first',
   });
 
   // Helper function to check if deposit matches curve filter

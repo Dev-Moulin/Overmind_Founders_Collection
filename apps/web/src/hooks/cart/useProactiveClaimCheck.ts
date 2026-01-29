@@ -47,6 +47,7 @@ export function useProactiveClaimCheck({
   const [proactiveClaimInfo, setProactiveClaimInfo] = useState<ExistingClaimInfo | null>(null);
 
   // Lazy query to check if triple already exists
+  // Use cache-first to reduce network requests and avoid rate limiting
   const [checkClaimExists, { data: claimCheckData, loading: claimCheckLoading, refetch }] = useLazyQuery<{
     triples: Array<{
       term_id: string;
@@ -63,7 +64,9 @@ export function useProactiveClaimCheck({
       };
     }>;
   }>(GET_TRIPLE_BY_ATOMS, {
-    fetchPolicy: 'network-only',
+    // Use cache-first to avoid rate limiting - data is usually stable
+    fetchPolicy: 'cache-first',
+    nextFetchPolicy: 'cache-first',
   });
 
   // Proactive claim existence check when predicate AND totem are selected

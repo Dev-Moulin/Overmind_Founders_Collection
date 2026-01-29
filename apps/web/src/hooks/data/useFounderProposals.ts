@@ -13,6 +13,7 @@ import type {
   ProposalWithVotes,
 } from '../../lib/graphql/types';
 import { enrichTripleWithVotes } from '../../utils/voteCalculations';
+import { getCacheFetchPolicy, FIVE_MINUTES } from '../../lib/queryCacheTTL';
 
 /**
  * Hook to fetch all proposals for a specific founder
@@ -26,13 +27,21 @@ import { enrichTripleWithVotes } from '../../utils/voteCalculations';
  * ```
  */
 export function useFounderProposals(founderName: string) {
+  // Use TTL-based cache policy: only fetch if data is older than 5 minutes
+  const fetchPolicy = getCacheFetchPolicy(
+    'GetFounderProposals',
+    { founderName },
+    FIVE_MINUTES
+  );
+
   const { data, loading, error, refetch } = useQuery<GetFounderProposalsResult>(
     GET_FOUNDER_PROPOSALS,
     {
       variables: { founderName },
       skip: !founderName,
-      // Use cache-and-network to show cached data immediately but also fetch fresh data
-      fetchPolicy: 'cache-and-network',
+      // TTL-based: 'cache-first' if fresh, 'cache-and-network' if stale
+      fetchPolicy,
+      nextFetchPolicy: 'cache-first',
       // Ensure refetch always goes to network
       notifyOnNetworkStatusChange: true,
     }

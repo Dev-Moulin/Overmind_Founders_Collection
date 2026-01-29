@@ -20,6 +20,7 @@ import {
 } from '../../lib/graphql/queries';
 import { filterValidTriples, type RawTriple } from '../../utils/tripleGuards';
 import { formatSignedAmount } from '../../utils/formatters';
+import { getCacheFetchPolicy, FIVE_MINUTES } from '../../lib/queryCacheTTL';
 
 /** Predicates used for founder-totem relationships */
 const FOUNDER_PREDICATES = ['has totem', 'embodies'];
@@ -151,6 +152,13 @@ export function useUserVotesForFounder(
   // Normalize wallet address to lowercase
   const normalizedAddress = walletAddress?.toLowerCase();
 
+  // TTL-based cache policy: only fetch if data is older than 5 minutes
+  const triplesFetchPolicy = getCacheFetchPolicy(
+    'GetFounderTriplesWithDetails',
+    { founderName },
+    FIVE_MINUTES
+  );
+
   // Query 1: Get founder's triples with full details (first, to get term_ids)
   const {
     data: triplesData,
@@ -160,7 +168,9 @@ export function useUserVotesForFounder(
   } = useQuery<GetFounderTriplesResult>(GET_FOUNDER_TRIPLES_WITH_DETAILS, {
     variables: { founderName },
     skip: !founderName,
-    fetchPolicy: 'cache-and-network',
+    // TTL-based: 'cache-first' if fresh, 'cache-and-network' if stale
+    fetchPolicy: triplesFetchPolicy,
+    nextFetchPolicy: 'cache-first',
   });
 
   // Filter valid triples first (removes those with null object/subject/predicate)
@@ -190,6 +200,13 @@ export function useUserVotesForFounder(
     return { allTermIds: termIds, termToVoteInfo: map };
   }, [validTriples]);
 
+  // TTL-based cache policy for positions (per wallet + founder)
+  const positionsFetchPolicy = getCacheFetchPolicy(
+    'GetUserPositionsForTerms',
+    { walletAddress: normalizedAddress, founderName },
+    FIVE_MINUTES
+  );
+
   // Query 2: Get user's positions for founder's triples only (efficient)
   const {
     data: positionsData,
@@ -203,7 +220,9 @@ export function useUserVotesForFounder(
     },
     // Skip if no wallet, no founder, or no term_ids yet
     skip: !normalizedAddress || !founderName || allTermIds.length === 0,
-    fetchPolicy: 'cache-and-network',
+    // TTL-based: 'cache-first' if fresh, 'cache-and-network' if stale
+    fetchPolicy: positionsFetchPolicy,
+    nextFetchPolicy: 'cache-first',
   });
 
   // Join positions with triples and create enriched votes

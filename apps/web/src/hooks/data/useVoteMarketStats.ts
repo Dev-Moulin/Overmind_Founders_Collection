@@ -15,6 +15,7 @@ import { useMemo } from 'react';
 import { useQuery, gql } from '@apollo/client';
 import { formatEther } from 'viem';
 import { truncateAmount } from '../../utils/formatters';
+import { getCacheFetchPolicy, FIVE_MINUTES } from '../../lib/queryCacheTTL';
 
 /**
  * GraphQL query for founder vote market stats
@@ -179,13 +180,22 @@ export function useVoteMarketStats(
   founderName: string | undefined,
   predicateLabels: string[] = DEFAULT_PREDICATES
 ): UseVoteMarketStatsResult {
+  // TTL-based cache policy: only fetch if data is older than 5 minutes
+  const fetchPolicy = getCacheFetchPolicy(
+    'GetFounderVoteMarket',
+    { founderName },
+    FIVE_MINUTES
+  );
+
   const { data, loading, error, refetch } = useQuery<{
     triples: TripleData[];
     deposits: DepositData[];
   }>(GET_FOUNDER_VOTE_MARKET, {
     variables: { founderName, predicateLabels },
     skip: !founderName,
-    fetchPolicy: 'cache-and-network',
+    // TTL-based: 'cache-first' if fresh, 'cache-and-network' if stale
+    fetchPolicy,
+    nextFetchPolicy: 'cache-first',
   });
 
   const stats = useMemo((): VoteMarketStats | null => {

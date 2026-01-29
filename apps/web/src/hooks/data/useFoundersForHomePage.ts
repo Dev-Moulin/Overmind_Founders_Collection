@@ -8,6 +8,7 @@ import type { Triple, GetDepositsByTermIdsResult } from '../../lib/graphql/types
 import { aggregateTriplesByObject } from '../../utils/aggregateVotes';
 import type { TopTotem } from '../data/useTopTotems';
 import { useAllOFCTotems } from './useAllOFCTotems';
+import { getCacheFetchPolicy, FIVE_MINUTES } from '../../lib/queryCacheTTL';
 
 // Re-export for backward compatibility
 export type { TrendDirection, WinningTotem, FounderForHomePage, CurveWinnerInfo };
@@ -75,13 +76,22 @@ export function useFoundersForHomePage() {
     fetchPolicy: 'cache-first',
   });
 
+  // TTL-based cache policy: only fetch if data is older than 5 minutes
+  const proposalsFetchPolicy = getCacheFetchPolicy(
+    'GetAllProposals',
+    {}, // No variables
+    FIVE_MINUTES
+  );
+
   // Query 2: Get all proposals (triples)
   const {
     data: proposalsData,
     loading: proposalsLoading,
     error: proposalsError,
   } = useQuery<ProposalsQueryResult>(GET_ALL_PROPOSALS, {
-    fetchPolicy: 'cache-and-network',
+    // TTL-based: 'cache-first' if fresh, 'cache-and-network' if stale
+    fetchPolicy: proposalsFetchPolicy,
+    nextFetchPolicy: 'cache-first',
   });
 
   // Get OFC category map for filtering
@@ -124,6 +134,13 @@ export function useFoundersForHomePage() {
     return map;
   }, [filteredTriples]);
 
+  // TTL-based cache policy for deposits (batched for all founders)
+  const depositsFetchPolicy = getCacheFetchPolicy(
+    'GetDepositsByTermIds_AllFounders',
+    {}, // No variables needed - batched for all founders
+    FIVE_MINUTES
+  );
+
   // Query 3: BATCHED deposits query - ONE query for ALL triples (term_id + counter_term_id)
   // This replaces 42 individual queries that caused 429 rate limiting
   const {
@@ -132,7 +149,9 @@ export function useFoundersForHomePage() {
   } = useQuery<GetDepositsByTermIdsResult>(GET_DEPOSITS_BY_TERM_IDS, {
     variables: { termIds: allTermIds },
     skip: allTermIds.length === 0,
-    fetchPolicy: 'cache-and-network',
+    // TTL-based: 'cache-first' if fresh, 'cache-and-network' if stale
+    fetchPolicy: depositsFetchPolicy,
+    nextFetchPolicy: 'cache-first',
   });
 
   // Process data

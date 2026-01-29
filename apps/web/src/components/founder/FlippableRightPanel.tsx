@@ -9,10 +9,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { Hex } from 'viem';
 import type { FounderForHomePage, CurveId } from '../../hooks';
 import { useVoteCartContext } from '../../hooks/cart/useVoteCart';
 import { VoteTotemPanel } from './VoteTotemPanel';
-import { VoteCartPanel } from '../vote/VoteCartPanel';
+import { MultiFounderCartDropdown } from '../vote/MultiFounderCartDropdown';
 import type { NewTotemData } from './TotemCreationForm';
 
 interface FlippableRightPanelProps {
@@ -43,14 +44,13 @@ export function FlippableRightPanel({
 
   // Cart state from context
   const {
-    cart,
-    itemCount,
-    costSummary,
-    removeItem,
-    updateAmount,
     clearCart,
-    validationErrors,
-    isValid: isCartValid,
+    // Multi-founder cart
+    allCarts,
+    totalItemCount,
+    clearFounderCart,
+    removeItemFromFounder,
+    updateAmountInFounder,
   } = useVoteCartContext();
 
   // Handle flip to cart
@@ -125,33 +125,51 @@ export function FlippableRightPanel({
           }}
         >
           <div className="glass-card p-4 h-full flex flex-col overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent" style={{ overscrollBehavior: 'contain' }}>
-            {/* Header with close button */}
+            {/* Header with Reset + Close buttons */}
             <div className="flex items-center justify-between mb-3 shrink-0">
               <h2 className="text-sm font-semibold text-white">
-                {t('founderExpanded.voteCart')} ({itemCount})
+                {t('founderExpanded.voteCart')} ({totalItemCount})
               </h2>
-              <button
-                onClick={handleCloseCart}
-                className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                title={t('common.close')}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-1">
+                {/* Reset all button */}
+                {totalItemCount > 0 && (
+                  <button
+                    onClick={() => {
+                      // Clear all carts
+                      allCarts.forEach((_, founderId) => clearFounderCart(founderId));
+                    }}
+                    className="p-1.5 text-white/60 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                    title={t('common.reset')}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                )}
+                {/* Close button */}
+                <button
+                  onClick={handleCloseCart}
+                  className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  title={t('common.close')}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
-            {/* Cart content */}
+            {/* Multi-founder cart with validation button */}
             <div className="flex-1 min-h-0">
-              <VoteCartPanel
-                cart={cart}
-                costSummary={costSummary}
-                onRemoveItem={removeItem}
-                onClearCart={clearCart}
-                onUpdateAmount={updateAmount}
+              <MultiFounderCartDropdown
+                allCarts={allCarts}
+                totalItemCount={totalItemCount}
+                currentFounderId={founder.atomId as Hex}
+                isOpen={isFlipped}
+                onClearFounder={clearFounderCart}
+                onRemoveItem={removeItemFromFounder}
+                onUpdateAmount={updateAmountInFounder}
                 onSuccess={handleCartSuccess}
-                validationErrors={validationErrors}
-                isValid={isCartValid}
               />
             </div>
           </div>
