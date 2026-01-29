@@ -99,6 +99,7 @@ export function VoteTotemPanel({
     itemCount,
     formattedNetCost,
     addItem,
+    totalItemCount, // Total across ALL founders
   } = useVoteCartContext();
   // Note: initCart is called by FounderExpandedView which provides the context
 
@@ -123,12 +124,18 @@ export function VoteTotemPanel({
 
   // Référence pour détecter les changements de itemCount
   const prevItemCountRef = useRef(itemCount);
+  const prevTotalCountRef = useRef(totalItemCount);
 
-  // EFFET: Détecte quand le bouton doit apparaître (itemCount passe de 0 à >0)
+  // Combined count: show button if ANY votes exist (current founder or others)
+  const hasAnyVotes = itemCount > 0 || totalItemCount > 0;
+
+  // EFFET: Détecte quand le bouton doit apparaître (itemCount ou totalItemCount passe de 0 à >0)
   useEffect(() => {
     const prevCount = prevItemCountRef.current;
+    const prevTotalCount = prevTotalCountRef.current;
+    const hadVotes = prevCount > 0 || prevTotalCount > 0;
 
-    if (itemCount > 0 && prevCount === 0) {
+    if (hasAnyVotes && !hadVotes) {
       // Le panier passe de vide à non-vide → le bouton apparaît avec animation
       setCartButtonJustAppeared(true);
       setCartItemAdded(true); // Flash vert aussi
@@ -140,19 +147,22 @@ export function VoteTotemPanel({
       }, 2000);
 
       prevItemCountRef.current = itemCount;
+      prevTotalCountRef.current = totalItemCount;
       return () => clearTimeout(timer);
     }
 
     // Si itemCount augmente et le bouton existe déjà → juste le flash vert
-    if (itemCount > prevCount && prevCount > 0) {
+    if (itemCount > prevCount && hadVotes) {
       setCartItemAdded(true);
       const timer = setTimeout(() => setCartItemAdded(false), 2000);
       prevItemCountRef.current = itemCount;
+      prevTotalCountRef.current = totalItemCount;
       return () => clearTimeout(timer);
     }
 
     prevItemCountRef.current = itemCount;
-  }, [itemCount]);
+    prevTotalCountRef.current = totalItemCount;
+  }, [itemCount, totalItemCount, hasAnyVotes]);
 
   // Get user's existing votes for this founder (to detect if totem has votes)
   const { votes: userVotesForFounder } = useUserVotesForFounder(address, founder.name);
@@ -717,7 +727,7 @@ export function VoteTotemPanel({
             - relative: permet le positionnement absolu de la popup
             - La popup est en z-0 (derrière), le bouton en z-10 (devant)
         */}
-        {itemCount > 0 && (
+        {(itemCount > 0 || totalItemCount > 0) && (
           <div className="relative flex items-center">
             {/* Popup "Added to cart" - positionnée en absolu, derrière le bouton (z-0) */}
             <div
@@ -745,7 +755,16 @@ export function VoteTotemPanel({
               <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
-              <span className="text-sm text-slate-300">{itemCount}</span>
+              {/* Show total if there are votes from other founders */}
+              <span className="text-sm text-slate-300">
+                {totalItemCount > itemCount ? totalItemCount : itemCount}
+              </span>
+              {/* Badge showing votes from other founders */}
+              {totalItemCount > itemCount && (
+                <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[9px] font-bold px-1 rounded-full min-w-[14px] text-center">
+                  +{totalItemCount - itemCount}
+                </span>
+              )}
             </button>
           </div>
         )}
@@ -960,9 +979,12 @@ export function VoteTotemPanel({
           >
             {t('founderExpanded.addToCart')}
           </button>
-          {itemCount > 0 && (
+          {(itemCount > 0 || totalItemCount > 0) && (
             <p className="text-center text-xs text-white/50 mt-2">
-              {itemCount} {t('founderExpanded.votesInCart')} ({formattedNetCost} TRUST)
+              {totalItemCount > itemCount
+                ? `${totalItemCount} ${t('founderExpanded.votesInCart')} (${itemCount} ${t('founderExpanded.currentFounder').toLowerCase()})`
+                : `${itemCount} ${t('founderExpanded.votesInCart')} (${formattedNetCost} TRUST)`
+              }
             </p>
           )}
         </div>

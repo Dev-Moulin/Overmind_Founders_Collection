@@ -1,8 +1,9 @@
-import { ApolloClient, InMemoryCache, HttpLink, split, type ApolloLink } from '@apollo/client';
+import { ApolloClient, InMemoryCache, HttpLink, split, type ApolloLink, from } from '@apollo/client';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { createClient } from 'graphql-ws';
 import { getNetworkConfig } from './networkConfig';
+import { createThrottleLink } from './throttleLink';
 
 /**
  * Apollo Client configuration for INTUITION GraphQL API
@@ -21,10 +22,24 @@ const networkConfig = getNetworkConfig();
 const GRAPHQL_HTTP_ENDPOINT = networkConfig.graphqlHttp;
 const GRAPHQL_WS_ENDPOINT = networkConfig.graphqlWs;
 
+// Throttle link to prevent 429 rate limiting errors
+// - Limits concurrent requests to 1 (very conservative)
+// - Minimum 1000ms between requests (1 request/second max)
+// - Auto-retry with exponential backoff on 429/network errors
+const throttleLink = createThrottleLink({
+  minDelay: 1000,     // 1s minimum between requests (matches API rate limit)
+  maxConcurrent: 1,   // Only 1 concurrent request to avoid rate limiting
+  maxRetries: 5,      // Retry 5 times on 429
+  retryDelay: 3000,   // Start with 3s delay, doubles each retry
+});
+
 // HTTP Link for queries and mutations
 const httpLink = new HttpLink({
   uri: GRAPHQL_HTTP_ENDPOINT,
 });
+
+// Throttled HTTP link chain
+const throttledHttpLink = from([throttleLink, httpLink]);
 
 // WebSocket Link for subscriptions
 const wsLink = new GraphQLWsLink(
@@ -42,7 +57,7 @@ const wsLink = new GraphQLWsLink(
   })
 );
 
-// Split link: use WebSocket for subscriptions, HTTP for everything else
+// Split link: use WebSocket for subscriptions, throttled HTTP for everything else
 // Type assertion needed due to multiple @apollo/client versions in monorepo
 const splitLink = split(
   ({ query }) => {
@@ -53,7 +68,7 @@ const splitLink = split(
     );
   },
   wsLink as unknown as ApolloLink,
-  httpLink
+  throttledHttpLink
 );
 
 /**
@@ -97,7 +112,11 @@ export const apolloClient = new ApolloClient({
   }),
   defaultOptions: {
     watchQuery: {
-      fetchPolicy: 'cache-and-network',
+      // OPTIMIZED: Use cache-first to avoid excessive network requests
+      // Components should use refetch() when they need fresh data
+      fetchPolicy: 'cache-first',
+      // After first fetch, always use cache to prevent re-fetch storms
+      nextFetchPolicy: 'cache-only',
       errorPolicy: 'all',
     },
     query: {

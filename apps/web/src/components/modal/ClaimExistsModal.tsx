@@ -10,6 +10,7 @@ import { GET_USER_POSITION } from '../../lib/graphql/queries';
 import { WithdrawModal } from './WithdrawModal';
 import type { ExistingClaimInfo } from '../../types/claim';
 import { SUPPORT_COLORS, OPPOSE_COLORS } from '../../config/colors';
+import { getCacheFetchPolicy, FIVE_MINUTES } from '../../lib/queryCacheTTL';
 
 // Re-export for backward compatibility
 export type { ExistingClaimInfo } from '../../types/claim';
@@ -73,6 +74,13 @@ export function ClaimExistsModal({
     isOpen ? (claim?.counterTermId as Hex | undefined) : undefined
   );
 
+  // TTL-based cache policy: only fetch if data is older than 5 minutes
+  const positionFetchPolicy = getCacheFetchPolicy(
+    'GetUserPosition',
+    { walletAddress: address?.toLowerCase(), termId: claim?.termId?.toLowerCase() },
+    FIVE_MINUTES
+  );
+
   // Also query GraphQL as fallback (for display purposes)
   const { data: forPositionData } = useQuery<{ positions: UserPosition[] }>(
     GET_USER_POSITION,
@@ -82,7 +90,9 @@ export function ClaimExistsModal({
         termId: claim?.termId?.toLowerCase(),
       },
       skip: !address || !claim?.termId || !isOpen,
-      fetchPolicy: 'cache-and-network',
+      // TTL-based: 'cache-first' if fresh, 'cache-and-network' if stale
+      fetchPolicy: positionFetchPolicy,
+      nextFetchPolicy: 'cache-first',
     }
   );
 

@@ -27,6 +27,7 @@ import type {
 // Storage helpers (extracted to storage/)
 import {
   loadCartFromStorage,
+  loadAllCartsFromStorage,
   saveCartToStorage,
   removeCartFromStorage,
 } from './storage';
@@ -68,11 +69,11 @@ export interface AddToCartInput {
  * Result of useVoteCart hook
  */
 export interface UseVoteCartResult {
-  /** Current cart state */
+  /** Current cart state (for active founder) */
   cart: VoteCart | null;
-  /** Number of items in cart */
+  /** Number of items in current cart */
   itemCount: number;
-  /** Cost summary for the cart */
+  /** Cost summary for the current cart */
   costSummary: VoteCartCostSummary | null;
   /** Initialize cart for a founder */
   initCart: (founderId: Hex, founderName: string) => void;
@@ -104,6 +105,20 @@ export interface UseVoteCartResult {
   isValid: boolean;
   /** Validation errors */
   validationErrors: string[];
+
+  // ============ MULTI-FOUNDER CART ============
+  /** All carts from all founders (Map<founderId, VoteCart>) */
+  allCarts: Map<Hex, VoteCart>;
+  /** Total items across ALL founders */
+  totalItemCount: number;
+  /** Clear cart for a specific founder */
+  clearFounderCart: (founderId: Hex) => void;
+  /** Remove item from a specific founder's cart */
+  removeItemFromFounder: (founderId: Hex, itemId: string) => void;
+  /** Update amount for an item in a specific founder's cart */
+  updateAmountInFounder: (founderId: Hex, itemId: string, amount: string) => void;
+  /** Reload all carts from localStorage */
+  reloadAllCarts: () => void;
 }
 
 /**
@@ -167,6 +182,34 @@ function generateItemId(): string {
 export function useVoteCart(): UseVoteCartResult {
   const { config } = useProtocolConfig();
   const [cart, setCart] = useState<VoteCart | null>(null);
+
+  // ============ MULTI-FOUNDER STATE ============
+  const [allCarts, setAllCarts] = useState<Map<Hex, VoteCart>>(new Map());
+
+  /**
+   * Load all carts from localStorage on mount
+   */
+  useEffect(() => {
+    const carts = loadAllCartsFromStorage();
+    setAllCarts(carts);
+  }, []);
+
+  /**
+   * Sync allCarts when current cart changes
+   */
+  useEffect(() => {
+    if (cart) {
+      setAllCarts(prev => {
+        const newMap = new Map(prev);
+        if (cart.items.length > 0) {
+          newMap.set(cart.founderId, cart);
+        } else {
+          newMap.delete(cart.founderId);
+        }
+        return newMap;
+      });
+    }
+  }, [cart]);
 
   /**
    * Persist cart to localStorage whenever it changes
@@ -509,6 +552,111 @@ export function useVoteCart(): UseVoteCartResult {
     return validateCart(cart?.items ?? null, config);
   }, [cart, config]);
 
+  // ============ MULTI-FOUNDER FUNCTIONS ============
+
+  /**
+   * Total item count across ALL founders
+   */
+  const totalItemCount = useMemo(() => {
+    let count = 0;
+    allCarts.forEach((c) => {
+      count += c.items.length;
+    });
+    return count;
+  }, [allCarts]);
+
+  /**
+   * Clear cart for a specific founder
+   */
+  const clearFounderCart = useCallback((founderId: Hex) => {
+    removeCartFromStorage(founderId);
+    setAllCarts(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(founderId);
+      return newMap;
+    });
+    // If clearing the current cart, also clear local state
+    if (cart?.founderId === founderId) {
+      setCart(prev => prev ? { ...prev, items: [] } : null);
+    }
+  }, [cart?.founderId]);
+
+  /**
+   * Remove item from a specific founder's cart
+   */
+  const removeItemFromFounder = useCallback((founderId: Hex, itemId: string) => {
+    setAllCarts(prev => {
+      const newMap = new Map(prev);
+      const founderCart = newMap.get(founderId);
+      if (!founderCart) return prev;
+
+      const newItems = founderCart.items.filter(item => item.id !== itemId);
+      if (newItems.length === 0) {
+        newMap.delete(founderId);
+        removeCartFromStorage(founderId);
+      } else {
+        const updatedCart = { ...founderCart, items: newItems };
+        newMap.set(founderId, updatedCart);
+        saveCartToStorage(updatedCart);
+      }
+      return newMap;
+    });
+    // If modifying the current cart, also update local state
+    if (cart?.founderId === founderId) {
+      setCart(prev => {
+        if (!prev) return prev;
+        return { ...prev, items: prev.items.filter(item => item.id !== itemId) };
+      });
+    }
+  }, [cart?.founderId]);
+
+  /**
+   * Update amount for an item in a specific founder's cart
+   */
+  const updateAmountInFounder = useCallback((founderId: Hex, itemId: string, amount: string) => {
+    let amountWei: bigint;
+    try {
+      amountWei = parseEther(amount);
+    } catch {
+      console.error('[useVoteCart] Invalid amount:', amount);
+      return;
+    }
+
+    setAllCarts(prev => {
+      const newMap = new Map(prev);
+      const founderCart = newMap.get(founderId);
+      if (!founderCart) return prev;
+
+      const newItems = founderCart.items.map(item =>
+        item.id === itemId ? { ...item, amount: amountWei } : item
+      );
+      const updatedCart = { ...founderCart, items: newItems };
+      newMap.set(founderId, updatedCart);
+      saveCartToStorage(updatedCart);
+      return newMap;
+    });
+    // If modifying the current cart, also update local state
+    if (cart?.founderId === founderId) {
+      setCart(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          items: prev.items.map(item =>
+            item.id === itemId ? { ...item, amount: amountWei } : item
+          ),
+        };
+      });
+    }
+  }, [cart?.founderId]);
+
+  /**
+   * Reload all carts from localStorage
+   */
+  const reloadAllCarts = useCallback(() => {
+    const carts = loadAllCartsFromStorage();
+    setAllCarts(carts);
+  }, []);
+
   // IMPORTANT: Memoize the return value to prevent unnecessary re-renders
   // when this hook's result is passed to a Context Provider
   return useMemo(() => ({
@@ -530,6 +678,13 @@ export function useVoteCart(): UseVoteCartResult {
     formattedEffectiveDeposit,
     isValid: validationResult.isValid,
     validationErrors: validationResult.errors,
+    // Multi-founder cart
+    allCarts,
+    totalItemCount,
+    clearFounderCart,
+    removeItemFromFounder,
+    updateAmountInFounder,
+    reloadAllCarts,
   }), [
     cart,
     itemCount,
@@ -549,6 +704,13 @@ export function useVoteCart(): UseVoteCartResult {
     formattedEffectiveDeposit,
     validationResult.isValid,
     validationResult.errors,
+    // Multi-founder cart
+    allCarts,
+    totalItemCount,
+    clearFounderCart,
+    removeItemFromFounder,
+    updateAmountInFounder,
+    reloadAllCarts,
   ]);
 }
 

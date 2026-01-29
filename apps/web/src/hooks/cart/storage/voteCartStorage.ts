@@ -152,3 +152,51 @@ export function removeCartFromStorage(founderId: Hex): void {
     console.warn('[useVoteCart] Error removing cart from storage:', error);
   }
 }
+
+/**
+ * Load ALL carts from localStorage
+ * Scans for all keys with STORAGE_KEY_PREFIX and returns a Map
+ */
+export function loadAllCartsFromStorage(): Map<Hex, VoteCart> {
+  const carts = new Map<Hex, VoteCart>();
+  const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+  const now = Date.now();
+
+  try {
+    // Scan localStorage for all cart keys
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith(STORAGE_KEY_PREFIX)) continue;
+
+      try {
+        const stored = localStorage.getItem(key);
+        if (!stored) continue;
+
+        const data: SerializedVoteCart = JSON.parse(stored);
+
+        // Skip expired carts
+        if (now - data.savedAt > maxAge) {
+          localStorage.removeItem(key);
+          continue;
+        }
+
+        // Skip empty carts
+        if (!data.items || data.items.length === 0) {
+          localStorage.removeItem(key);
+          continue;
+        }
+
+        const cart = deserializeCart(data);
+        carts.set(cart.founderId, cart);
+      } catch (parseError) {
+        console.warn('[loadAllCartsFromStorage] Error parsing cart:', key, parseError);
+        // Remove corrupted cart
+        localStorage.removeItem(key);
+      }
+    }
+  } catch (error) {
+    console.warn('[loadAllCartsFromStorage] Error scanning localStorage:', error);
+  }
+
+  return carts;
+}

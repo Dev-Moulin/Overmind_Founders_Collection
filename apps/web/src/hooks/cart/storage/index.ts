@@ -8,6 +8,7 @@ export {
   deserializeCart,
   getStorageKey,
   loadCartFromStorage,
+  loadAllCartsFromStorage,
   saveCartToStorage,
   removeCartFromStorage,
   type SerializedVoteCartItem,

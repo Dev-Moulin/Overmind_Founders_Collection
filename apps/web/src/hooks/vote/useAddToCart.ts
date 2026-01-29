@@ -8,7 +8,7 @@
  * @see VoteTotemPanel.tsx
  */
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import type { Hex } from 'viem';
 import type { CurveId } from '../index';
 import type { NewTotemData } from '../../components/founder/TotemCreationForm';
@@ -108,8 +108,22 @@ export function useAddToCart({
   setError,
   t,
 }: UseAddToCartParams): UseAddToCartResult {
+  // Guard against double clicks / React StrictMode double invocation
+  const isAddingRef = useRef(false);
 
   const addToCart = useCallback(() => {
+    // Prevent double execution (React StrictMode can call twice)
+    if (isAddingRef.current) {
+      console.log('[useAddToCart] ⚠️ Blocked duplicate call (already adding)');
+      return;
+    }
+    isAddingRef.current = true;
+
+    // Reset after a short delay to allow next legitimate click
+    setTimeout(() => {
+      isAddingRef.current = false;
+    }, 500);
+
     const {
       isFormValid,
       selectedTotemId,

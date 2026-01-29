@@ -20,6 +20,7 @@ import { useFounderProposals } from './useFounderProposals';
 import { useAllOFCTotems } from './useAllOFCTotems';
 import { filterValidTriples, type RawTriple } from '../../utils/tripleGuards';
 import { GET_DEPOSITS_FOR_TERMS_BY_CURVE } from '../../lib/graphql/queries';
+import { getCacheFetchPolicy, FIVE_MINUTES } from '../../lib/queryCacheTTL';
 
 /** Stats for a single curve */
 export interface CurveStats {
@@ -133,12 +134,22 @@ export function useTopTotemsByCurve(founderName: string): UseTopTotemsByCurveRet
     return ids;
   }, [validProposals]);
 
+  // TTL-based cache policy: only fetch if data is older than 5 minutes
+  // Use founderName as key since termIds is derived from founder's proposals
+  const depositsFetchPolicy = getCacheFetchPolicy(
+    'GetDepositsForTermsByCurve',
+    { founderName },
+    FIVE_MINUTES
+  );
+
   // Query deposits with curve breakdown
   const { data: depositsData, loading: depositsLoading, error: depositsError } =
     useQuery<GetDepositsForTermsByCurveResult>(GET_DEPOSITS_FOR_TERMS_BY_CURVE, {
       variables: { termIds },
       skip: termIds.length === 0,
-      fetchPolicy: 'cache-and-network',
+      // TTL-based: 'cache-first' if fresh, 'cache-and-network' if stale
+      fetchPolicy: depositsFetchPolicy,
+      nextFetchPolicy: 'cache-first',
     });
 
   // Process deposits into totem stats

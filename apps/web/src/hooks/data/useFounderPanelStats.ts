@@ -26,6 +26,7 @@ import type {
 } from '../../lib/graphql/types';
 import { truncateAmount } from '../../utils/formatters';
 import { useAllOFCTotems } from './useAllOFCTotems';
+import { getCacheFetchPolicy, FIVE_MINUTES } from '../../lib/queryCacheTTL';
 
 export interface FounderPanelStats {
   /** Total Market Cap in wei */
@@ -85,6 +86,13 @@ export function useFounderPanelStats(founderName: string): UseFounderPanelStatsR
   // Get OFC category map for filtering
   const { categoryMap, loading: categoryLoading } = useAllOFCTotems();
 
+  // TTL-based cache policy: only fetch if data is older than 5 minutes
+  const triplesFetchPolicy = getCacheFetchPolicy(
+    'GetFounderPanelStats',
+    { founderName },
+    FIVE_MINUTES
+  );
+
   // First query: get triples for this founder
   const {
     data: triplesData,
@@ -94,7 +102,9 @@ export function useFounderPanelStats(founderName: string): UseFounderPanelStatsR
   } = useQuery<GetFounderPanelStatsResult>(GET_FOUNDER_PANEL_STATS, {
     variables: { founderName },
     skip: !founderName,
-    fetchPolicy: 'cache-and-network',
+    // TTL-based: 'cache-first' if fresh, 'cache-and-network' if stale
+    fetchPolicy: triplesFetchPolicy,
+    nextFetchPolicy: 'cache-first',
   });
 
   // Filter triples to only include OFC totems
@@ -119,6 +129,14 @@ export function useFounderPanelStats(founderName: string): UseFounderPanelStatsR
     return ids;
   }, [filteredTriples]);
 
+  // TTL-based cache policy for deposits query
+  // Use founderName as key since termIds is derived from founder's triples
+  const depositsFetchPolicy = getCacheFetchPolicy(
+    'GetDepositsByTermIds_PanelStats',
+    { founderName },
+    FIVE_MINUTES
+  );
+
   // Second query: get deposits for those term_ids
   // Apollo automatically refetches when termIds changes (via variables)
   const {
@@ -129,7 +147,9 @@ export function useFounderPanelStats(founderName: string): UseFounderPanelStatsR
   } = useQuery<GetDepositsByTermIdsResult>(GET_DEPOSITS_BY_TERM_IDS, {
     variables: { termIds },
     skip: termIds.length === 0,
-    fetchPolicy: 'cache-and-network',
+    // TTL-based: 'cache-first' if fresh, 'cache-and-network' if stale
+    fetchPolicy: depositsFetchPolicy,
+    nextFetchPolicy: 'cache-first',
   });
 
   // Calculate Total Market Cap = Σ(FOR + AGAINST) on filtered OFC triples
