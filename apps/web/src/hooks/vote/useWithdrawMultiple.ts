@@ -101,15 +101,15 @@ export function useWithdrawMultiple({
     // Show result notification
     if (successCount > 0 && failCount === 0) {
       const msg = requests.length > 1
-        ? `${successCount} retraits effectués !`
-        : t('withdraw.success', 'Retrait effectué !');
+        ? t('withdraw.multipleSuccess', { count: successCount })
+        : t('withdraw.success');
       setSuccess(msg);
       setTimeout(() => setSuccess(null), 3000);
     } else if (successCount > 0) {
-      setSuccess(`${successCount}/${requests.length} retraits réussis`);
+      setSuccess(t('withdraw.partialSuccess', { success: successCount, total: requests.length }));
       setTimeout(() => setSuccess(null), 3000);
     } else {
-      setError(t('withdraw.error', 'Erreur lors du retrait'));
+      setError(t('withdraw.error'));
       setTimeout(() => setError(null), 3000);
     }
 

@@ -6,9 +6,11 @@
  * - Sole voter rule: AGAINST blocked if user is the only FOR voter (no sense voting against yourself)
  * - Visual states: existing position (ring-slate), current selection (animate-ring-pulse)
  * - Pulsation on current step to guide user
+ * - Hover on blocked Oppose shows tooltip below and highlights Redeem button
  */
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { SUPPORT_COLORS, OPPOSE_COLORS } from '../../../config/colors';
 
@@ -29,6 +31,10 @@ interface DirectionSelectorProps {
   blurClass: string;
   /** Get pulse class for step guidance */
   getPulseClass: (step: number, isSelected: boolean) => string;
+  /** Callback when hovering on blocked Oppose (to highlight Redeem button) */
+  onOpposeBlockedHover?: (isHovering: boolean) => void;
+  /** Whether Redeem is highlighted (to dim this component) */
+  isRedeemHighlighted?: boolean;
 }
 
 export function DirectionSelector({
@@ -40,17 +46,53 @@ export function DirectionSelector({
   isSoleForVoter,
   blurClass,
   getPulseClass,
+  onOpposeBlockedHover,
+  isRedeemHighlighted,
 }: DirectionSelectorProps) {
   const { t } = useTranslation();
 
   // Combine both blocking reasons
   const isOpposeBlocked = isOpposeBlockedByProtocol || isSoleForVoter;
 
-  // State for tooltip visibility
+  // State for tooltip visibility and position
   const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+  const opposeButtonRef = useRef<HTMLDivElement>(null);
+
+  // Update tooltip position when shown
+  useEffect(() => {
+    if (showTooltip && opposeButtonRef.current) {
+      const rect = opposeButtonRef.current.getBoundingClientRect();
+      setTooltipPosition({
+        top: rect.bottom + 8, // 8px below the button
+        left: rect.right - 224, // 224px = w-56 (14rem)
+      });
+    }
+  }, [showTooltip]);
+
+  // Handle hover on blocked Oppose
+  const handleOpposeMouseEnter = () => {
+    if (isOpposeBlocked) {
+      setShowTooltip(true);
+      // Only trigger Redeem highlight for sole voter case (not for protocol block)
+      if (isSoleForVoter && onOpposeBlockedHover) {
+        onOpposeBlockedHover(true);
+      }
+    }
+  };
+
+  const handleOpposeMouseLeave = () => {
+    setShowTooltip(false);
+    if (onOpposeBlockedHover) {
+      onOpposeBlockedHover(false);
+    }
+  };
+
+  // Dim style when Redeem is highlighted (using inline style to ensure it works)
+  const dimStyle = isRedeemHighlighted ? { opacity: 0.4, transition: 'opacity 200ms' } : { transition: 'opacity 200ms' };
 
   return (
-    <div className={blurClass}>
+    <div className={blurClass} style={dimStyle}>
       <label className="block text-xs text-white/60 mb-1">Direction</label>
       <div className="flex gap-2">
         {/* Support button */}
@@ -70,9 +112,10 @@ export function DirectionSelector({
 
         {/* Oppose button with custom tooltip */}
         <div
+          ref={opposeButtonRef}
           className="relative flex-1"
-          onMouseEnter={() => isOpposeBlocked && setShowTooltip(true)}
-          onMouseLeave={() => setShowTooltip(false)}
+          onMouseEnter={handleOpposeMouseEnter}
+          onMouseLeave={handleOpposeMouseLeave}
         >
           <button
             onClick={() => !isOpposeBlocked && onDirectionClick('against')}
@@ -91,19 +134,26 @@ export function DirectionSelector({
             {t('vote.oppose')}
           </button>
 
-          {/* Custom tooltip */}
-          {showTooltip && isOpposeBlocked && (
-            <div className="absolute bottom-full right-0 mb-2 w-52 p-2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg z-50">
+          {/* Custom tooltip - rendered via portal to escape overflow constraints */}
+          {showTooltip && isOpposeBlocked && createPortal(
+            <div
+              className="fixed w-56 p-2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg "
+              style={{
+                top: tooltipPosition.top,
+                left: tooltipPosition.left,
+              }}
+            >
               <p className="text-xs text-white/80 text-center leading-relaxed">
                 {isOpposeBlockedByProtocol ? (
-                  <>Oppose impossible sur un<br />nouveau triple (protocole)</>
+                  t('founderExpanded.opposeBlockedProtocol')
                 ) : isSoleForVoter ? (
-                  <>Seul votant Support.<br />Retirez ou attendez d'autres votants.</>
+                  t('founderExpanded.soleVoterMessage')
                 ) : null}
               </p>
-              {/* Tooltip arrow */}
-              <div className="absolute top-full right-4 border-4 border-transparent border-t-slate-600" />
-            </div>
+              {/* Tooltip arrow pointing up */}
+              <div className="absolute -top-2 right-4 border-4 border-transparent border-b-slate-600" />
+            </div>,
+            document.body
           )}
         </div>
       </div>

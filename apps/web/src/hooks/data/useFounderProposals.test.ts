@@ -155,7 +155,7 @@ describe('useFounderProposals', () => {
       expect(proposal.votes.againstVotes).toBe('0');
     });
 
-    it('should provide refetch function', () => {
+    it('should provide refetch function that forces network-only', () => {
       vi.mocked(useQuery).mockReturnValue({
         data: { triples: mockTriples },
         loading: false,
@@ -165,7 +165,9 @@ describe('useFounderProposals', () => {
 
       const { result } = renderHook(() => useFounderProposals('Joseph Lubin'));
 
-      expect(result.current.refetch).toBe(mockRefetch);
+      expect(typeof result.current.refetch).toBe('function');
+      result.current.refetch();
+      expect(mockRefetch).toHaveBeenCalledWith({ fetchPolicy: 'network-only' });
     });
   });
 

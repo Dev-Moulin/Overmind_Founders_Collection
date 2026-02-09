@@ -143,7 +143,7 @@ export function TotemCreationForm({
     if (!isValid) return;
 
     // Show info toast for atom creation
-    toast.info('Vérification du totem...', { id: 'totem-creation' });
+    toast.info(t('creation.verifyingTotem'), { id: 'totem-creation' });
 
     const result = await createTotem({
       name: totemName.trim(),
@@ -156,7 +156,7 @@ export function TotemCreationForm({
       // Check if totem already existed - ask user confirmation
       if (result.totemAlreadyExisted) {
         toast.info(
-          `Le totem "${result.totemName}" existe déjà.`,
+          t('creation.totemAlreadyExists', { name: result.totemName }),
           { id: 'totem-creation', duration: 3000 }
         );
         // Store result for confirmation dialog
@@ -166,9 +166,7 @@ export function TotemCreationForm({
 
       // Success - show what was created
       toast.success(
-        `Totem "${result.totemName}" créé avec succès!\n` +
-        `Catégorie: ${result.categoryName}\n` +
-        `Vous pouvez maintenant voter sur ce totem.`,
+        t('creation.totemCreatedSuccess', { name: result.totemName, category: result.categoryName }),
         { id: 'totem-creation', duration: 5000 }
       );
 
@@ -176,7 +174,7 @@ export function TotemCreationForm({
       handleConfirmAndRedirect(result);
     } else if (createError) {
       // Error occurred
-      toast.error(`Erreur: ${createError}`, { id: 'totem-creation' });
+      toast.error(t('creation.creationError', { error: createError }), { id: 'totem-creation' });
     }
   };
 
@@ -197,20 +195,20 @@ export function TotemCreationForm({
   const handleCancelPending = () => {
     setPendingResult(null);
     resetCreate();
-    toast.info('Création annulée. Vous pouvez modifier le nom du totem.', { id: 'totem-creation' });
+    toast.info(t('creation.creationCancelled'), { id: 'totem-creation' });
   };
 
   // Get button label based on creation step
   const getCreateButtonLabel = () => {
     switch (step) {
       case 'creating_totem':
-        return t('creation.creatingTotem') || 'Création du totem...';
+        return t('creation.creatingTotem');
       case 'creating_category':
-        return t('creation.creatingCategory') || 'Création de la catégorie...';
+        return t('creation.creatingCategory');
       case 'creating_triple':
-        return t('creation.creatingTriple') || 'Création de la relation...';
+        return t('creation.creatingTriple');
       default:
-        return t('creation.createTotem') || 'Créer le Totem';
+        return t('creation.createTotem');
     }
   };
 
@@ -221,13 +219,13 @@ export function TotemCreationForm({
         {/* 1. Totem Name */}
         <div>
           <label className="block text-xs text-white/60 mb-1.5">
-            {t('creation.totemName') || 'Nom du totem'}
+            {t('creation.totemName')}
           </label>
           <input
             type="text"
             value={totemName}
             onChange={(e) => setTotemName(e.target.value)}
-            placeholder={t('creation.totemNamePlaceholder') || 'Ex: Phoenix, Innovation...'}
+            placeholder={t('creation.totemNamePlaceholder')}
             className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:border-slate-500/50 focus:ring-1 focus:ring-slate-500/30"
           />
         </div>
@@ -235,7 +233,7 @@ export function TotemCreationForm({
         {/* 2. Category Selection */}
         <div>
           <label className="block text-xs text-white/60 mb-1.5">
-            {t('creation.category') || 'Catégorie'}
+            {t('creation.category')}
           </label>
 
           {/* Category chips - existing categories (static + dynamic from blockchain) */}
@@ -254,7 +252,7 @@ export function TotemCreationForm({
                         ? 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white border border-dashed border-white/30'
                         : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
                   }`}
-                  title={isDynamic ? t('creation.communityCategory') || 'Catégorie communautaire' : undefined}
+                  title={isDynamic ? t('creation.communityCategory') : undefined}
                 >
                   {cat.label}
                 </button>
@@ -268,7 +266,7 @@ export function TotemCreationForm({
               type="text"
               value={customCategoryInput}
               onChange={(e) => handleCustomCategoryChange(e.target.value)}
-              placeholder={t('creation.newCategoryPlaceholder') || 'Ou créez une nouvelle catégorie...'}
+              placeholder={t('creation.newCategoryPlaceholder')}
               className={`w-full px-3 py-2 bg-white/5 border rounded-lg text-sm text-white placeholder-white/30 focus:outline-none transition-colors ${
                 isNewCategory
                   ? 'border-slate-500/50 ring-1 ring-slate-500/30'
@@ -277,7 +275,7 @@ export function TotemCreationForm({
             />
             {isNewCategory && (
               <p className="text-[10px] text-orange-400/70 mt-1">
-                {t('creation.newCategoryInfo') || 'Une nouvelle catégorie sera créée'}
+                {t('creation.newCategoryInfo')}
               </p>
             )}
           </div>
@@ -286,7 +284,7 @@ export function TotemCreationForm({
         {/* Preview - shows when form is valid */}
         {isValid && (
           <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-            <p className="text-[10px] text-white/40 mb-2">{t('creation.preview') || 'Aperçu'}</p>
+            <p className="text-[10px] text-white/40 mb-2">{t('creation.preview')}</p>
             <div className="space-y-1 text-xs">
               <p className="text-white/70">
                 <span className="text-white font-medium">{totemName}</span>
@@ -294,13 +292,13 @@ export function TotemCreationForm({
                 <span className="text-slate-400">{effectiveCategory}</span>
                 {isNewCategory && (
                   <span className="text-orange-400/70 ml-1 text-[10px]">
-                    ({t('creation.new') || 'nouveau'})
+                    ({t('creation.new')})
                   </span>
                 )}
               </p>
             </div>
             <p className="text-[10px] text-white/30 mt-2">
-              {t('creation.selectPredicateInPanel') || 'Sélectionnez la relation dans le panneau de droite'}
+              {t('creation.selectPredicateInPanel')}
             </p>
           </div>
         )}
@@ -310,7 +308,7 @@ export function TotemCreationForm({
           <div className="mt-4 pt-4 border-t border-orange-500/30">
             <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3">
               <p className="text-sm text-orange-300 mb-2">
-                {t('creation.totemExists') || 'Ce totem existe déjà !'}
+                {t('creation.totemExists')}
               </p>
               <p className="text-xs text-white/60 mb-3">
                 <span className="text-white font-medium">{pendingResult.totemName}</span>
@@ -318,20 +316,20 @@ export function TotemCreationForm({
                 <span className="text-slate-400">{pendingResult.categoryName}</span>
               </p>
               <p className="text-[10px] text-white/50 mb-3">
-                {t('creation.useExistingTotem') || 'Voulez-vous utiliser ce totem existant pour voter ?'}
+                {t('creation.useExistingTotem')}
               </p>
               <div className="flex gap-2">
                 <button
                   onClick={() => handleConfirmAndRedirect(pendingResult)}
                   className="flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-linear-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white transition-all"
                 >
-                  {t('creation.useThisTotem') || 'Utiliser ce totem'}
+                  {t('creation.useThisTotem')}
                 </button>
                 <button
                   onClick={handleCancelPending}
                   className="flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all"
                 >
-                  {t('common.cancel') || 'Annuler'}
+                  {t('common.cancel')}
                 </button>
               </div>
             </div>
@@ -342,8 +340,7 @@ export function TotemCreationForm({
         {isValid && !pendingResult && (
           <div className="mt-4 pt-4 border-t border-white/10">
             <p className="text-[10px] text-white/50 mb-2">
-              {t('creation.createTotemInfo') ||
-                'Créez le totem maintenant pour pouvoir voter dessus. La relation avec le founder sera créée lors du vote.'}
+              {t('creation.createTotemInfo')}
             </p>
             <button
               onClick={handleCreateTotem}

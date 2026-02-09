@@ -38,6 +38,8 @@ interface CurveSelectorProps {
   blurClass: string;
   /** CSS class for pulse animation */
   getPulseClass: (step: number, isSelected: boolean) => string;
+  /** Whether Redeem button is highlighted (to dim this component) */
+  isRedeemHighlighted?: boolean;
 }
 
 export function CurveSelector({
@@ -49,6 +51,7 @@ export function CurveSelector({
   positionCurveId,
   blurClass,
   getPulseClass,
+  isRedeemHighlighted,
 }: CurveSelectorProps) {
   const { t } = useTranslation();
 
@@ -57,8 +60,11 @@ export function CurveSelector({
   // Check if Progressive is clickable
   const isProgressiveClickable = curveAvailability.progressive || pendingRedeemCurve === CURVE_PROGRESSIVE;
 
+  // Dim style when Redeem is highlighted (using inline style to ensure it works)
+  const dimStyle = isRedeemHighlighted ? { opacity: 0.4, transition: 'opacity 200ms' } : { transition: 'opacity 200ms' };
+
   return (
-    <div className={blurClass}>
+    <div className={blurClass} style={dimStyle}>
       <label className="block text-xs text-white/60 mb-1">
         {t('founderExpanded.curveType', 'Courbe de bonding')}
       </label>
@@ -79,7 +85,7 @@ export function CurveSelector({
           } ${isLinearClickable && selectedCurve !== CURVE_LINEAR ? getPulseClass(2, false) : ''} ${
             selectedCurve === CURVE_LINEAR && pendingRedeemCurve === CURVE_LINEAR ? 'animate-blur-to-focus' : ''
           }`}
-          title={!isLinearClickable ? 'Bloqué: position opposée existante' : t('founderExpanded.linearDesc', 'Prix stable, tout le monde pareil')}
+          title={!isLinearClickable ? t('founderExpanded.blockedOppositePosition') : t('founderExpanded.linearDesc')}
           style={selectedCurve === CURVE_LINEAR ? { color: CURVE_COLORS.linear.text } : undefined}
         >
           📊 Linear
@@ -101,7 +107,7 @@ export function CurveSelector({
           } ${isProgressiveClickable && selectedCurve !== CURVE_PROGRESSIVE ? getPulseClass(2, false) : ''} ${
             selectedCurve === CURVE_PROGRESSIVE && pendingRedeemCurve === CURVE_PROGRESSIVE ? 'animate-blur-to-focus' : ''
           }`}
-          title={!isProgressiveClickable ? 'Bloqué: position opposée existante' : t('founderExpanded.progressiveDesc', 'Récompense les early adopters')}
+          title={!isProgressiveClickable ? t('founderExpanded.blockedOppositePosition') : t('founderExpanded.progressiveDesc')}
           style={selectedCurve === CURVE_PROGRESSIVE ? { color: CURVE_COLORS.progressive.text } : undefined}
         >
           📈 Progressive

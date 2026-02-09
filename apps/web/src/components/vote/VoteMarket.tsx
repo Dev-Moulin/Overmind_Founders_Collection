@@ -54,7 +54,7 @@ export function VoteMarket({ founderName, className = '' }: VoteMarketProps) {
   if (error) {
     return (
       <div className={`p-4 bg-red-500/10 border border-red-500/20 rounded-lg ${className}`}>
-        <p className="text-sm text-red-400">Erreur chargement stats</p>
+        <p className="text-sm text-red-400">{t('voteMarket.statsError')}</p>
       </div>
     );
   }
@@ -94,7 +94,7 @@ export function VoteMarket({ founderName, className = '' }: VoteMarketProps) {
 
           {/* Voters */}
           <div className="flex justify-between items-center">
-            <span className="text-white/60 text-sm">Votants</span>
+            <span className="text-white/60 text-sm">{t('voteMarket.voters')}</span>
             <span className="text-white font-medium">{stats.uniqueVoters}</span>
           </div>
 
@@ -128,7 +128,7 @@ export function VoteMarket({ founderName, className = '' }: VoteMarketProps) {
           onClick={() => setIsExpanded(!isExpanded)}
           className="mt-3 w-full flex items-center justify-center gap-1 text-xs text-slate-400 hover:text-slate-300 transition-colors"
         >
-          {isExpanded ? 'Masquer' : 'Détails'}
+          {isExpanded ? t('voteMarket.hide') : t('voteMarket.details')}
           <svg
             className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
             fill="none"
@@ -142,11 +142,11 @@ export function VoteMarket({ founderName, className = '' }: VoteMarketProps) {
 
       {/* Expanded details */}
       {isExpanded && (
-        <div className="border-t border-white/10 p-4 bg-white/[0.02]">
+        <div className="border-t border-white/10 p-4 bg-white/2">
           {/* Top totem */}
           {stats.topTotem && (
             <div className="mb-3">
-              <span className="text-xs text-white/50">Top totem</span>
+              <span className="text-xs text-white/50">{t('voteMarket.topTotem')}</span>
               <div className="flex justify-between items-center mt-1">
                 <span className="text-white text-sm font-medium truncate max-w-[150px]">
                   {stats.topTotem.label}
@@ -159,7 +159,7 @@ export function VoteMarket({ founderName, className = '' }: VoteMarketProps) {
           {/* All totems list */}
           {stats.totems.length > 0 && (
             <div>
-              <span className="text-xs text-white/50">Tous les totems</span>
+              <span className="text-xs text-white/50">{t('voteMarket.allTotems')}</span>
               <div className="mt-2 space-y-2 max-h-32 overflow-y-auto">
                 {stats.totems.map((totem) => (
                   <div key={totem.termId} className="flex items-center justify-between text-xs">
@@ -187,6 +187,7 @@ export function VoteMarket({ founderName, className = '' }: VoteMarketProps) {
  * Compact version of VoteMarket for smaller spaces
  */
 export function VoteMarketCompact({ founderName, className = '' }: VoteMarketProps) {
+  const { t } = useTranslation();
   const { stats, loading } = useVoteMarketStats(founderName);
 
   if (loading || !stats || stats.totemCount === 0) {
@@ -200,7 +201,7 @@ export function VoteMarketCompact({ founderName, className = '' }: VoteMarketPro
         <span className="text-white font-medium">{stats.formattedTotalTrust}</span>
       </div>
       <div className="flex items-center gap-1">
-        <span className="text-white/50">Votants:</span>
+        <span className="text-white/50">{t('voteMarket.voters')}:</span>
         <span className="text-white font-medium">{stats.uniqueVoters}</span>
       </div>
       <div className="flex items-center gap-1">

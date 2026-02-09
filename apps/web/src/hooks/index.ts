@@ -126,6 +126,9 @@ export { useVotesTimeline, type CurveFilter, type RecentVote } from './data/useV
 // Hook for founder tags
 export { useFounderTags, type FounderTag } from './data/useFounderTags';
 
+// Hook for checking if a vault is initialized (for Progressive curve)
+export { useVaultInitStatus } from './data/useVaultInitStatus';
+
 // ============================================================================
 // CONFIG - Protocol and network configuration
 // ============================================================================

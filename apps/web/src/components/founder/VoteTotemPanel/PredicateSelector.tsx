@@ -27,6 +27,8 @@ interface PredicateSelectorProps {
   blurClass: string;
   /** Get pulse class for step guidance */
   getPulseClass: (step: number, isSelected: boolean) => string;
+  /** Whether Redeem button is highlighted (to dim this component) */
+  isRedeemHighlighted?: boolean;
 }
 
 export function PredicateSelector({
@@ -38,11 +40,15 @@ export function PredicateSelector({
   votesOnTotemByPredicate,
   blurClass,
   getPulseClass,
+  isRedeemHighlighted,
 }: PredicateSelectorProps) {
   const { t } = useTranslation();
 
+  // Dim style when Redeem is highlighted (using inline style to ensure it works)
+  const dimStyle = isRedeemHighlighted ? { opacity: 0.4, transition: 'opacity 200ms' } : { transition: 'opacity 200ms' };
+
   return (
-    <div className={`${blurClass} blur-transition`}>
+    <div className={`${blurClass} blur-transition`} style={dimStyle}>
       <label className="block text-xs text-white/60 mb-1">{t('founderExpanded.relationType')}</label>
       <div className="grid grid-cols-2 gap-2">
         {predicates.slice(0, 2).map((predicate) => {

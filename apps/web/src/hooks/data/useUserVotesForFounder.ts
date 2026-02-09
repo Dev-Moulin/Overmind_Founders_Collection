@@ -344,10 +344,11 @@ export function useUserVotesForFounder(
   // Combined error
   const error = positionsError || triplesError;
 
-  // Combined refetch - memoized to prevent unnecessary effect triggers
+  // Combined refetch - forces network-only to bypass cache after mutations
   const refetch = useCallback(() => {
-    refetchPositions();
-    refetchTriples();
+    // Force network request, bypassing any cache
+    refetchPositions({ fetchPolicy: 'network-only' });
+    refetchTriples({ fetchPolicy: 'network-only' });
   }, [refetchPositions, refetchTriples]);
 
   // Memoize return value to prevent unnecessary re-renders

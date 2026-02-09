@@ -29,6 +29,7 @@ import { useTopTotemsByCurve } from '../../hooks/data/useTopTotemsByCurve';
 import { MyVotesSkeleton } from '../common/MyVotesSkeleton';
 import { filterValidTriples, type RawTriple } from '../../utils/tripleGuards';
 import { TotemCreationForm, type NewTotemData } from './TotemCreationForm';
+import { invalidateAllQueryCache } from '../../lib/queryCacheTTL';
 import type { TotemCreationResult } from '../../hooks/blockchain/claims/useCreateTotemWithTriples';
 import type { CurveFilter } from '../../hooks/data/useVotesTimeline';
 import { GooeySwitch } from '../common';
@@ -106,7 +107,11 @@ export function FounderCenterPanel({
   useEffect(() => {
     if (refetchTrigger && refetchTrigger > 0 && refetchTrigger !== lastRefetchTrigger.current) {
       lastRefetchTrigger.current = refetchTrigger;
-      console.log('[FounderCenterPanel] Refetch triggered, waiting for indexer...');
+      console.log('[FounderCenterPanel] Refetch triggered, invalidating cache and waiting for indexer...');
+
+      // Invalidate TTL cache to force fresh network requests
+      invalidateAllQueryCache('GetUserPositionsForTerms');
+      invalidateAllQueryCache('GetFounderTriplesWithDetails');
 
       // Wait 3 seconds for the blockchain indexer to process new data
       const timeoutId = setTimeout(() => {

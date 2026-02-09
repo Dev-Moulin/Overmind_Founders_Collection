@@ -65,7 +65,10 @@
     "amountPlaceholder": "0.0",
     "max": "MAX",
     "processing": "Processing withdrawal...",
-    "success": "Withdrawal successful!"
+    "success": "Withdrawal successful!",
+    "multipleSuccess": "{{count}} withdrawals completed!",
+    "partialSuccess": "{{success}}/{{total}} withdrawals succeeded",
+    "error": "Withdrawal error"
   },
   "errors": {
     "claimIdMissing": "Claim ID missing",
@@ -148,7 +151,22 @@
     "withdrawAll": "Withdraw all",
     "selectWithdrawAmount": "Select amount to withdraw",
     "noPositionToWithdraw": "You don't have a position on this totem",
-    "voteFirstToWithdraw": "Vote Support or Oppose first to be able to withdraw"
+    "voteFirstToWithdraw": "Vote Support or Oppose first to be able to withdraw",
+    "opposeBlockedProtocol": "Oppose not allowed on new triple (protocol)",
+    "soleVoterMessage": "Active Support position. Withdraw to vote Oppose.",
+    "progressiveInitWarning": "The Progressive curve must be initialized first. This requires 3 transactions.",
+    "blockedOppositePosition": "Blocked: opposite position exists",
+    "positionToWithdraw": "Existing position to withdraw",
+    "curveType": "Bonding curve",
+    "linearDesc": "Stable price for everyone",
+    "progressiveDesc": "Rewards early adopters",
+    "linearHint": "Democratic vote: stable price for all",
+    "progressiveHint": "Conviction vote: rewards early voters",
+    "selectPositions": "Select positions to withdraw",
+    "selectedCount": "{{selected}}/{{total}} selected",
+    "positionsSelectedCount": "({{count}} positions selected)",
+    "sequentialWithdraws": "{{count}} withdrawals will be executed sequentially",
+    "withdrawAllPositions": "Withdraw all"
   },
   "creation": {
     "totemName": "Totem name",
@@ -159,7 +177,20 @@
     "preview": "Preview",
     "new": "new",
     "selectPredicateInPanel": "Select the relation in the right panel",
-    "communityCategory": "Community category"
+    "communityCategory": "Community category",
+    "verifyingTotem": "Verifying totem...",
+    "totemAlreadyExists": "Totem \"{{name}}\" already exists.",
+    "totemCreatedSuccess": "Totem \"{{name}}\" created successfully!\nCategory: {{category}}\nYou can now vote on this totem.",
+    "creationError": "Error: {{error}}",
+    "creationCancelled": "Creation cancelled. You can modify the totem name.",
+    "creatingTotem": "Creating totem...",
+    "creatingCategory": "Creating category...",
+    "creatingTriple": "Creating relation...",
+    "createTotem": "Create Totem",
+    "totemExists": "This totem already exists!",
+    "useExistingTotem": "Would you like to use this existing totem to vote?",
+    "useThisTotem": "Use this totem",
+    "createTotemInfo": "Create the totem now so you can vote on it. The relation with the founder will be created during voting."
   },
   "homePage": {
     "title": "INTUITION",
@@ -348,7 +379,14 @@
     "cannotAfford": "Cannot afford",
     "autoWithdraw": "Auto withdraw",
     "newTotem": "New",
-    "autoWithdrawInfo": "Auto withdraw then vote"
+    "autoWithdrawInfo": "Auto withdraw then vote",
+    "remove": "Remove",
+    "removeAllFounderVotes": "Remove all votes for this founder",
+    "failedForFounder": "Failed for {{name}}",
+    "unknownError": "Unknown error",
+    "foundersValidated": "{{completed}}/{{total}} founders validated",
+    "votesFoundersSummary": "{{votes}} vote(s) - {{founders}} founder(s)",
+    "validateAll": "Validate ({{count}} vote(s))"
   },
   "admin": {
     "loadingAtoms": "Loading atoms...",
@@ -368,5 +406,50 @@
     "sourceTwitter": "Twitter",
     "sourceGitHub": "GitHub",
     "sourceGenerated": "DiceBear (generated)"
+  },
+  "voteMarket": {
+    "statsError": "Error loading stats",
+    "voters": "Voters",
+    "hide": "Hide",
+    "details": "Details",
+    "allTotems": "All totems",
+    "topTotem": "Top totem"
+  },
+  "networkGuard": {
+    "wrongNetwork": "Wrong network detected",
+    "switchToNetwork": "Please switch to INTUITION L3 {{name}} (Chain ID: {{id}})",
+    "switching": "Switching...",
+    "switchButton": "Switch to INTUITION {{name}}",
+    "verifying": "Verifying...",
+    "checkingEligibility": "Checking your eligibility to participate in voting.",
+    "notEligible": "Not eligible",
+    "needNft": "You must own an INTUITION Founders NFT to participate in this vote.",
+    "nftContractAddress": "NFT contract address:"
+  },
+  "loadingMessages": {
+    "connecting": "Connecting to network...",
+    "verifyingRpc": "Verifying RPC...",
+    "readingContract": "Reading contract...",
+    "calculatingShares": "Calculating shares...",
+    "validatingVault": "Validating vault...",
+    "syncing": "Syncing...",
+    "hashing": "Hashing...",
+    "signatureRequired": "Signature required...",
+    "preparing": "Preparing...",
+    "analyzing": "Analyzing...",
+    "verifying": "Verifying...",
+    "almostReady": "Almost ready...",
+    "finalizing": "Finalizing...",
+    "calculatingYield": "Calculating yield...",
+    "verifyingPosition": "Verifying position...",
+    "validatingProtocol": "Validating protocol...",
+    "estimatingGas": "Estimating gas...",
+    "preparingBatch": "Preparing batch...",
+    "merkleTree": "Merkle tree...",
+    "consensusCheck": "Consensus check...",
+    "nonceValidation": "Nonce validation...",
+    "blockConfirmation": "Block confirmation...",
+    "stateUpdate": "State update...",
+    "cachingData": "Caching data..."
   }
 }

@@ -63,6 +63,7 @@ import { PredicateSelector } from './VoteTotemPanel/PredicateSelector';
 import { DirectionSelector } from './VoteTotemPanel/DirectionSelector';
 import { CurrentPositionCard } from './VoteTotemPanel/CurrentPositionCard';
 import { VotePreview } from './VoteTotemPanel/VotePreview';
+import { ProgressiveInitMessage } from './VoteTotemPanel/ProgressiveInitMessage';
 
 interface VoteTotemPanelProps {
   founder: FounderForHomePage;
@@ -76,6 +77,8 @@ interface VoteTotemPanelProps {
   onUserPositionDetected?: (position: { direction: 'for' | 'against'; curveId: CurveId } | null) => void;
   /** Trigger to refetch positions (increment to refetch) */
   refetchTrigger?: number;
+  /** Callback to trigger global refetch (center panel, etc.) after withdraw/redeem */
+  onRefetch?: () => void;
 }
 
 export function VoteTotemPanel({
@@ -86,6 +89,7 @@ export function VoteTotemPanel({
   onOpenCart,
   onUserPositionDetected,
   refetchTrigger,
+  onRefetch,
 }: VoteTotemPanelProps) {
   const { t } = useTranslation();
   const { isConnected, address } = useAccount();
@@ -201,6 +205,9 @@ export function VoteTotemPanel({
   const [trustAmount, setTrustAmount] = useState<string>('');
   const [success, setSuccess] = useState<string | null>(null);
   const [_error, setError] = useState<string | null>(null); // _error non utilisé pour le moment (popup simplifiée)
+
+  // State for Redeem button highlight (triggered when hovering blocked Oppose)
+  const [isRedeemHighlighted, setIsRedeemHighlighted] = useState(false);
 
   // ============================================
   // POPUP "ADDED TO CART" - Simple et efficace
@@ -622,6 +629,7 @@ export function VoteTotemPanel({
       onSuccess: (predicateId) => {
         if (predicateId) setSelectedPredicateId(predicateId);
         setPendingPredicateId(null);
+        onRefetch?.();
       },
       onClose: () => setShowCrossPredicatePopup(false),
     });
@@ -688,8 +696,11 @@ export function VoteTotemPanel({
     setVoteDirection(direction);
   };
 
-  // Handle withdraw from WithdrawOnlyPanel - delegates to extracted hook
-  const handleWithdrawMultiple = (requests: WithdrawRequest[]) => withdrawMultiple(requests);
+  // Handle withdraw from WithdrawOnlyPanel - delegates to extracted hook + global refetch
+  const handleWithdrawMultiple = async (requests: WithdrawRequest[]) => {
+    await withdrawMultiple(requests);
+    onRefetch?.();
+  };
 
   // Build list of all available positions for WithdrawOnlyPanel (extracted hook)
   const { allUserPositions } = useAllUserPositions({
@@ -797,6 +808,7 @@ export function VoteTotemPanel({
           votesOnTotemByPredicate={votesOnTotemByPredicate}
           blurClass={getBlurClass(0, currentFormStep)}
           getPulseClass={getPulseClass}
+          isRedeemHighlighted={isRedeemHighlighted}
         />
 
         {/* Cross-Predicate Popup Modal */}
@@ -814,7 +826,7 @@ export function VoteTotemPanel({
         <div className={getBlurClass(1, currentFormStep)}>
           <label className="block text-xs text-white/60 mb-1">Mode</label>
           <div className="flex gap-2">
-            {/* Deposit button */}
+            {/* Deposit button - dims when Redeem is highlighted */}
             <button
               onClick={() => setOperationMode('deposit')}
               className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
@@ -822,19 +834,22 @@ export function VoteTotemPanel({
                   ? 'bg-slate-500/30 text-slate-200 animate-ring-pulse'
                   : 'bg-white/5 text-white/60 ring-1 ring-slate-500/30 hover:bg-white/10'
               }`}
+              style={isRedeemHighlighted ? { opacity: 0.4, transition: 'opacity 200ms' } : { transition: 'opacity 200ms' }}
             >
               Deposit
             </button>
-            {/* Redeem button - blur-disabled if no position */}
+            {/* Redeem button - pulses when highlighted, blur-disabled if no position */}
             <button
               onClick={() => hasAnyPosition && setOperationMode('redeem')}
               disabled={!hasAnyPosition}
               className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                operationMode === 'redeem'
+                isRedeemHighlighted
                   ? 'bg-slate-500/30 text-slate-200 animate-ring-pulse'
-                  : hasAnyPosition
-                    ? 'bg-white/5 text-white/60 ring-1 ring-slate-500/30 hover:bg-white/10'
-                    : 'bg-white/5 text-white/40 ring-1 ring-slate-500/20 blur-disabled'
+                  : operationMode === 'redeem'
+                    ? 'bg-slate-500/30 text-slate-200 animate-ring-pulse'
+                    : hasAnyPosition
+                      ? 'bg-white/5 text-white/60 ring-1 ring-slate-500/30 hover:bg-white/10'
+                      : 'bg-white/5 text-white/40 ring-1 ring-slate-500/20 blur-disabled'
               }`}
             >
               Redeem
@@ -853,6 +868,8 @@ export function VoteTotemPanel({
             isSoleForVoter={isSoleForVoter}
             blurClass={getBlurClass(1, currentFormStep)}
             getPulseClass={getPulseClass}
+            onOpposeBlockedHover={setIsRedeemHighlighted}
+            isRedeemHighlighted={isRedeemHighlighted}
           />
         )}
 
@@ -877,16 +894,25 @@ export function VoteTotemPanel({
 
         {/* Curve Selector - Only show for FOR/AGAINST, not withdraw */}
         {voteDirection !== 'withdraw' && (
-          <CurveSelector
-            curveAvailability={curveAvailability}
-            selectedCurve={selectedCurve}
-            onCurveSelect={setSelectedCurve}
-            pendingRedeemCurve={pendingRedeemCurve}
-            hasAnyPosition={hasAnyPosition}
-            positionCurveId={positionCurveId}
-            blurClass={getBlurClass(2, currentFormStep)}
-            getPulseClass={getPulseClass}
-          />
+          <>
+            <CurveSelector
+              curveAvailability={curveAvailability}
+              selectedCurve={selectedCurve}
+              onCurveSelect={setSelectedCurve}
+              pendingRedeemCurve={pendingRedeemCurve}
+              hasAnyPosition={hasAnyPosition}
+              positionCurveId={positionCurveId}
+              blurClass={getBlurClass(2, currentFormStep)}
+              getPulseClass={getPulseClass}
+              isRedeemHighlighted={isRedeemHighlighted}
+            />
+            {/* Warning for Oppose + Progressive when vault not initialized (3 transactions) */}
+            <ProgressiveInitMessage
+              isVisible={voteDirection === 'against' && selectedCurve === CURVE_PROGRESSIVE}
+              termId={proactiveClaimInfo?.termId}
+              refetchTrigger={refetchTrigger}
+            />
+          </>
         )}
 
         {/* Alert: User needs to redeem before voting */}

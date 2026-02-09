@@ -2,8 +2,9 @@
  * useMinRequired - Calculate minimum required amount for voting
  *
  * Based on creation mode:
- * - New totem creation: 2 triples (or 3 if new category) + minDeposit
- * - Existing totem, new triple: 1 triple + minDeposit
+ * - New totem (from creation form OR new triple): 1 triple + minDeposit
+ *   Category atoms and triple are already created by TotemCreationForm,
+ *   so only the main triple [founder] [predicate] [totem] remains.
  * - Existing triple: just minDeposit
  *
  * IMPORTANT: Uses BigInt arithmetic to preserve exact wei precision!
@@ -51,14 +52,9 @@ export function useMinRequired({
 
     let totalBigInt: bigint;
 
-    // Creating a brand new totem (from creation form)
-    if (newTotemData) {
-      // 2 triples if existing category, 3 if new category
-      const triplesNeeded = BigInt(newTotemData.isNewCategory ? 3 : 2);
-      totalBigInt = (tripleCostBigInt * triplesNeeded) + minDepositBigInt;
-    }
-    // Existing totem but new relationship triple
-    else if (isNewTotem) {
+    // New totem: 1 triple cost + minDeposit
+    // Whether from creation form (category already paid) or new relationship triple
+    if (newTotemData || isNewTotem) {
       totalBigInt = tripleCostBigInt + minDepositBigInt;
     }
     // Existing triple: just minDeposit
