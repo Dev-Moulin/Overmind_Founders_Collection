@@ -16,7 +16,13 @@ import type { PublicClient, WalletClient } from 'viem';
 import { MultiVaultAbi } from '@0xintuition/protocol';
 import type { ProcessableCartItem, ContractConfig } from './types';
 import { BATCH_VOTE_CONSTANTS } from './types';
-import { getContractConfig, getPositionShares } from './utils';
+import {
+  getContractConfig,
+  getPositionShares,
+  chunkBatchArrays,
+  calculateMinSharesBatch,
+  calculateMinAssetsBatch,
+} from './utils';
 
 /**
  * Paramètres pour executeDeposits
@@ -130,7 +136,6 @@ export async function executeDeposits(params: DepositsParams): Promise<DepositsR
     depositTermIds,
     depositCurveIds,
     depositAmounts,
-    totalDeposit,
     progressiveAgainstItems,
     config,
     address,
@@ -183,22 +188,23 @@ async function handleBlockingLinearFor(params: HandleBlockingParams): Promise<vo
 
   console.log('[executeDeposits] Redeeming', positionsToRedeem.length, 'blocking Linear FOR');
 
-  const { request } = await publicClient.simulateContract({
-    account: walletClient.account,
-    address: multiVaultAddress,
-    abi: MultiVaultAbi,
-    functionName: 'redeemBatch',
-    args: [
-      address,
-      positionsToRedeem.map(p => p.termId),
-      positionsToRedeem.map(() => BATCH_VOTE_CONSTANTS.LINEAR_CURVE_ID),
-      positionsToRedeem.map(p => p.shares),
-      positionsToRedeem.map(() => 0n),
-    ],
-  });
+  const redeemTermIds = positionsToRedeem.map(p => p.termId);
+  const redeemCurveIds = positionsToRedeem.map(() => BATCH_VOTE_CONSTANTS.LINEAR_CURVE_ID);
+  const redeemSharesArr = positionsToRedeem.map(p => p.shares);
+  const minAssets = await calculateMinAssetsBatch(publicClient, multiVaultAddress, redeemTermIds, redeemCurveIds, redeemSharesArr);
+  const chunks = chunkBatchArrays(redeemTermIds, redeemCurveIds, redeemSharesArr, minAssets, BATCH_VOTE_CONSTANTS.MAX_BATCH_SIZE);
 
-  const txHash = await walletClient.writeContract(request);
-  await publicClient.waitForTransactionReceipt({ hash: txHash });
+  for (const chunk of chunks) {
+    const { request } = await publicClient.simulateContract({
+      account: walletClient.account,
+      address: multiVaultAddress,
+      abi: MultiVaultAbi,
+      functionName: 'redeemBatch',
+      args: [address, chunk.termIds, chunk.curveIds, chunk.values, chunk.minValues],
+    });
+    const txHash = await walletClient.writeContract(request);
+    await publicClient.waitForTransactionReceipt({ hash: txHash });
+  }
 
   console.log('[executeDeposits] Blocking Linear FOR redeemed!');
   onStepComplete?.();
@@ -229,22 +235,23 @@ async function handleBlockingProgressiveFor(params: HandleBlockingParams): Promi
 
   console.log('[executeDeposits] Redeeming', positionsToRedeem.length, 'blocking Progressive FOR');
 
-  const { request } = await publicClient.simulateContract({
-    account: walletClient.account,
-    address: multiVaultAddress,
-    abi: MultiVaultAbi,
-    functionName: 'redeemBatch',
-    args: [
-      address,
-      positionsToRedeem.map(p => p.termId),
-      positionsToRedeem.map(() => BATCH_VOTE_CONSTANTS.PROGRESSIVE_CURVE_ID),
-      positionsToRedeem.map(p => p.shares),
-      positionsToRedeem.map(() => 0n),
-    ],
-  });
+  const redeemTermIds = positionsToRedeem.map(p => p.termId);
+  const redeemCurveIds = positionsToRedeem.map(() => BATCH_VOTE_CONSTANTS.PROGRESSIVE_CURVE_ID);
+  const redeemSharesArr = positionsToRedeem.map(p => p.shares);
+  const minAssets = await calculateMinAssetsBatch(publicClient, multiVaultAddress, redeemTermIds, redeemCurveIds, redeemSharesArr);
+  const chunks = chunkBatchArrays(redeemTermIds, redeemCurveIds, redeemSharesArr, minAssets, BATCH_VOTE_CONSTANTS.MAX_BATCH_SIZE);
 
-  const txHash = await walletClient.writeContract(request);
-  await publicClient.waitForTransactionReceipt({ hash: txHash });
+  for (const chunk of chunks) {
+    const { request } = await publicClient.simulateContract({
+      account: walletClient.account,
+      address: multiVaultAddress,
+      abi: MultiVaultAbi,
+      functionName: 'redeemBatch',
+      args: [address, chunk.termIds, chunk.curveIds, chunk.values, chunk.minValues],
+    });
+    const txHash = await walletClient.writeContract(request);
+    await publicClient.waitForTransactionReceipt({ hash: txHash });
+  }
 
   console.log('[executeDeposits] Blocking Progressive FOR redeemed!');
   onStepComplete?.();
@@ -257,7 +264,6 @@ interface ExecuteDepositWithRetryParams {
   depositTermIds: Hex[];
   depositCurveIds: bigint[];
   depositAmounts: bigint[];
-  totalDeposit: bigint;
   progressiveAgainstItems: ProcessableCartItem[];
   config: ContractConfig;
   address: Address;
@@ -272,7 +278,6 @@ async function executeDepositWithRetry(params: ExecuteDepositWithRetryParams): P
     depositTermIds,
     depositCurveIds,
     depositAmounts,
-    totalDeposit,
     progressiveAgainstItems,
     config,
     address,
@@ -285,27 +290,28 @@ async function executeDepositWithRetry(params: ExecuteDepositWithRetryParams): P
   try {
     console.log('[executeDeposits] Attempting deposit simulation...');
 
-    const { request } = await publicClient.simulateContract({
-      account: walletClient.account,
-      address: multiVaultAddress,
-      abi: MultiVaultAbi,
-      functionName: 'depositBatch',
-      args: [
-        address,
-        depositTermIds,
-        depositCurveIds,
-        depositAmounts,
-        depositAmounts.map(() => 0n),
-      ],
-      value: totalDeposit,
-    });
+    const minShares = await calculateMinSharesBatch(publicClient, multiVaultAddress, depositTermIds, depositCurveIds, depositAmounts);
+    const chunks = chunkBatchArrays(depositTermIds, depositCurveIds, depositAmounts, minShares, BATCH_VOTE_CONSTANTS.MAX_BATCH_SIZE);
 
-    console.log('[executeDeposits] Simulation OK, executing...');
-    const txHash = await walletClient.writeContract(request);
-    await publicClient.waitForTransactionReceipt({ hash: txHash });
+    let lastTxHash: Hex = '0x0' as Hex;
+    for (const chunk of chunks) {
+      const chunkTotal = chunk.values.reduce((s, a) => s + a, 0n);
+      const { request } = await publicClient.simulateContract({
+        account: walletClient.account,
+        address: multiVaultAddress,
+        abi: MultiVaultAbi,
+        functionName: 'depositBatch',
+        args: [address, chunk.termIds, chunk.curveIds, chunk.values, chunk.minValues],
+        value: chunkTotal,
+      });
+
+      console.log('[executeDeposits] Simulation OK, executing...');
+      lastTxHash = await walletClient.writeContract(request);
+      await publicClient.waitForTransactionReceipt({ hash: lastTxHash });
+    }
     onStepComplete?.();
 
-    return txHash;
+    return lastTxHash;
   } catch (error: unknown) {
     const errorMessage = (error as { message?: string })?.message || '';
 
@@ -317,7 +323,6 @@ async function executeDepositWithRetry(params: ExecuteDepositWithRetryParams): P
         depositTermIds,
         depositCurveIds,
         depositAmounts,
-        totalDeposit,
         progressiveAgainstItems,
         config,
         address,
@@ -342,7 +347,6 @@ async function initializeAndRetryDeposit(
     depositTermIds,
     depositCurveIds,
     depositAmounts,
-    totalDeposit,
     progressiveAgainstItems,
     config,
     address,
@@ -354,35 +358,34 @@ async function initializeAndRetryDeposit(
 
   // Étape 1: Initialiser les vaults Progressive FOR
   const initTermIds = progressiveAgainstItems.map(item => item.termId);
+  const initCurveIds = initTermIds.map(() => BATCH_VOTE_CONSTANTS.PROGRESSIVE_CURVE_ID);
   const initAmounts = progressiveAgainstItems.map(() => config.minDeposit);
-  const totalInit = config.minDeposit * BigInt(progressiveAgainstItems.length);
 
   console.log('[executeDeposits] Initializing', initTermIds.length, 'Progressive FOR vaults');
 
-  const { request: initRequest } = await publicClient.simulateContract({
-    account: walletClient.account,
-    address: multiVaultAddress,
-    abi: MultiVaultAbi,
-    functionName: 'depositBatch',
-    args: [
-      address,
-      initTermIds,
-      initTermIds.map(() => BATCH_VOTE_CONSTANTS.PROGRESSIVE_CURVE_ID),
-      initAmounts,
-      initAmounts.map(() => 0n),
-    ],
-    value: totalInit,
-  });
+  const initMinShares = await calculateMinSharesBatch(publicClient, multiVaultAddress, initTermIds, initCurveIds, initAmounts);
+  const initChunks = chunkBatchArrays(initTermIds, initCurveIds, initAmounts, initMinShares, BATCH_VOTE_CONSTANTS.MAX_BATCH_SIZE);
 
-  const initTxHash = await walletClient.writeContract(initRequest);
-  await publicClient.waitForTransactionReceipt({ hash: initTxHash });
+  for (const chunk of initChunks) {
+    const chunkTotal = chunk.values.reduce((s, a) => s + a, 0n);
+    const { request: initRequest } = await publicClient.simulateContract({
+      account: walletClient.account,
+      address: multiVaultAddress,
+      abi: MultiVaultAbi,
+      functionName: 'depositBatch',
+      args: [address, chunk.termIds, chunk.curveIds, chunk.values, chunk.minValues],
+      value: chunkTotal,
+    });
+    const initTxHash = await walletClient.writeContract(initRequest);
+    await publicClient.waitForTransactionReceipt({ hash: initTxHash });
+  }
   onStepComplete?.();
 
   console.log('[executeDeposits] Progressive FOR vaults initialized!');
 
   // Étape 2: Retirer les dépôts d'initialisation
   const redeemTermIds: Hex[] = [];
-  const redeemShares: bigint[] = [];
+  const redeemSharesArr: bigint[] = [];
 
   for (const item of progressiveAgainstItems) {
     const shares = await getPositionShares(
@@ -395,27 +398,26 @@ async function initializeAndRetryDeposit(
 
     if (shares > 0n) {
       redeemTermIds.push(item.termId);
-      redeemShares.push(shares);
+      redeemSharesArr.push(shares);
     }
   }
 
   if (redeemTermIds.length > 0) {
-    const { request: redeemRequest } = await publicClient.simulateContract({
-      account: walletClient.account,
-      address: multiVaultAddress,
-      abi: MultiVaultAbi,
-      functionName: 'redeemBatch',
-      args: [
-        address,
-        redeemTermIds,
-        redeemTermIds.map(() => BATCH_VOTE_CONSTANTS.PROGRESSIVE_CURVE_ID),
-        redeemShares,
-        redeemShares.map(() => 0n),
-      ],
-    });
+    const redeemCurveIds = redeemTermIds.map(() => BATCH_VOTE_CONSTANTS.PROGRESSIVE_CURVE_ID);
+    const redeemMinAssets = await calculateMinAssetsBatch(publicClient, multiVaultAddress, redeemTermIds, redeemCurveIds, redeemSharesArr);
+    const redeemChunks = chunkBatchArrays(redeemTermIds, redeemCurveIds, redeemSharesArr, redeemMinAssets, BATCH_VOTE_CONSTANTS.MAX_BATCH_SIZE);
 
-    const redeemTxHash = await walletClient.writeContract(redeemRequest);
-    await publicClient.waitForTransactionReceipt({ hash: redeemTxHash });
+    for (const chunk of redeemChunks) {
+      const { request: redeemRequest } = await publicClient.simulateContract({
+        account: walletClient.account,
+        address: multiVaultAddress,
+        abi: MultiVaultAbi,
+        functionName: 'redeemBatch',
+        args: [address, chunk.termIds, chunk.curveIds, chunk.values, chunk.minValues],
+      });
+      const redeemTxHash = await walletClient.writeContract(redeemRequest);
+      await publicClient.waitForTransactionReceipt({ hash: redeemTxHash });
+    }
     onStepComplete?.();
 
     console.log('[executeDeposits] Init deposits redeemed!');
@@ -424,24 +426,24 @@ async function initializeAndRetryDeposit(
   // Étape 3: Réessayer le dépôt original
   console.log('[executeDeposits] Retrying original deposit...');
 
-  const { request } = await publicClient.simulateContract({
-    account: walletClient.account,
-    address: multiVaultAddress,
-    abi: MultiVaultAbi,
-    functionName: 'depositBatch',
-    args: [
-      address,
-      depositTermIds,
-      depositCurveIds,
-      depositAmounts,
-      depositAmounts.map(() => 0n),
-    ],
-    value: totalDeposit,
-  });
+  const retryMinShares = await calculateMinSharesBatch(publicClient, multiVaultAddress, depositTermIds, depositCurveIds, depositAmounts);
+  const retryChunks = chunkBatchArrays(depositTermIds, depositCurveIds, depositAmounts, retryMinShares, BATCH_VOTE_CONSTANTS.MAX_BATCH_SIZE);
 
-  const txHash = await walletClient.writeContract(request);
-  await publicClient.waitForTransactionReceipt({ hash: txHash });
+  let lastTxHash: Hex = '0x0' as Hex;
+  for (const chunk of retryChunks) {
+    const chunkTotal = chunk.values.reduce((s, a) => s + a, 0n);
+    const { request } = await publicClient.simulateContract({
+      account: walletClient.account,
+      address: multiVaultAddress,
+      abi: MultiVaultAbi,
+      functionName: 'depositBatch',
+      args: [address, chunk.termIds, chunk.curveIds, chunk.values, chunk.minValues],
+      value: chunkTotal,
+    });
+    lastTxHash = await walletClient.writeContract(request);
+    await publicClient.waitForTransactionReceipt({ hash: lastTxHash });
+  }
   onStepComplete?.();
 
-  return txHash;
+  return lastTxHash;
 }

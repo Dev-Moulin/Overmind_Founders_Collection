@@ -12,7 +12,8 @@ import { type Hex, type Address, formatEther } from 'viem';
 import type { PublicClient, WalletClient } from 'viem';
 import { MultiVaultAbi } from '@0xintuition/protocol';
 import type { ProcessableCartItem } from './types';
-import { getPositionShares } from './utils';
+import { BATCH_VOTE_CONSTANTS } from './types';
+import { getPositionShares, chunkBatchArrays, calculateMinAssetsBatch } from './utils';
 
 /**
  * Paramètres pour executeRedeems
@@ -103,28 +104,27 @@ export async function executeRedeems(params: RedeemParams): Promise<RedeemResult
   console.log('[executeRedeems] Redeeming', redeemTermIds.length, 'positions');
   console.log('[executeRedeems] Total shares:', formatEther(totalRedeemed));
 
-  // Simuler et exécuter redeemBatch
-  const { request } = await publicClient.simulateContract({
-    account: walletClient.account,
-    address: multiVaultAddress,
-    abi: MultiVaultAbi,
-    functionName: 'redeemBatch',
-    args: [
-      address,
-      redeemTermIds,
-      redeemCurveIds,
-      redeemShares,
-      redeemShares.map(() => 0n), // minAssets
-    ],
-  });
+  // Calculer minAssets avec slippage et chunker si nécessaire
+  const minAssets = await calculateMinAssetsBatch(publicClient, multiVaultAddress, redeemTermIds, redeemCurveIds, redeemShares);
+  const chunks = chunkBatchArrays(redeemTermIds, redeemCurveIds, redeemShares, minAssets, BATCH_VOTE_CONSTANTS.MAX_BATCH_SIZE);
 
-  const txHash = await walletClient.writeContract(request);
-  await publicClient.waitForTransactionReceipt({ hash: txHash });
+  let lastTxHash: Hex = '0x0' as Hex;
+  for (const chunk of chunks) {
+    const { request } = await publicClient.simulateContract({
+      account: walletClient.account,
+      address: multiVaultAddress,
+      abi: MultiVaultAbi,
+      functionName: 'redeemBatch',
+      args: [address, chunk.termIds, chunk.curveIds, chunk.values, chunk.minValues],
+    });
+    lastTxHash = await walletClient.writeContract(request);
+    await publicClient.waitForTransactionReceipt({ hash: lastTxHash });
+  }
 
-  console.log('[executeRedeems] SUCCESS! Hash:', txHash);
+  console.log('[executeRedeems] SUCCESS! Hash:', lastTxHash);
   console.log('[executeRedeems] ========== END ==========');
 
-  return { txHash, totalRedeemed };
+  return { txHash: lastTxHash, totalRedeemed };
 }
 
 /**
@@ -185,25 +185,24 @@ export async function redeemBlockingForPositions(
 
   const redeemTermIds = positionsToRedeem.map(p => p.termId);
   const redeemCurveIds = positionsToRedeem.map(() => curveId);
-  const redeemShares = positionsToRedeem.map(p => p.shares);
+  const redeemSharesArr = positionsToRedeem.map(p => p.shares);
 
-  const { request } = await publicClient.simulateContract({
-    account: walletClient.account,
-    address: multiVaultAddress,
-    abi: MultiVaultAbi,
-    functionName: 'redeemBatch',
-    args: [
-      address,
-      redeemTermIds,
-      redeemCurveIds,
-      redeemShares,
-      redeemShares.map(() => 0n),
-    ],
-  });
+  const minAssets = await calculateMinAssetsBatch(publicClient, multiVaultAddress, redeemTermIds, redeemCurveIds, redeemSharesArr);
+  const chunks = chunkBatchArrays(redeemTermIds, redeemCurveIds, redeemSharesArr, minAssets, BATCH_VOTE_CONSTANTS.MAX_BATCH_SIZE);
 
-  const txHash = await walletClient.writeContract(request);
-  await publicClient.waitForTransactionReceipt({ hash: txHash });
+  let lastTxHash: Hex = '0x0' as Hex;
+  for (const chunk of chunks) {
+    const { request } = await publicClient.simulateContract({
+      account: walletClient.account,
+      address: multiVaultAddress,
+      abi: MultiVaultAbi,
+      functionName: 'redeemBatch',
+      args: [address, chunk.termIds, chunk.curveIds, chunk.values, chunk.minValues],
+    });
+    lastTxHash = await walletClient.writeContract(request);
+    await publicClient.waitForTransactionReceipt({ hash: lastTxHash });
+  }
 
   console.log('[redeemBlockingFor] Blocking positions redeemed!');
-  return txHash;
+  return lastTxHash;
 }

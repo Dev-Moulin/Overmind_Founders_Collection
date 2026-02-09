@@ -38,6 +38,8 @@ import {
   deduplicateToTriples,
   categorizeTriples,
   parseTripleCreatedEvents,
+  chunkBatchArrays,
+  calculateMinSharesBatch,
 } from './utils';
 import { waitForTripleIndexed } from './waitForIndexed';
 import type { VoteCartItem } from '../../../types/voteCart';
@@ -472,30 +474,28 @@ async function handleProgressiveDeposits(params: HandleProgressiveParams): Promi
 
   if (depositTermIds.length === 0) return undefined;
 
-  const totalDeposit = depositAmounts.reduce((sum, a) => sum + a, 0n);
+  const minShares = await calculateMinSharesBatch(publicClient, multiVaultAddress, depositTermIds, depositCurveIds, depositAmounts);
+  const chunks = chunkBatchArrays(depositTermIds, depositCurveIds, depositAmounts, minShares, BATCH_VOTE_CONSTANTS.MAX_BATCH_SIZE);
 
-  const { request } = await publicClient.simulateContract({
-    account: walletClient.account,
-    address: multiVaultAddress,
-    abi: MultiVaultAbi,
-    functionName: 'depositBatch',
-    args: [
-      address,
-      depositTermIds,
-      depositCurveIds,
-      depositAmounts,
-      depositAmounts.map(() => 0n),
-    ],
-    value: totalDeposit,
-  });
-
-  const txHash = await walletClient.writeContract(request);
-  await publicClient.waitForTransactionReceipt({ hash: txHash });
+  let lastTxHash: Hex = '0x0' as Hex;
+  for (const chunk of chunks) {
+    const chunkTotal = chunk.values.reduce((s, a) => s + a, 0n);
+    const { request } = await publicClient.simulateContract({
+      account: walletClient.account,
+      address: multiVaultAddress,
+      abi: MultiVaultAbi,
+      functionName: 'depositBatch',
+      args: [address, chunk.termIds, chunk.curveIds, chunk.values, chunk.minValues],
+      value: chunkTotal,
+    });
+    lastTxHash = await walletClient.writeContract(request);
+    await publicClient.waitForTransactionReceipt({ hash: lastTxHash });
+  }
 
   console.log('[executeCreateTriples] Progressive FOR deposits SUCCESS!');
   onStepComplete?.();
 
-  return txHash;
+  return lastTxHash;
 }
 
 /**
@@ -575,25 +575,22 @@ async function handleMixedDeposits(params: HandleMixedParams): Promise<void> {
 
   if (depositTermIds.length === 0) return;
 
-  const totalDeposit = depositAmounts.reduce((sum, a) => sum + a, 0n);
+  const minShares = await calculateMinSharesBatch(publicClient, multiVaultAddress, depositTermIds, depositCurveIds, depositAmounts);
+  const chunks = chunkBatchArrays(depositTermIds, depositCurveIds, depositAmounts, minShares, BATCH_VOTE_CONSTANTS.MAX_BATCH_SIZE);
 
-  const { request } = await publicClient.simulateContract({
-    account: walletClient.account,
-    address: multiVaultAddress,
-    abi: MultiVaultAbi,
-    functionName: 'depositBatch',
-    args: [
-      address,
-      depositTermIds,
-      depositCurveIds,
-      depositAmounts,
-      depositAmounts.map(() => 0n),
-    ],
-    value: totalDeposit,
-  });
-
-  const txHash = await walletClient.writeContract(request);
-  await publicClient.waitForTransactionReceipt({ hash: txHash });
+  for (const chunk of chunks) {
+    const chunkTotal = chunk.values.reduce((s, a) => s + a, 0n);
+    const { request } = await publicClient.simulateContract({
+      account: walletClient.account,
+      address: multiVaultAddress,
+      abi: MultiVaultAbi,
+      functionName: 'depositBatch',
+      args: [address, chunk.termIds, chunk.curveIds, chunk.values, chunk.minValues],
+      value: chunkTotal,
+    });
+    const txHash = await walletClient.writeContract(request);
+    await publicClient.waitForTransactionReceipt({ hash: txHash });
+  }
 
   console.log('[executeCreateTriples] Mixed FOR deposits SUCCESS!');
   onStepComplete?.();

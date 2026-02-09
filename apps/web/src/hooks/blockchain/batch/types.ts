@@ -173,4 +173,10 @@ export const BATCH_VOTE_CONSTANTS = {
   PROGRESSIVE_CURVE_ID: 2n,
   /** Délai d'attente pour l'indexation GraphQL (ms) */
   GRAPHQL_INDEXING_DELAY: 3000,
+  /** Taille max d'un batch pour éviter le revert gas limit du contrat */
+  MAX_BATCH_SIZE: 150,
+  /** Slippage par défaut en basis points (200 = 2%) */
+  DEFAULT_SLIPPAGE_BPS: 200,
+  /** Dénominateur pour les basis points */
+  BPS_DENOMINATOR: 10_000n,
 } as const;

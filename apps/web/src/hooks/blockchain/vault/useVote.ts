@@ -7,6 +7,8 @@ import { currentIntuitionChain } from '../../../config/wagmi';
 import { toast } from 'sonner';
 import { truncateAmount } from '../../../utils/formatters';
 import type { VoteStatus, VoteError } from '../../../types/vote';
+import { applySlippage } from '../batch/utils';
+import { BATCH_VOTE_CONSTANTS } from '../batch/types';
 
 /** Curve ID for bonding curve selection */
 export type CurveId = 1 | 2;
@@ -172,6 +174,21 @@ export function useVote(): UseVoteResult {
         // Call depositBatch directly on the contract
         // TRUST is native on INTUITION L3, so we send it as msg.value
         // Args: receiver, termIds[], curveIds[], assets[], minShares[]
+
+        // Calculate minShares with slippage protection
+        let minShares = 0n;
+        try {
+          const previewResult = await publicClient.readContract({
+            address: multiVaultAddress,
+            abi: MultiVaultAbi,
+            functionName: 'previewDeposit',
+            args: [depositTermId, curveIdBigInt, amountWei],
+          }) as readonly [bigint, bigint];
+          minShares = applySlippage(previewResult[0], BATCH_VOTE_CONSTANTS.DEFAULT_SLIPPAGE_BPS);
+        } catch {
+          console.warn('[useVote] previewDeposit failed, using 0n for minShares');
+        }
+
         const { request } = await publicClient.simulateContract({
           account: walletClient.account,
           address: multiVaultAddress,
@@ -182,7 +199,7 @@ export function useVote(): UseVoteResult {
             [depositTermId],     // termIds - term_id for FOR, counter_term_id for AGAINST
             [curveIdBigInt],     // curveIds - 1 = Linear, 2 = Progressive
             [amountWei],         // assets - amount to deposit
-            [0n],                // minShares - minimum shares to receive (0 = no minimum)
+            [minShares],         // minShares - slippage protection (2%)
           ],
           value: amountWei, // TRUST is native token, send as msg.value
         });
