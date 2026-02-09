@@ -35,6 +35,7 @@ import {
   type BatchVoteResult,
   type UseBatchVoteResult,
   isProcessableItem,
+  BATCH_VOTE_CONSTANTS,
 } from './types';
 
 // Ré-export des types pour compatibilité avec l'API existante
@@ -44,6 +45,7 @@ import { executeCreateTriples } from './executeCreateTriples';
 import { executeCreateNewTotems } from './executeCreateAtoms';
 import { executeRedeems } from './executeRedeems';
 import { executeDeposits } from './executeDeposits';
+import { checkVaultInitialized, calculateTotalTransactions, deduplicateToTriples, categorizeTriples } from './utils';
 
 /**
  * Hook pour exécuter les batch votes depuis un cart
@@ -277,13 +279,58 @@ export function useBatchVote(): UseBatchVoteResult {
         const hasRedeems = itemsToRedeem.length > 0;
         const hasExistingTriples = itemsWithExistingTriples.length > 0;
 
-        // Calculer le nombre d'étapes (SIMPLIFIÉ grâce à la refacto)
-        let steps = 0;
-        if (hasNewTotems) steps += 2; // create atoms + create triples
-        if (hasNewTriples) steps += 2; // createTriples + depositBatch
-        if (hasRedeems) steps++;
-        if (hasExistingTriples) steps++;
-        if (steps === 0) steps = 1;
+        // Déterminer si les nouveaux triples sont tous Linear FOR (1 tx vs 2 tx)
+        let isLinearForOnly = false;
+        if (hasNewTriples) {
+          const uniqueTriples = deduplicateToTriples(cart.founderId, itemsNeedingTriple);
+          const { linearOnlyTriples, progressiveOnlyTriples, mixedTriples } = categorizeTriples(uniqueTriples);
+
+          // Linear FOR pur = tous les triples sont Linear ET tous les items sont FOR
+          isLinearForOnly = progressiveOnlyTriples.length === 0 &&
+            mixedTriples.length === 0 &&
+            linearOnlyTriples.every(t => t.items.every(i => i.direction === 'for'));
+        }
+
+        // Compter les Oppose Progressive sur vaults non-initialisés
+        let uninitializedProgressiveAgainstCount = 0;
+        if (hasExistingTriples) {
+          const progressiveAgainstItems = itemsWithExistingTriples.filter(
+            item => item.curveId === 2 && item.direction === 'against'
+          );
+
+          // Vérifier l'état d'initialisation de chaque vault FOR Progressive
+          for (const item of progressiveAgainstItems) {
+            const isInitialized = await checkVaultInitialized(
+              publicClient,
+              multiVaultAddress,
+              item.termId,
+              BATCH_VOTE_CONSTANTS.PROGRESSIVE_CURVE_ID
+            );
+            if (!isInitialized) {
+              uninitializedProgressiveAgainstCount++;
+            }
+          }
+        }
+
+        // Calculer le nombre total de transactions avec précision
+        const steps = calculateTotalTransactions({
+          hasNewTotems,
+          hasNewTriples,
+          hasRedeems,
+          hasExistingTriples,
+          isLinearForOnly,
+          uninitializedProgressiveAgainstCount,
+        });
+
+        console.log('[useBatchVote] Transaction count calculation:', {
+          hasNewTotems,
+          hasNewTriples,
+          hasRedeems,
+          hasExistingTriples,
+          isLinearForOnly,
+          uninitializedProgressiveAgainstCount,
+          totalSteps: steps,
+        });
 
         setTotalSteps(steps);
         stepCounterRef.current = { current: 0, total: steps };

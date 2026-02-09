@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAccount, useChainId, useSwitchChain } from 'wagmi';
 import { currentIntuitionChain } from '../../config/wagmi';
 import { getCurrentNetwork } from '../../lib/networkConfig';
@@ -9,6 +10,7 @@ interface NetworkGuardProps {
 }
 
 export function NetworkGuard({ children }: NetworkGuardProps) {
+  const { t } = useTranslation();
   const chainId = useChainId();
   const { switchChain, isPending } = useSwitchChain();
   const { address, isConnected } = useAccount();
@@ -25,17 +27,17 @@ export function NetworkGuard({ children }: NetworkGuardProps) {
         <div className="glass-card p-8 max-w-md text-center">
           <div className="text-4xl mb-4">⚠️</div>
           <h2 className="text-xl font-bold text-white mb-2">
-            Mauvais réseau détecté
+            {t('networkGuard.wrongNetwork')}
           </h2>
           <p className="text-white/70 mb-6">
-            Veuillez basculer sur INTUITION L3 {networkName} (Chain ID: {expectedChainId})
+            {t('networkGuard.switchToNetwork', { name: networkName, id: expectedChainId })}
           </p>
           <button
             onClick={() => switchChain?.({ chainId: expectedChainId })}
             disabled={isPending}
             className="glass-button w-full"
           >
-            {isPending ? 'Changement en cours...' : `Switch to INTUITION ${networkName}`}
+            {isPending ? t('networkGuard.switching') : t('networkGuard.switchButton', { name: networkName })}
           </button>
         </div>
       </div>
@@ -50,10 +52,10 @@ export function NetworkGuard({ children }: NetworkGuardProps) {
           <div className="glass-card p-8 max-w-md text-center">
             <div className="text-4xl mb-4">🔍</div>
             <h2 className="text-xl font-bold text-white mb-2">
-              Vérification en cours...
+              {t('networkGuard.verifying')}
             </h2>
             <p className="text-white/70">
-              Vérification de votre éligibilité pour participer au vote.
+              {t('networkGuard.checkingEligibility')}
             </p>
           </div>
         </div>
@@ -66,14 +68,13 @@ export function NetworkGuard({ children }: NetworkGuardProps) {
           <div className="glass-card p-8 max-w-md text-center">
             <div className="text-4xl mb-4">🚫</div>
             <h2 className="text-xl font-bold text-white mb-2">
-              Non éligible
+              {t('networkGuard.notEligible')}
             </h2>
             <p className="text-white/70 mb-4">
-              Vous devez posséder un NFT INTUITION Founders pour participer à
-              ce vote.
+              {t('networkGuard.needNft')}
             </p>
             <p className="text-sm text-white/50">
-              Adresse du contrat NFT :<br />
+              {t('networkGuard.nftContractAddress')}<br />
               <code className="text-slate-400">
                 0x98e2...8f8c
               </code>

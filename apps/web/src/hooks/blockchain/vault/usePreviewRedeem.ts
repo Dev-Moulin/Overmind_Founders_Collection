@@ -13,6 +13,7 @@ import { type Hex, formatEther } from 'viem';
 import { MultiVaultAbi, getMultiVaultAddressFromChainId } from '@0xintuition/protocol';
 import { currentIntuitionChain } from '../../../config/wagmi';
 import { useProtocolConfig } from '../../config/useProtocolConfig';
+import { type CurveId, CURVE_LINEAR } from './useVote';
 
 /**
  * Preview result for a redemption
@@ -43,9 +44,9 @@ export interface RedeemPreview {
  */
 export interface UsePreviewRedeemResult {
   /** Preview the redemption for given shares */
-  preview: (termId: Hex, shares: bigint) => Promise<RedeemPreview | null>;
+  preview: (termId: Hex, shares: bigint, curveId?: CurveId) => Promise<RedeemPreview | null>;
   /** Preview by percentage of current position */
-  previewByPercent: (termId: Hex, totalShares: bigint, percent: number) => Promise<RedeemPreview | null>;
+  previewByPercent: (termId: Hex, totalShares: bigint, percent: number, curveId?: CurveId) => Promise<RedeemPreview | null>;
   /** Current preview (for reactive updates) */
   currentPreview: RedeemPreview | null;
   /** Loading state */
@@ -64,14 +65,14 @@ export interface UsePreviewRedeemResult {
  * function WithdrawForm({ termId, position }) {
  *   const { preview, previewByPercent, currentPreview, loading } = usePreviewRedeem();
  *
- *   // Preview full withdrawal
+ *   // Preview full withdrawal (curveId from position)
  *   const handlePreviewFull = () => {
- *     preview(termId, position.shares);
+ *     preview(termId, position.shares, position.curveId);
  *   };
  *
  *   // Preview 50% withdrawal
  *   const handlePreview50 = () => {
- *     previewByPercent(termId, position.shares, 50);
+ *     previewByPercent(termId, position.shares, 50, position.curveId);
  *   };
  *
  *   return (
@@ -103,7 +104,7 @@ export function usePreviewRedeem(): UsePreviewRedeemResult {
    * Preview a redemption for a given number of shares
    */
   const preview = useCallback(
-    async (termId: Hex, shares: bigint): Promise<RedeemPreview | null> => {
+    async (termId: Hex, shares: bigint, curveId: CurveId = CURVE_LINEAR): Promise<RedeemPreview | null> => {
       if (!publicClient || !config) {
         setError(new Error('Client or config not available'));
         return null;
@@ -119,13 +120,13 @@ export function usePreviewRedeem(): UsePreviewRedeemResult {
 
       try {
         // Call previewRedeem on MultiVault contract
-        // Default curveId is 1 for linear bonding curve
+        // curveId: 1 = Linear, 2 = Progressive
         // Returns [assets, assetsAfterFees] tuple
         const redeemResult = await publicClient.readContract({
           address: multiVaultAddress,
           abi: MultiVaultAbi,
           functionName: 'previewRedeem',
-          args: [termId, 1n, shares], // termId, curveId, shares
+          args: [termId, BigInt(curveId), shares],
         }) as readonly [bigint, bigint];
 
         const grossAmountWei = redeemResult[0];
@@ -178,7 +179,7 @@ export function usePreviewRedeem(): UsePreviewRedeemResult {
    * @param percent - Percentage to redeem (1-100)
    */
   const previewByPercent = useCallback(
-    async (termId: Hex, totalShares: bigint, percent: number): Promise<RedeemPreview | null> => {
+    async (termId: Hex, totalShares: bigint, percent: number, curveId: CurveId = CURVE_LINEAR): Promise<RedeemPreview | null> => {
       if (percent <= 0 || percent > 100) {
         setError(new Error('Percent must be between 1 and 100'));
         return null;
@@ -192,7 +193,7 @@ export function usePreviewRedeem(): UsePreviewRedeemResult {
         return null;
       }
 
-      return preview(termId, sharesToRedeem);
+      return preview(termId, sharesToRedeem, curveId);
     },
     [preview]
   );

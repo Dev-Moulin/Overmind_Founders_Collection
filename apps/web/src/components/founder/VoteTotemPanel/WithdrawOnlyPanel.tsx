@@ -100,7 +100,11 @@ export function WithdrawOnlyPanel({
     if (selectedPositions.length === 0 || withdrawPercent === 0) return [];
 
     return selectedPositions.map(pos => {
-      const sharesToWithdraw = BigInt(Math.floor(Number(pos.shares) * withdrawPercent / 100));
+      // Use BigInt arithmetic to avoid precision loss with large numbers
+      // For 100%, use all shares directly to avoid any rounding issues
+      const sharesToWithdraw = withdrawPercent === 100
+        ? pos.shares
+        : (pos.shares * BigInt(withdrawPercent)) / 100n;
       return {
         termId: pos.termId,
         shares: sharesToWithdraw,
@@ -124,15 +128,19 @@ export function WithdrawOnlyPanel({
   const selectedPositionsCount = selectedPositions.length;
   const firstSelectedTermId = selectedPositions[0]?.termId;
   const firstSelectedShares = selectedPositions[0]?.shares;
+  const firstSelectedCurveId = selectedPositions[0]?.curveId;
 
   useEffect(() => {
     if (selectedPositionsCount === 1 && firstSelectedShares && firstSelectedShares > 0n) {
-      const shares = BigInt(Math.floor(Number(firstSelectedShares) * withdrawPercent / 100));
+      // Use BigInt arithmetic to avoid precision loss with large numbers
+      const shares = withdrawPercent === 100
+        ? firstSelectedShares
+        : (firstSelectedShares * BigInt(withdrawPercent)) / 100n;
       if (shares > 0n && firstSelectedTermId) {
-        preview(firstSelectedTermId, shares);
+        preview(firstSelectedTermId, shares, firstSelectedCurveId);
       }
     }
-  }, [selectedPositionsCount, firstSelectedTermId, firstSelectedShares, withdrawPercent, preview]);
+  }, [selectedPositionsCount, firstSelectedTermId, firstSelectedShares, firstSelectedCurveId, withdrawPercent, preview]);
 
   const handleWithdrawSubmit = async () => {
     if (withdrawRequests.length > 0) {
@@ -188,10 +196,10 @@ export function WithdrawOnlyPanel({
       <div>
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-white/50">
-            {t('founderExpanded.selectPositions', 'Sélectionnez les positions à retirer')}
+            {t('founderExpanded.selectPositions')}
           </span>
           <span className="text-xs text-orange-300">
-            {selectedIndexes.size}/{availablePositions.length} sélectionnées
+            {t('founderExpanded.selectedCount', { selected: selectedIndexes.size, total: availablePositions.length })}
           </span>
         </div>
         <div className="grid gap-2">
@@ -257,7 +265,7 @@ export function WithdrawOnlyPanel({
             </div>
             {selectedIndexes.size > 1 && (
               <p className="text-xs text-white/40 text-center mt-1">
-                ({selectedIndexes.size} positions sélectionnées)
+                {t('founderExpanded.positionsSelectedCount', { count: selectedIndexes.size })}
               </p>
             )}
           </div>
@@ -327,7 +335,7 @@ export function WithdrawOnlyPanel({
           ) : selectedPositions.length > 1 && totalSharesToWithdraw > 0n ? (
             <div className="bg-black/20 rounded-lg p-3">
               <p className="text-xs text-white/50 text-center">
-                {withdrawRequests.length} retraits seront effectués séquentiellement
+                {t('founderExpanded.sequentialWithdraws', { count: withdrawRequests.length })}
               </p>
             </div>
           ) : withdrawPercent === 0 ? (
@@ -342,7 +350,7 @@ export function WithdrawOnlyPanel({
           >
             {withdrawPercent === 100
               ? selectedIndexes.size > 1
-                ? t('founderExpanded.withdrawAllPositions', 'Retirer tout') + ` (${selectedIndexes.size})`
+                ? t('founderExpanded.withdrawAllPositions') + ` (${selectedIndexes.size})`
                 : t('founderExpanded.withdrawAll')
               : t('founderExpanded.confirmWithdraw')}
           </button>

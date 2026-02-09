@@ -8,6 +8,7 @@
  * - Slider + input for new position amount
  */
 
+import { useTranslation } from 'react-i18next';
 import { truncateAmount } from '../../../utils/formatters';
 import { CURVE_LINEAR, type CurveId } from '../../../hooks';
 import { SUPPORT_COLORS, OPPOSE_COLORS, NET_COLORS } from '../../../config/colors';
@@ -57,6 +58,8 @@ export function NeedsRedeemAlert({
   onAmountChange,
   balanceFormatted,
 }: NeedsRedeemAlertProps) {
+  const { t } = useTranslation();
+
   // Calculate slider bounds
   const minVal = parseFloat(minRequiredExact || '0.0001');
   const currentPosValue = parseFloat(formattedCurrentPosition) || 0;
@@ -83,7 +86,7 @@ export function NeedsRedeemAlert({
         </svg>
         <div className="flex-1">
           <p className="text-amber-300 text-sm font-medium">
-            Position existante à retirer
+            {t('founderExpanded.positionToWithdraw')}
           </p>
           <p className="text-white/70 text-xs mt-1">
             Vous avez <span className="text-amber-300 font-medium">{formattedCurrentPosition} TRUST</span> en{' '}

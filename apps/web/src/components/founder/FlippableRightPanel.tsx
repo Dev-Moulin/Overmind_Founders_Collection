@@ -112,6 +112,7 @@ export function FlippableRightPanel({
             onOpenCart={handleOpenCart}
             onUserPositionDetected={onUserPositionDetected}
             refetchTrigger={refetchTrigger}
+            onRefetch={onRefetch}
           />
         </div>
 

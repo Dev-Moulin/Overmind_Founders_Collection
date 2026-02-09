@@ -23,6 +23,7 @@ import { SUPPORT_COLORS, OPPOSE_COLORS } from '../../config/colors';
 import { truncateAmount } from '../../utils/formatters';
 import { useTranslation } from 'react-i18next';
 import { useBatchVote } from '../../hooks';
+import { useLoadingMessages } from '../../hooks/ui/useLoadingMessages';
 
 interface MultiFounderCartDropdownProps {
   /** All carts from all founders */
@@ -108,6 +109,7 @@ const CartItemRow = memo(function CartItemRow({
   onRemove: () => void;
   onUpdateAmount: (amount: string) => void;
 }) {
+  const { t } = useTranslation();
   const formattedAmount = truncateAmount(Number(formatEther(item.amount)));
   const isSupport = item.direction === 'for';
   const isLinear = item.curveId === 1;
@@ -151,7 +153,7 @@ const CartItemRow = memo(function CartItemRow({
           onRemove();
         }}
         className="text-white/30 hover:text-red-400 transition-colors p-0.5"
-        title="Supprimer"
+        title={t('voteCart.remove')}
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -182,6 +184,7 @@ function FounderAccordionRow({
   onRemoveItem: (itemId: string) => void;
   onUpdateAmount: (itemId: string, amount: string) => void;
 }) {
+  const { t } = useTranslation();
   const badges = useMemo(() => getPositionBadges(cart.items), [cart.items]);
   const total = useMemo(() => getCartTotal(cart), [cart]);
 
@@ -228,7 +231,7 @@ function FounderAccordionRow({
             onClear();
           }}
           className="text-white/30 hover:text-red-400 transition-colors p-0.5"
-          title="Supprimer tous les votes de ce fondateur"
+          title={t('voteCart.removeAllFounderVotes')}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -282,6 +285,9 @@ export function MultiFounderCartDropdown({
   const { address } = useAccount();
   const { data: balanceData } = useBalance({ address });
   const { executeBatch, isLoading: isBatchLoading, currentStep, totalSteps, error: batchError } = useBatchVote();
+
+  // Messages dynamiques pendant le chargement
+  const { currentMessage } = useLoadingMessages({ isActive: isBatchLoading });
 
   // User balance
   const formattedBalance = balanceData ? truncateAmount(Number(formatEther(balanceData.value))) : '0';
@@ -428,7 +434,7 @@ export function MultiFounderCartDropdown({
           allSuccessful = false;
           setValidationProgress((prev) => ({
             ...prev,
-            error: `Échec pour ${cart.founderName}`,
+            error: t('voteCart.failedForFounder', { name: cart.founderName }),
           }));
           break;
         }
@@ -436,7 +442,7 @@ export function MultiFounderCartDropdown({
         allSuccessful = false;
         setValidationProgress((prev) => ({
           ...prev,
-          error: err instanceof Error ? err.message : 'Erreur inconnue',
+          error: err instanceof Error ? err.message : t('voteCart.unknownError'),
         }));
         break;
       }
@@ -501,7 +507,7 @@ export function MultiFounderCartDropdown({
         <div className="flex items-center justify-between mb-3">
           <div className="flex flex-col">
             <span className="text-xs text-white/60">
-              {totalItemCount} vote{totalItemCount > 1 ? 's' : ''} • {cartsArray.length} fondateur{cartsArray.length > 1 ? 's' : ''}
+              {t('voteCart.votesFoundersSummary', { votes: totalItemCount, founders: cartsArray.length })}
             </span>
           </div>
           <span className="text-sm font-semibold text-white">
@@ -523,7 +529,7 @@ export function MultiFounderCartDropdown({
           <div className="mb-3">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] text-white/60">
-                {validationProgress.completedFounders}/{validationProgress.totalFounders} fondateurs validés
+                {t('voteCart.foundersValidated', { completed: validationProgress.completedFounders, total: validationProgress.totalFounders })}
               </span>
               <span className="text-[10px] text-white/40">
                 {validationProgress.currentFounderName}
@@ -551,14 +557,15 @@ export function MultiFounderCartDropdown({
         >
           {validationProgress.isValidating || isBatchLoading ? (
             <span className="flex items-center justify-center gap-2">
-              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
-              {isBatchLoading ? `Tx ${currentStep}/${totalSteps}` : 'Validation...'}
+              <span className="font-medium shrink-0">{isBatchLoading ? `${currentStep}/${totalSteps}` : t('founderExpanded.validating')}</span>
+              {isBatchLoading && <span className="text-sm text-white/80 truncate">{currentMessage}</span>}
             </span>
           ) : (
-            <>Valider ({totalItemCount} vote{totalItemCount > 1 ? 's' : ''})</>
+            <>{t('voteCart.validateAll', { count: totalItemCount })}</>
           )}
         </button>
       </div>

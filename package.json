@@ -21,8 +21,5 @@
   "packageManager": "pnpm@10.5.0",
   "devDependencies": {
     "tsx": "^4.20.6"
-  },
-  "dependencies": {
-    "html2canvas": "^1.4.1"
   }
 }

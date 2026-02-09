@@ -237,3 +237,104 @@ export function logBatchItems(
     ...(item.shares !== undefined ? { shares: formatEther(item.shares) } : {}),
   })));
 }
+
+/**
+ * Vérifie si un vault Progressive est initialisé (totalShares > 0)
+ *
+ * INTUITION Protocol Rule:
+ * - Oppose Progressive nécessite que le vault FOR Progressive soit initialisé
+ * - Un vault est initialisé si totalShares > 0 (ghost shares persistent après redeem)
+ *
+ * @returns true si le vault est initialisé, false sinon
+ */
+export async function checkVaultInitialized(
+  publicClient: PublicClient,
+  multiVaultAddress: Address,
+  termId: Hex,
+  curveId: bigint
+): Promise<boolean> {
+  try {
+    const result = await publicClient.readContract({
+      address: multiVaultAddress,
+      abi: MultiVaultAbi,
+      functionName: 'getVault',
+      args: [termId, curveId],
+    }) as [bigint, bigint]; // [totalAssets, totalShares]
+
+    const totalShares = result[1];
+    return totalShares > 0n;
+  } catch (error) {
+    console.warn('[batch/utils] Error checking vault init status:', error);
+    return false;
+  }
+}
+
+/**
+ * Calcule le nombre total de transactions nécessaires pour un batch vote
+ *
+ * Prend en compte:
+ * - Nouveaux totems: 2 tx (createAtoms + createTriples)
+ * - Nouveaux triples Linear FOR pur: 1 tx (dépôt inclus dans createTriples)
+ * - Nouveaux triples Progressive/mixte: 2 tx (createTriples + depositBatch)
+ * - Redeems: 1 tx
+ * - Oppose Progressive sur vault non-initialisé: 3 tx (init + redeem + deposit)
+ * - Autres dépôts existants: 1 tx
+ */
+export interface TransactionCountParams {
+  hasNewTotems: boolean;
+  hasNewTriples: boolean;
+  hasRedeems: boolean;
+  hasExistingTriples: boolean;
+  /** Nouveaux triples: tous les items sont Linear FOR? */
+  isLinearForOnly: boolean;
+  /** Nombre de Progressive AGAINST sur vaults non-initialisés */
+  uninitializedProgressiveAgainstCount: number;
+}
+
+export function calculateTotalTransactions(params: TransactionCountParams): number {
+  const {
+    hasNewTotems,
+    hasNewTriples,
+    hasRedeems,
+    hasExistingTriples,
+    isLinearForOnly,
+    uninitializedProgressiveAgainstCount,
+  } = params;
+
+  let steps = 0;
+
+  // Nouveaux totems: 2 tx (createAtoms + createTriples avec dépôt)
+  if (hasNewTotems) {
+    steps += 2;
+  }
+
+  // Nouveaux triples
+  if (hasNewTriples) {
+    if (isLinearForOnly) {
+      // Linear FOR pur: dépôt inclus dans createTriples = 1 tx
+      steps += 1;
+    } else {
+      // Progressive ou mixte: createTriples + depositBatch = 2 tx
+      steps += 2;
+    }
+  }
+
+  // Redeems (changement de position)
+  if (hasRedeems) {
+    steps += 1;
+  }
+
+  // Dépôts sur triples existants
+  if (hasExistingTriples) {
+    if (uninitializedProgressiveAgainstCount > 0) {
+      // Oppose Progressive sur vault non-initialisé: 3 tx (init + redeem + deposit)
+      steps += 3;
+    } else {
+      // Dépôt normal: 1 tx
+      steps += 1;
+    }
+  }
+
+  // Au minimum 1 étape
+  return Math.max(1, steps);
+}

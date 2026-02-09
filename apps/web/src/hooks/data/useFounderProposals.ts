@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useQuery } from '@apollo/client';
 import { formatEther } from 'viem';
 import {
@@ -52,13 +52,18 @@ export function useFounderProposals(founderName: string) {
     [data]
   );
 
+  // Wrapped refetch that forces network-only to bypass cache after mutations
+  const forceRefetch = useCallback(() => {
+    return refetch({ fetchPolicy: 'network-only' } as Parameters<typeof refetch>[0]);
+  }, [refetch]);
+
   // Memoize return value to prevent unnecessary re-renders
   return useMemo(() => ({
     proposals,
     loading,
     error,
-    refetch,
-  }), [proposals, loading, error, refetch]);
+    refetch: forceRefetch,
+  }), [proposals, loading, error, forceRefetch]);
 }
 
 /**
