@@ -25,7 +25,7 @@ import type { ApolloClient } from '@apollo/client';
 import { MultiVaultAbi } from '@0xintuition/protocol';
 import type { VoteCartItem, TotemCreationData } from './types';
 import { BATCH_VOTE_CONSTANTS } from './types';
-import { getContractConfig, autoAdjustAmount } from './utils';
+import { getContractConfig, autoAdjustAmount, chunkBatchArrays, calculateMinSharesBatch } from './utils';
 import type { BatchTripleItem } from './useBatchTriples';
 import { waitForTripleIndexed } from './waitForIndexed';
 import categoriesData from '../../../../../../packages/shared/src/data/categories.json';
@@ -312,7 +312,6 @@ export async function executeCreateNewTotems(
     const depositTermIds = depositData.map(d => d.termId);
     const depositCurveIds = depositData.map(d => d.curveId);
     const depositAmounts = depositData.map(d => d.amount);
-    const totalDeposit = depositAmounts.reduce((sum, a) => sum + a, 0n);
 
     for (const d of depositData) {
       console.log('[executeCreateAtoms] FOR deposit:', {
@@ -323,26 +322,25 @@ export async function executeCreateNewTotems(
       });
     }
 
-    const { request } = await publicClient.simulateContract({
-      account: walletClient.account,
-      address: multiVaultAddress,
-      abi: MultiVaultAbi,
-      functionName: 'depositBatch',
-      args: [
-        address,
-        depositTermIds,
-        depositCurveIds,
-        depositAmounts,
-        depositAmounts.map(() => 0n),
-      ],
-      value: totalDeposit,
-    });
+    const minShares = await calculateMinSharesBatch(publicClient, multiVaultAddress, depositTermIds, depositCurveIds, depositAmounts);
+    const chunks = chunkBatchArrays(depositTermIds, depositCurveIds, depositAmounts, minShares, BATCH_VOTE_CONSTANTS.MAX_BATCH_SIZE);
 
-    const depositTxHash = await walletClient.writeContract(request);
-    await publicClient.waitForTransactionReceipt({ hash: depositTxHash });
+    for (const chunk of chunks) {
+      const chunkTotal = chunk.values.reduce((s, a) => s + a, 0n);
+      const { request } = await publicClient.simulateContract({
+        account: walletClient.account,
+        address: multiVaultAddress,
+        abi: MultiVaultAbi,
+        functionName: 'depositBatch',
+        args: [address, chunk.termIds, chunk.curveIds, chunk.values, chunk.minValues],
+        value: chunkTotal,
+      });
+      const depositTxHash = await walletClient.writeContract(request);
+      await publicClient.waitForTransactionReceipt({ hash: depositTxHash });
+      txHashes.push(depositTxHash);
+    }
 
     console.log('[executeCreateAtoms] FOR deposits SUCCESS!');
-    txHashes.push(depositTxHash);
     onStepComplete?.();
   }
 

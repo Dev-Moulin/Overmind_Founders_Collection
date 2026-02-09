@@ -338,3 +338,149 @@ export function calculateTotalTransactions(params: TransactionCountParams): numb
   // Au minimum 1 étape
   return Math.max(1, steps);
 }
+
+/**
+ * Découpe un array en chunks de taille max
+ */
+export function chunkArray<T>(array: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+}
+
+/**
+ * Chunk d'arrays parallèles pour les batch operations
+ * Garantit que les arrays sont découpés de manière synchronisée
+ */
+export function chunkBatchArrays(
+  termIds: Hex[],
+  curveIds: bigint[],
+  values: bigint[],
+  minValues: bigint[],
+  maxSize: number
+): Array<{ termIds: Hex[]; curveIds: bigint[]; values: bigint[]; minValues: bigint[] }> {
+  const chunks: Array<{ termIds: Hex[]; curveIds: bigint[]; values: bigint[]; minValues: bigint[] }> = [];
+  for (let i = 0; i < termIds.length; i += maxSize) {
+    chunks.push({
+      termIds: termIds.slice(i, i + maxSize),
+      curveIds: curveIds.slice(i, i + maxSize),
+      values: values.slice(i, i + maxSize),
+      minValues: minValues.slice(i, i + maxSize),
+    });
+  }
+  return chunks;
+}
+
+/**
+ * Applique le slippage à un montant attendu
+ * Ex: applySlippage(1000n, 200) = 980n (2% slippage)
+ */
+export function applySlippage(expected: bigint, slippageBps: number): bigint {
+  return expected * (BATCH_VOTE_CONSTANTS.BPS_DENOMINATOR - BigInt(slippageBps)) / BATCH_VOTE_CONSTANTS.BPS_DENOMINATOR;
+}
+
+/**
+ * Preview batch deposits via multicall
+ * Retourne les shares attendues pour chaque dépôt
+ */
+export async function previewDepositBatch(
+  publicClient: PublicClient,
+  multiVaultAddress: Address,
+  termIds: Hex[],
+  curveIds: bigint[],
+  amounts: bigint[]
+): Promise<bigint[]> {
+  if (termIds.length === 0) return [];
+
+  try {
+    const results = await publicClient.multicall({
+      contracts: termIds.map((termId, i) => ({
+        address: multiVaultAddress,
+        abi: MultiVaultAbi,
+        functionName: 'previewDeposit' as const,
+        args: [termId, curveIds[i], amounts[i]],
+      })),
+    });
+
+    return results.map((result, i) => {
+      if (result.status === 'success' && result.result) {
+        // previewDeposit retourne [shares, assetsAfterFees]
+        const [shares] = result.result as readonly [bigint, bigint];
+        return shares;
+      }
+      console.warn(`[batch/utils] previewDeposit failed for index ${i}, using 0n`);
+      return 0n;
+    });
+  } catch (error) {
+    console.warn('[batch/utils] previewDepositBatch multicall failed, falling back to 0n:', error);
+    return termIds.map(() => 0n);
+  }
+}
+
+/**
+ * Preview batch redeems via multicall
+ * Retourne les assets attendus pour chaque retrait
+ */
+export async function previewRedeemBatch(
+  publicClient: PublicClient,
+  multiVaultAddress: Address,
+  termIds: Hex[],
+  curveIds: bigint[],
+  shares: bigint[]
+): Promise<bigint[]> {
+  if (termIds.length === 0) return [];
+
+  try {
+    const results = await publicClient.multicall({
+      contracts: termIds.map((termId, i) => ({
+        address: multiVaultAddress,
+        abi: MultiVaultAbi,
+        functionName: 'previewRedeem' as const,
+        args: [termId, curveIds[i], shares[i]],
+      })),
+    });
+
+    return results.map((result, i) => {
+      if (result.status === 'success' && result.result) {
+        // previewRedeem retourne [assets, assetsAfterFees]
+        const [assets] = result.result as readonly [bigint, bigint];
+        return assets;
+      }
+      console.warn(`[batch/utils] previewRedeem failed for index ${i}, using 0n`);
+      return 0n;
+    });
+  } catch (error) {
+    console.warn('[batch/utils] previewRedeemBatch multicall failed, falling back to 0n:', error);
+    return termIds.map(() => 0n);
+  }
+}
+
+/**
+ * Calcule les minShares pour un batch deposit avec slippage
+ */
+export async function calculateMinSharesBatch(
+  publicClient: PublicClient,
+  multiVaultAddress: Address,
+  termIds: Hex[],
+  curveIds: bigint[],
+  amounts: bigint[]
+): Promise<bigint[]> {
+  const expectedShares = await previewDepositBatch(publicClient, multiVaultAddress, termIds, curveIds, amounts);
+  return expectedShares.map(shares => applySlippage(shares, BATCH_VOTE_CONSTANTS.DEFAULT_SLIPPAGE_BPS));
+}
+
+/**
+ * Calcule les minAssets pour un batch redeem avec slippage
+ */
+export async function calculateMinAssetsBatch(
+  publicClient: PublicClient,
+  multiVaultAddress: Address,
+  termIds: Hex[],
+  curveIds: bigint[],
+  shares: bigint[]
+): Promise<bigint[]> {
+  const expectedAssets = await previewRedeemBatch(publicClient, multiVaultAddress, termIds, curveIds, shares);
+  return expectedAssets.map(assets => applySlippage(assets, BATCH_VOTE_CONSTANTS.DEFAULT_SLIPPAGE_BPS));
+}

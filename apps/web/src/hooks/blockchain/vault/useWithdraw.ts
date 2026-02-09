@@ -6,6 +6,8 @@ import { currentIntuitionChain } from '../../../config/wagmi';
 import { toast } from 'sonner';
 import type { WithdrawStatus, WithdrawError, WithdrawPreview } from '../../../types/withdraw';
 import { type CurveId, CURVE_LINEAR } from './useVote';
+import { applySlippage } from '../batch/utils';
+import { BATCH_VOTE_CONSTANTS } from '../batch/types';
 
 /**
  * Result of useWithdraw hook
@@ -70,7 +72,7 @@ export function useWithdraw(): UseWithdrawResult {
    * @param termId - The triple/atom ID
    * @param shares - Number of shares to redeem
    * @param isPositive - true for FOR vault, false for AGAINST vault
-   * @param minAssets - Minimum assets to receive (slippage protection), defaults to 0
+   * @param minAssets - Minimum assets to receive (slippage protection), auto-calculated if 0
    * @param curveId - Curve ID: 1 = Linear (default), 2 = Offset Progressive
    * @returns Transaction hash or null if failed
    */
@@ -163,6 +165,26 @@ export function useWithdraw(): UseWithdrawResult {
           }
         }
 
+        // Calculate minAssets with slippage protection if not provided
+        let effectiveMinAssets = minAssets;
+        if (effectiveMinAssets === 0n) {
+          try {
+            const previewResult = await publicClient.readContract({
+              address: multiVaultAddress,
+              abi: MultiVaultAbi,
+              functionName: 'previewRedeem',
+              args: [termId, curveIdBigInt, sharesToRedeem],
+            }) as readonly [bigint, bigint];
+            effectiveMinAssets = applySlippage(previewResult[0], BATCH_VOTE_CONSTANTS.DEFAULT_SLIPPAGE_BPS);
+            console.log('[useWithdraw] Slippage protection:', {
+              expectedAssets: previewResult[0].toString(),
+              minAssets: effectiveMinAssets.toString(),
+            });
+          } catch {
+            console.warn('[useWithdraw] previewRedeem failed, using 0n for minAssets');
+          }
+        }
+
         const config = {
           walletClient,
           publicClient,
@@ -171,7 +193,7 @@ export function useWithdraw(): UseWithdrawResult {
 
         // Call redeem function from @0xintuition/protocol
         const txHash = await redeem(config, {
-          args: [address, termId, curveIdBigInt, sharesToRedeem, minAssets],
+          args: [address, termId, curveIdBigInt, sharesToRedeem, effectiveMinAssets],
         });
 
         toast.loading('Withdrawing TRUST...', { id: 'withdraw' });
