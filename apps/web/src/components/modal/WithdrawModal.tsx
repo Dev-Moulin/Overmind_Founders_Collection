@@ -180,7 +180,7 @@ export function WithdrawModal({
         <div className="p-6 space-y-4">
           {/* Claim info */}
           <div className="bg-slate-500/10 rounded-lg p-3 border border-slate-500/20">
-            <p className="text-sm text-white/60 mb-1">Claim</p>
+            <p className="text-sm text-white/60 mb-1">{t('withdraw.claim')}</p>
             <p className="text-white font-medium">{claimLabel}</p>
             <p className="text-xs text-white/40 mt-1">
               Position : {isPositive ? t('vote.for') : t('vote.against')}
@@ -191,14 +191,14 @@ export function WithdrawModal({
           {positionLoading && (
             <div className="text-center py-4">
               <div className="animate-spin w-6 h-6 border-2 border-slate-500 border-t-transparent rounded-full mx-auto mb-2" />
-              <p className="text-white/60 text-sm">Chargement de votre position...</p>
+              <p className="text-white/60 text-sm">{t('withdraw.loadingPosition')}</p>
             </div>
           )}
 
           {/* No shares state */}
           {!positionLoading && !hasShares && (
             <div className="text-center py-4">
-              <p className="text-white/60">Vous n'avez pas de TRUST dans ce vault.</p>
+              <p className="text-white/60">{t('withdraw.noSharesInVault')}</p>
               <button
                 onClick={onClose}
                 className="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors"
@@ -213,7 +213,7 @@ export function WithdrawModal({
             <>
               {/* User's position */}
               <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/20">
-                <p className="text-sm text-white/60 mb-1">Vos {t('common.shares')}</p>
+                <p className="text-sm text-white/60 mb-1">{t('withdraw.yourShares', { shares: t('common.shares') })}</p>
                 <p className="text-green-400 font-bold text-lg">
                   {formatEther(userShares)} {t('common.shares')}
                 </p>
@@ -248,9 +248,9 @@ export function WithdrawModal({
               {/* Estimation */}
               {sharesToWithdraw > 0n && (
                 <div className="bg-white/5 rounded-lg p-3">
-                  <p className="text-sm text-white/60 mb-1">Estimation (après frais ~7%)</p>
+                  <p className="text-sm text-white/60 mb-1">{t('withdraw.estimationAfterFees')}</p>
                   <p className="text-white font-medium">
-                    ~{preview.formattedAssets} TRUST
+                    ~{preview.formattedAssets} {t('common.trustUnit')}
                   </p>
                 </div>
               )}

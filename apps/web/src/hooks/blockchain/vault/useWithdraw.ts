@@ -4,6 +4,7 @@ import { formatEther, type Hex } from 'viem';
 import { redeem, getMultiVaultAddressFromChainId, MultiVaultAbi } from '@0xintuition/protocol';
 import { currentIntuitionChain } from '../../../config/wagmi';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import type { WithdrawStatus, WithdrawError, WithdrawPreview } from '../../../types/withdraw';
 import { type CurveId, CURVE_LINEAR } from './useVote';
 import { applySlippage } from '../batch/utils';
@@ -55,6 +56,7 @@ export function useWithdraw(): UseWithdrawResult {
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
+  const { t } = useTranslation();
 
   const [status, setStatus] = useState<WithdrawStatus>('idle');
   const [error, setError] = useState<WithdrawError | null>(null);
@@ -87,37 +89,37 @@ export function useWithdraw(): UseWithdrawResult {
       if (!address) {
         setError({
           code: 'WALLET_NOT_CONNECTED',
-          message: 'Please connect your wallet',
+          message: t('errors.connectWallet'),
         });
         setStatus('error');
-        toast.error('Please connect your wallet');
+        toast.error(t('errors.connectWallet'));
         return null;
       }
 
       if (!walletClient || !publicClient) {
         setError({
           code: 'CLIENT_NOT_READY',
-          message: 'Wallet client not ready',
+          message: t('errors.walletClientNotReady'),
         });
         setStatus('error');
-        toast.error('Wallet client not ready');
+        toast.error(t('errors.walletClientNotReady'));
         return null;
       }
 
       if (shares <= 0n) {
         setError({
           code: 'NO_SHARES',
-          message: 'No shares to withdraw',
+          message: t('errors.noSharesToWithdraw'),
         });
         setStatus('error');
-        toast.error('No shares to withdraw');
+        toast.error(t('errors.noSharesToWithdraw'));
         return null;
       }
 
       try {
         reset();
         setStatus('withdrawing');
-        toast.info('Please sign the withdrawal transaction...');
+        toast.info(t('toast.signWithdrawal'));
 
         // In INTUITION V2, curveId determines the bonding curve:
         // - 1 = Linear (stable, 1:1 ratio)
@@ -257,7 +259,7 @@ export function useWithdraw(): UseWithdrawResult {
         return null;
       }
     },
-    [address, walletClient, publicClient, multiVaultAddress, reset]
+    [address, walletClient, publicClient, multiVaultAddress, reset, t]
   );
 
   // Memoize return value to prevent unnecessary re-renders

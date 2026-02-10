@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useIntuition } from '../blockchain/useIntuition';
 
 interface FounderData {
@@ -36,6 +37,7 @@ export function useAdminActions({
   refetchCategoryTriples,
 }: UseAdminActionsProps) {
   const { createAtom, createFounderAtom, getOrCreateAtom, createTriple, isReady } = useIntuition();
+  const { t } = useTranslation();
 
   const [creatingItem, setCreatingItem] = useState<string | null>(null);
   const [createdItems, setCreatedItems] = useState<Map<string, { termId: string; txHash: string }>>(
@@ -66,12 +68,12 @@ export function useAdminActions({
         );
         await refetchAtoms();
       } catch (err) {
-        setCreateError(err instanceof Error ? err.message : 'Erreur lors de la création');
+        setCreateError(err instanceof Error ? err.message : t('admin.creationError'));
       } finally {
         setCreatingItem(null);
       }
     },
-    [isReady, isAdmin, createFounderAtom, refetchAtoms]
+    [isReady, isAdmin, createFounderAtom, refetchAtoms, t]
   );
 
   const handleCreatePredicate = useCallback(
@@ -87,13 +89,13 @@ export function useAdminActions({
         await refetchPredicates();
       } catch (err) {
         setCreateError(
-          err instanceof Error ? err.message : 'Erreur lors de la création du prédicat'
+          err instanceof Error ? err.message : t('admin.predicateCreationError')
         );
       } finally {
         setCreatingItem(null);
       }
     },
-    [isReady, isAdmin, createAtom, refetchPredicates]
+    [isReady, isAdmin, createAtom, refetchPredicates, t]
   );
 
   const handleCreateTotem = useCallback(
@@ -158,7 +160,7 @@ export function useAdminActions({
       } catch (err) {
         console.error('[useAdminActions] ❌ Error creating totem:', err);
         setCreateError(
-          err instanceof Error ? err.message : "Erreur lors de la création de l'objet"
+          err instanceof Error ? err.message : t('admin.objectCreationError')
         );
       } finally {
         setCreatingItem(null);
@@ -172,6 +174,7 @@ export function useAdminActions({
       createTriple,
       refetchTotems,
       refetchCategoryTriples,
+      t,
     ]
   );
 
@@ -188,13 +191,13 @@ export function useAdminActions({
         await refetchOfcAtoms();
       } catch (err) {
         setCreateError(
-          err instanceof Error ? err.message : "Erreur lors de la création de l'atom OFC"
+          err instanceof Error ? err.message : t('admin.atomCreationError')
         );
       } finally {
         setCreatingItem(null);
       }
     },
-    [isReady, isAdmin, createAtom, refetchOfcAtoms]
+    [isReady, isAdmin, createAtom, refetchOfcAtoms, t]
   );
 
   // Memoize return value to prevent unnecessary re-renders

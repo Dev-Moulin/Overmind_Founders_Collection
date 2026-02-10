@@ -58,24 +58,24 @@ export function CrossPredicatePopup({
       >
         <h3 className="text-lg font-semibold text-amber-400 mb-4 flex items-center gap-2">
           <span>⚠️</span>
-          {t('founderExpanded.crossPredicateTitle', 'Position existante avec autre predicate')}
+          {t('founderExpanded.crossPredicateTitle')}
         </h3>
 
         <p className="text-white/80 text-sm mb-4">
-          {t('founderExpanded.crossPredicateDesc', 'Vous avez déjà voté sur ce totem avec')} "{redeemInfo.otherPredicateLabel}".
-          {t('founderExpanded.crossPredicateDesc2', ' Pour voter avec un autre predicate, vous devez d\'abord retirer vos positions.')}
+          {t('founderExpanded.crossPredicateDesc')} "{redeemInfo.otherPredicateLabel}".
+          {t('founderExpanded.crossPredicateDesc2')}
         </p>
 
         <div className="bg-white/5 rounded-lg p-3 mb-4 space-y-1">
           {redeemInfo.votes.map((vote, i) => (
             <div key={i} className="flex justify-between text-sm">
               <span style={{ color: vote.isPositive ? SUPPORT_COLORS.base : OPPOSE_COLORS.base }}>
-                {vote.isPositive ? 'Support' : 'Oppose'}{' '}
+                {vote.isPositive ? t('vote.support') : t('vote.oppose')}{' '}
                 <span style={{ color: vote.curveId === 1 ? CURVE_COLORS.linear.text : CURVE_COLORS.progressive.text }}>
-                  {vote.curveId === 1 ? 'Linear' : 'Progressive'}
+                  {vote.curveId === 1 ? t('curve.linear') : t('curve.progressive')}
                 </span>
               </span>
-              <span className="text-white">{truncateAmount(vote.formattedAmount)} TRUST</span>
+              <span className="text-white">{truncateAmount(vote.formattedAmount)} {t('common.trustUnit')}</span>
             </div>
           ))}
         </div>
@@ -85,14 +85,14 @@ export function CrossPredicatePopup({
             onClick={onClose}
             className="flex-1 py-2 rounded-lg bg-white/10 text-white/70 hover:bg-white/20 transition-colors"
           >
-            {t('common.cancel', 'Annuler')}
+            {t('common.cancel')}
           </button>
           <button
             onClick={onRedeemAll}
             disabled={loading}
             className="flex-1 py-2 rounded-lg bg-amber-600 text-white font-medium hover:bg-amber-700 transition-colors disabled:opacity-50"
           >
-            {loading ? '...' : `Redeem (${redeemInfo.totalToRedeem} TRUST)`}
+            {loading ? '...' : t('founderExpanded.crossPredicateRedeem', { amount: redeemInfo.totalToRedeem })}
           </button>
         </div>
       </div>

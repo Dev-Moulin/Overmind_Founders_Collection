@@ -21,6 +21,7 @@ import { type Hex, formatEther } from 'viem';
 import { getMultiVaultAddressFromChainId } from '@0xintuition/protocol';
 import { currentIntuitionChain } from '../../../config/wagmi';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { useIntuition } from '../useIntuition';
 import { useBatchTriples } from './useBatchTriples';
 import { GET_TRIPLE_BY_ATOMS } from '../../../lib/graphql/queries';
@@ -74,6 +75,7 @@ export function useBatchVote(): UseBatchVoteResult {
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
+  const { t } = useTranslation();
   const apolloClient = useApolloClient();
   const { getOrCreateAtom } = useIntuition();
   const { createBatch: createTriplesBatch } = useBatchTriples();
@@ -191,33 +193,33 @@ export function useBatchVote(): UseBatchVoteResult {
       if (!address) {
         setError({
           code: 'WALLET_NOT_CONNECTED',
-          message: 'Veuillez connecter votre wallet',
+          message: t('errors.connectWallet'),
           step: 'validating',
         });
         setStatus('error');
-        toast.error('Veuillez connecter votre wallet');
+        toast.error(t('errors.connectWallet'));
         return null;
       }
 
       if (!walletClient || !publicClient) {
         setError({
           code: 'CLIENT_NOT_READY',
-          message: 'Wallet client not ready',
+          message: t('errors.walletClientNotReady'),
           step: 'validating',
         });
         setStatus('error');
-        toast.error('Wallet client not ready');
+        toast.error(t('errors.walletClientNotReady'));
         return null;
       }
 
       if (!cart || cart.items.length === 0) {
         setError({
           code: 'EMPTY_CART',
-          message: 'Le panier est vide',
+          message: t('errors.cartEmpty'),
           step: 'validating',
         });
         setStatus('error');
-        toast.error('Le panier est vide');
+        toast.error(t('errors.cartEmpty'));
         return null;
       }
 
@@ -528,6 +530,7 @@ export function useBatchVote(): UseBatchVoteResult {
       multiVaultAddress,
       getOrCreateAtom,
       createTriplesBatch,
+      t,
     ]
   );
 

@@ -97,15 +97,15 @@ export function useCurveAvailability({
     // Build blocked reason message
     let blockedReason: string | null = null;
     if (linearBlocked || progressiveBlocked) {
-      const oppositeDirection = direction === 'support' ? 'Oppose' : 'Support';
-      const currentDirection = direction === 'support' ? 'Support' : 'Oppose';
+      const oppositeDirection = direction === 'support' ? t('vote.oppose') : t('vote.support');
+      const currentDirection = direction === 'support' ? t('vote.support') : t('vote.oppose');
       const hasCartBlocking = linearBlockedByCart || progressiveBlockedByCart;
-      const source = hasCartBlocking ? ' (panier inclus)' : '';
+      const source = hasCartBlocking ? ` ${t('founderExpanded.cartIncluded')}` : '';
 
       // Which curves are blocked?
       const blockedCurves: string[] = [];
-      if (linearBlocked) blockedCurves.push('Linear');
-      if (progressiveBlocked) blockedCurves.push('Progressive');
+      if (linearBlocked) blockedCurves.push(t('curve.linear'));
+      if (progressiveBlocked) blockedCurves.push(t('curve.progressive'));
 
       if (allBlocked) {
         // Both curves blocked — user must redeem to continue
@@ -117,7 +117,7 @@ export function useCurveAvailability({
         });
       } else {
         // Only one curve blocked — inform user the other is available
-        const freeCurve = linearBlocked ? 'Progressive' : 'Linear';
+        const freeCurve = linearBlocked ? t('curve.progressive') : t('curve.linear');
         blockedReason = t('founderExpanded.blockedSingleCurve', {
           oppositeDirection,
           blockedCurve: blockedCurves[0],

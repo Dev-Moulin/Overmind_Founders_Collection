@@ -738,7 +738,7 @@ export function VoteTotemPanel({
     <div className="glass-card p-4 h-full flex flex-col overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent" style={{ overscrollBehavior: 'contain' }}>
       {/* Header with cart button and "Added to cart" popup */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-white">Vote Totem</h3>
+        <h3 className="text-lg font-bold text-white">{t('founderExpanded.voteTotemTitle')}</h3>
 
         {/* Container pour le bouton panier + popup "Added to cart"
             - relative: permet le positionnement absolu de la popup
@@ -755,7 +755,7 @@ export function VoteTotemPanel({
                 'translate-x-0 opacity-0 pointer-events-none'  /* Caché derrière le bouton */
               }`}
             >
-              ✓ Added to cart
+              ✓ {t('founderExpanded.addedToCart')}
             </div>
 
             {/* Cart button - toujours au-dessus (z-10) */}
@@ -830,7 +830,7 @@ export function VoteTotemPanel({
         {/* Deposit/Redeem Switch - Step 1 */}
         {/* Two visual states: current selection (animate-ring-pulse) vs default (ring-slate) */}
         <div className={getBlurClass(1, currentFormStep)}>
-          <label className="block text-xs text-white/60 mb-1">Mode</label>
+          <label className="block text-xs text-white/60 mb-1">{t('founderExpanded.modeLabel')}</label>
           <div className="flex gap-2">
             {/* Deposit button - dims when Redeem is highlighted */}
             <button
@@ -842,7 +842,7 @@ export function VoteTotemPanel({
               }`}
               style={isRedeemHighlighted ? { opacity: 0.4, transition: 'opacity 200ms' } : { transition: 'opacity 200ms' }}
             >
-              Deposit
+              {t('founderExpanded.deposit')}
             </button>
             {/* Redeem button - pulses when highlighted, blur-disabled if no position */}
             <button
@@ -858,7 +858,7 @@ export function VoteTotemPanel({
                       : 'bg-white/5 text-white/40 ring-1 ring-slate-500/20 blur-disabled'
               }`}
             >
-              Redeem
+              {t('founderExpanded.redeem')}
             </button>
           </div>
         </div>
@@ -1015,7 +1015,7 @@ export function VoteTotemPanel({
             <p className="text-center text-xs text-white/50 mt-2">
               {totalItemCount > itemCount
                 ? `${totalItemCount} ${t('founderExpanded.votesInCart')} (${itemCount} ${t('founderExpanded.currentFounder').toLowerCase()})`
-                : `${itemCount} ${t('founderExpanded.votesInCart')} (${formattedNetCost} TRUST)`
+                : `${itemCount} ${t('founderExpanded.votesInCart')} (${formattedNetCost} ${t('common.trustUnit')})`
               }
             </p>
           )}

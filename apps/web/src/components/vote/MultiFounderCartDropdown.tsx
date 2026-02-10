@@ -48,6 +48,7 @@ interface MultiFounderCartDropdownProps {
  * Badge for position type (SL, SP, OL, OP)
  */
 function PositionBadge({ direction, curveId }: { direction: 'for' | 'against'; curveId: number }) {
+  const { t } = useTranslation();
   const isSupport = direction === 'for';
   const isLinear = curveId === 1;
   const label = `${isSupport ? 'S' : 'O'}${isLinear ? 'L' : 'P'}`;
@@ -60,7 +61,7 @@ function PositionBadge({ direction, curveId }: { direction: 'for' | 'against'; c
         backgroundColor: `${color}25`,
         color: color,
       }}
-      title={`${isSupport ? 'Support' : 'Oppose'} ${isLinear ? 'Linear' : 'Progressive'}`}
+      title={`${isSupport ? t('vote.support') : t('vote.oppose')} ${isLinear ? t('curve.linear') : t('curve.progressive')}`}
     >
       {label}
     </span>
@@ -129,7 +130,7 @@ const CartItemRow = memo(function CartItemRow({
           color: isSupport ? SUPPORT_COLORS.base : OPPOSE_COLORS.base,
         }}
       >
-        {isSupport ? 'Support' : 'Oppose'} {isLinear ? 'L' : 'P'}
+        {isSupport ? t('vote.support') : t('vote.oppose')} {isLinear ? 'L' : 'P'}
       </span>
 
       {/* Amount input */}
@@ -144,7 +145,7 @@ const CartItemRow = memo(function CartItemRow({
         onClick={(e) => e.stopPropagation()}
       />
 
-      <span className="text-[10px] text-white/40">TRUST</span>
+      <span className="text-[10px] text-white/40">{t('common.trustUnit')}</span>
 
       {/* Remove button */}
       <button
@@ -221,7 +222,7 @@ function FounderAccordionRow({
 
         {/* Total */}
         <span className="text-xs text-white/60 font-medium ml-1">
-          {total} TRUST
+          {total} {t('common.trustUnit')}
         </span>
 
         {/* Clear founder button */}
@@ -497,9 +498,9 @@ export function MultiFounderCartDropdown({
       <div className="shrink-0 pt-3 mt-3 border-t border-white/10">
         {/* Balance bar */}
         <div className="flex items-center justify-between text-[10px] px-2 py-1.5 bg-white/5 rounded mb-2">
-          <span className="text-white/50">Balance</span>
+          <span className="text-white/50">{t('common.balance')}</span>
           <span className={`font-medium ${Number(globalTotal) <= Number(formattedBalance) ? 'text-green-400' : 'text-red-400'}`}>
-            {formattedBalance} TRUST
+            {formattedBalance} {t('common.trustUnit')}
           </span>
         </div>
 
@@ -511,7 +512,7 @@ export function MultiFounderCartDropdown({
             </span>
           </div>
           <span className="text-sm font-semibold text-white">
-            {globalTotal} TRUST
+            {globalTotal} {t('common.trustUnit')}
           </span>
         </div>
 

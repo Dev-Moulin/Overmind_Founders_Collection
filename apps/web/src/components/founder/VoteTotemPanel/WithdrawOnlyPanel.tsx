@@ -155,8 +155,8 @@ export function WithdrawOnlyPanel({
 
   // Helper to get position label
   const getPositionLabel = (pos: PositionInfo) => {
-    const directionLabel = pos.direction === 'for' ? 'Support' : 'Oppose';
-    const curveLabel = pos.curveId === 1 ? 'Linear' : 'Progressive';
+    const directionLabel = pos.direction === 'for' ? t('vote.support') : t('vote.oppose');
+    const curveLabel = pos.curveId === 1 ? t('curve.linear') : t('curve.progressive');
     const amount = truncateAmount(formatEther(pos.shares));
     return { directionLabel, curveLabel, amount };
   };
@@ -166,7 +166,7 @@ export function WithdrawOnlyPanel({
     return (
       <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4 text-center">
         <p className="text-orange-300 text-sm mb-2">
-          {t('founderExpanded.noPositionToWithdraw') || 'Vous n\'avez pas de position sur ce totem'}
+          {t('founderExpanded.noPositionToWithdraw')}
         </p>
       </div>
     );
@@ -243,7 +243,7 @@ export function WithdrawOnlyPanel({
                     {curveLabel}
                   </span>
                 </div>
-                <span className="text-white font-medium">{amount} TRUST</span>
+                <span className="text-white font-medium">{amount} {t('common.trustUnit')}</span>
               </button>
             );
           })}
@@ -261,7 +261,7 @@ export function WithdrawOnlyPanel({
             </div>
             <div className="text-center">
               <span className="text-2xl font-bold text-orange-400">{formattedWithdrawAmount}</span>
-              <span className="text-lg text-white/50 ml-1">/ {formattedTotalSelected} TRUST</span>
+              <span className="text-lg text-white/50 ml-1">/ {formattedTotalSelected} {t('common.trustUnit')}</span>
             </div>
             {selectedIndexes.size > 1 && (
               <p className="text-xs text-white/40 text-center mt-1">
@@ -325,11 +325,11 @@ export function WithdrawOnlyPanel({
             <div className="bg-black/20 rounded-lg p-3 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-white/70">{t('founderExpanded.youWillReceive')}</span>
-                <span className="font-semibold" style={{ color: NET_COLORS.positive.base }}>{currentPreview.netAmountFormatted} TRUST</span>
+                <span className="font-semibold" style={{ color: NET_COLORS.positive.base }}>{currentPreview.netAmountFormatted} {t('common.trustUnit')}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-white/50">{t('founderExpanded.exitFee')} ({currentPreview.exitFeePercent})</span>
-                <span style={{ color: NET_COLORS.negative.base }}>-{currentPreview.exitFeeFormatted} TRUST</span>
+                <span style={{ color: NET_COLORS.negative.base }}>-{currentPreview.exitFeeFormatted} {t('common.trustUnit')}</span>
               </div>
             </div>
           ) : selectedPositions.length > 1 && totalSharesToWithdraw > 0n ? (

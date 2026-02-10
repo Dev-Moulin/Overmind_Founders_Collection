@@ -89,19 +89,19 @@ export function NeedsRedeemAlert({
             {t('founderExpanded.positionToWithdraw')}
           </p>
           <p className="text-white/70 text-xs mt-1">
-            Vous avez <span className="text-amber-300 font-medium">{formattedCurrentPosition} TRUST</span> en{' '}
+            {t('founderExpanded.youHaveTrustIn', { amount: formattedCurrentPosition })}{' '}
             <span style={{ color: positionDirection === 'for' ? SUPPORT_COLORS.base : OPPOSE_COLORS.base }}>
-              {positionDirection === 'for' ? 'Support' : 'Oppose'}
+              {positionDirection === 'for' ? t('vote.support') : t('vote.oppose')}
             </span>
-            {' '}({positionCurveId === CURVE_LINEAR ? 'Linear' : 'Progressive'}).
+            {' '}({positionCurveId === CURVE_LINEAR ? t('curve.linear') : t('curve.progressive')}).
           </p>
           {estimatedRecoverable && (
             <p className="text-xs mt-1" style={{ color: `${NET_COLORS.positive.base}cc` }}>
-              Vous récupérerez ~{estimatedRecoverable.net} TRUST (après {estimatedRecoverable.feePercent}% frais)
+              {t('founderExpanded.estimatedRecovery', { amount: estimatedRecoverable.net, fees: estimatedRecoverable.feePercent })}
             </p>
           )}
           <p className="text-white/50 text-xs mt-1">
-            Pour {voteDirection === 'for' ? 'Support' : 'Oppose'} {selectedCurve === CURVE_LINEAR ? 'Linear' : 'Progressive'}, retrait automatique.
+            {t('founderExpanded.autoWithdrawalInfo', { direction: voteDirection === 'for' ? t('vote.support') : t('vote.oppose'), curve: selectedCurve === CURVE_LINEAR ? t('curve.linear') : t('curve.progressive') })}
           </p>
         </div>
       </div>
@@ -109,7 +109,7 @@ export function NeedsRedeemAlert({
       {/* Amount input with slider for opposite vote */}
       <div className="pt-2 border-t border-amber-500/20">
         <label className="block text-xs text-white/60 mb-2">
-          Montant pour votre nouvelle position {voteDirection === 'for' ? 'Support' : 'Oppose'}
+          {t('founderExpanded.amountForNewPosition', { direction: voteDirection === 'for' ? t('vote.support') : t('vote.oppose') })}
         </label>
 
         {/* Slider */}
@@ -136,11 +136,11 @@ export function NeedsRedeemAlert({
             placeholder={minRequiredDisplay}
             className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-amber-500"
           />
-          <span className="text-xs text-white/50">TRUST</span>
+          <span className="text-xs text-white/50">{t('common.trustUnit')}</span>
         </div>
         {balanceFormatted && (
           <p className="text-xs text-white/40 mt-1">
-            Balance: {truncateAmount(balanceFormatted)} + ~{truncateAmount(parseFloat(formattedCurrentPosition) * 0.93)} récupérable
+            {t('founderExpanded.balanceRecoverable', { balance: truncateAmount(balanceFormatted), recoverable: truncateAmount(parseFloat(formattedCurrentPosition) * 0.93) })}
           </p>
         )}
       </div>

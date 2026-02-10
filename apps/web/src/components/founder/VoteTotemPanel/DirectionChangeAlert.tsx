@@ -51,16 +51,18 @@ export function DirectionChangeSection({ info, onCurveChoice, onBothCurvesAutoSe
   const hasBothPositions = info.linear.hasPosition && info.progressive.hasPosition;
   const hasOnlyLinear = info.linear.hasPosition && !info.progressive.hasPosition;
 
+  const { t } = useTranslation();
+
   // Build dynamic message based on positions
   const positionMessage = hasBothPositions
-    ? `Position ${info.currentDirectionLabel} sur les deux curves`
+    ? t('founderExpanded.positionOnBothCurves', { direction: info.currentDirectionLabel })
     : hasOnlyLinear
-      ? `Position ${info.currentDirectionLabel} sur Linear`
-      : `Position ${info.currentDirectionLabel} sur Progressive`;
+      ? t('founderExpanded.positionOnCurve', { direction: info.currentDirectionLabel, curve: t('curve.linear') })
+      : t('founderExpanded.positionOnCurve', { direction: info.currentDirectionLabel, curve: t('curve.progressive') });
 
   const actionMessage = hasBothPositions
-    ? `Vos positions seront retirées pour permettre ${info.targetDirectionLabel}.`
-    : `Pour faire ${info.targetDirectionLabel}, sélectionnez la curve à retirer :`;
+    ? t('founderExpanded.positionsWillBeWithdrawn', { direction: info.targetDirectionLabel })
+    : t('founderExpanded.selectCurveToWithdraw', { direction: info.targetDirectionLabel });
 
   // If both curves have positions, auto-trigger the selection
   // This is handled by useEffect in parent or by onBothCurvesAutoSelect
@@ -94,9 +96,9 @@ export function DirectionChangeSection({ info, onCurveChoice, onBothCurvesAutoSe
               color: info.linear.hasPosition ? CURVE_COLORS.linear.text : '#666',
               borderColor: `${CURVE_COLORS.linear.base}30`,
             }}
-            title={!info.linear.hasPosition ? 'Pas de position sur Linear' : undefined}
+            title={!info.linear.hasPosition ? t('founderExpanded.noPositionOnCurve', { curve: t('curve.linear') }) : undefined}
           >
-            📊 Linear {info.linear.hasPosition ? `(${info.linear.formatted})` : ''}
+            📊 {t('curve.linear')} {info.linear.hasPosition ? `(${info.linear.formatted})` : ''}
           </button>
 
           {/* Progressive button */}
@@ -111,9 +113,9 @@ export function DirectionChangeSection({ info, onCurveChoice, onBothCurvesAutoSe
               color: info.progressive.hasPosition ? CURVE_COLORS.progressive.text : '#666',
               borderColor: `${CURVE_COLORS.progressive.base}30`,
             }}
-            title={!info.progressive.hasPosition ? 'Pas de position sur Progressive' : undefined}
+            title={!info.progressive.hasPosition ? t('founderExpanded.noPositionOnCurve', { curve: t('curve.progressive') }) : undefined}
           >
-            📈 Progressive {info.progressive.hasPosition ? `(${info.progressive.formatted})` : ''}
+            📈 {t('curve.progressive')} {info.progressive.hasPosition ? `(${info.progressive.formatted})` : ''}
           </button>
         </div>
       )}
@@ -124,7 +126,7 @@ export function DirectionChangeSection({ info, onCurveChoice, onBothCurvesAutoSe
           onClick={onBothCurvesAutoSelect}
           className="w-full py-2.5 rounded-lg text-sm font-medium transition-colors border bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-500/30"
         >
-          ✓ Retirer les deux positions ({info.linear.formatted} + {info.progressive.formatted})
+          ✓ {t('founderExpanded.withdrawBothPositions')} ({info.linear.formatted} + {info.progressive.formatted})
         </button>
       )}
     </div>
@@ -146,22 +148,14 @@ export function PendingRedeemMessage({ info }: PendingRedeemMessageProps) {
         <span className="text-amber-400 text-lg">🔄</span>
         <div className="flex-1">
           <p className="text-amber-300 text-sm font-medium">
-            {t('founderExpanded.pendingRedeemTitle', 'Changement de direction prévu')}
+            {t('founderExpanded.pendingRedeemTitle')}
           </p>
           <p className="text-white/70 text-xs mt-1">
-            Votre position{' '}
-            <span style={{ color: info.redeemDirection === 'Support' ? SUPPORT_COLORS.base : OPPOSE_COLORS.base }}>
-              {info.redeemDirection}
-            </span>{' '}
-            sur{' '}
-            <span style={{ color: info.curveId === CURVE_LINEAR ? CURVE_COLORS.linear.text : CURVE_COLORS.progressive.text }}>
-              {info.curveLabel}
-            </span>{' '}
-            ({info.formatted} TRUST) sera retirée lors de la validation du panier.
+            {t('founderExpanded.pendingRedeemDescription', { direction: info.redeemDirection, curve: info.curveLabel, amount: info.formatted })}
           </p>
           <p className="text-white/50 text-xs mt-1">
-            Entrez le montant pour votre nouvelle position{' '}
-            <span style={{ color: info.newDirection === 'Support' ? SUPPORT_COLORS.base : OPPOSE_COLORS.base }}>
+            {t('founderExpanded.enterAmountNewPosition')}{' '}
+            <span style={{ color: info.newDirection === t('vote.support') ? SUPPORT_COLORS.base : OPPOSE_COLORS.base }}>
               {info.newDirection}
             </span>.
           </p>
@@ -194,22 +188,14 @@ export function PendingRedeemBothMessage({ info }: PendingRedeemBothMessageProps
         <span className="text-amber-400 text-lg">🔄</span>
         <div className="flex-1">
           <p className="text-amber-300 text-sm font-medium">
-            {t('founderExpanded.pendingRedeemTitle', 'Changement de direction prévu')}
+            {t('founderExpanded.pendingRedeemTitle')}
           </p>
           <p className="text-white/70 text-xs mt-1">
-            Vos positions{' '}
-            <span style={{ color: info.redeemDirection === 'Support' ? SUPPORT_COLORS.base : OPPOSE_COLORS.base }}>
-              {info.redeemDirection}
-            </span>{' '}
-            sur{' '}
-            <span style={{ color: CURVE_COLORS.linear.text }}>Linear</span>{' '}
-            ({info.linearFormatted}) et{' '}
-            <span style={{ color: CURVE_COLORS.progressive.text }}>Progressive</span>{' '}
-            ({info.progressiveFormatted}) seront retirées lors de la validation du panier.
+            {t('founderExpanded.pendingRedeemBothDescription', { direction: info.redeemDirection, linearCurve: t('curve.linear'), linearAmount: info.linearFormatted, progressiveCurve: t('curve.progressive'), progressiveAmount: info.progressiveFormatted })}
           </p>
           <p className="text-white/50 text-xs mt-1">
-            Entrez le montant pour votre nouvelle position{' '}
-            <span style={{ color: info.newDirection === 'Support' ? SUPPORT_COLORS.base : OPPOSE_COLORS.base }}>
+            {t('founderExpanded.enterAmountNewPosition')}{' '}
+            <span style={{ color: info.newDirection === t('vote.support') ? SUPPORT_COLORS.base : OPPOSE_COLORS.base }}>
               {info.newDirection}
             </span>.
           </p>

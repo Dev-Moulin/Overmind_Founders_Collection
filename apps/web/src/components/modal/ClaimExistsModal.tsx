@@ -181,8 +181,8 @@ export function ClaimExistsModal({
     // Prevent voting in opposite direction - must withdraw first
     if (isVotingOppositeDirection) {
       setValidationError(t('claimExists.cannotVoteOpposite', {
-        currentDirection: userExistingDirection === 'for' ? 'Support' : 'Oppose',
-        targetDirection: direction === 'for' ? 'Support' : 'Oppose',
+        currentDirection: userExistingDirection === 'for' ? t('vote.support') : t('vote.oppose'),
+        targetDirection: direction === 'for' ? t('vote.support') : t('vote.oppose'),
       }));
       return;
     }
@@ -290,7 +290,7 @@ export function ClaimExistsModal({
                     className="font-bold"
                     style={{ color: userExistingDirection === 'for' ? SUPPORT_COLORS.base : OPPOSE_COLORS.base }}
                   >
-                    {formatEther(userShares)} {t('common.shares')} ({userExistingDirection === 'for' ? 'Support' : 'Oppose'})
+                    {formatEther(userShares)} {t('common.shares')} ({userExistingDirection === 'for' ? t('vote.support') : t('vote.oppose')})
                   </p>
                 </div>
                 <button
@@ -306,8 +306,8 @@ export function ClaimExistsModal({
                 <div className="mt-3 p-3 rounded bg-amber-500/20 border border-amber-500/40">
                   <p className="text-amber-400 text-sm mb-2">
                     {t('claimExists.cannotVoteOpposite', {
-                      currentDirection: userExistingDirection === 'for' ? 'Support' : 'Oppose',
-                      targetDirection: direction === 'for' ? 'Support' : 'Oppose',
+                      currentDirection: userExistingDirection === 'for' ? t('vote.support') : t('vote.oppose'),
+                      targetDirection: direction === 'for' ? t('vote.support') : t('vote.oppose'),
                     })}
                   </p>
                   <button

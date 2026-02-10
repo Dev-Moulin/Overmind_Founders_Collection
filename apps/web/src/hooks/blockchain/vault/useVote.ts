@@ -5,7 +5,7 @@ import { getMultiVaultAddressFromChainId } from '@0xintuition/sdk';
 import { MultiVaultAbi } from '@0xintuition/protocol';
 import { currentIntuitionChain } from '../../../config/wagmi';
 import { toast } from 'sonner';
-import { truncateAmount } from '../../../utils/formatters';
+import { useTranslation } from 'react-i18next';
 import type { VoteStatus, VoteError } from '../../../types/vote';
 import { applySlippage } from '../batch/utils';
 import { BATCH_VOTE_CONSTANTS } from '../batch/types';
@@ -83,6 +83,7 @@ export function useVote(): UseVoteResult {
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
+  const { t } = useTranslation();
 
   const [status, setStatus] = useState<VoteStatus>('idle');
   const [error, setError] = useState<VoteError | null>(null);
@@ -111,7 +112,7 @@ export function useVote(): UseVoteResult {
       if (!address) {
         setError({
           code: 'WALLET_NOT_CONNECTED',
-          message: 'Veuillez connecter votre wallet',
+          message: t('errors.connectWallet'),
           step: 'checking',
         });
         updateStatus('error');
@@ -146,19 +147,17 @@ export function useVote(): UseVoteResult {
         // Step 1: Check balance
         updateStatus('checking');
         setCurrentStep(1);
-        toast.info('Vérification de la balance...');
+        toast.info(t('toast.checkingBalance'));
 
         const balance = await publicClient.getBalance({ address });
         if (balance < amountWei) {
-          throw new Error(
-            `Balance TRUST insuffisante. Vous avez ${truncateAmount(Number(balance) / 1e18)} TRUST mais il faut ${amount} TRUST.`
-          );
+          throw new Error(t('errors.insufficientBalance'));
         }
 
         // Step 2: Deposit (TRUST is native token on INTUITION L3)
         updateStatus('depositing');
         setCurrentStep(2);
-        toast.info('Veuillez signer la transaction de vote...');
+        toast.info(t('toast.signVoteTransaction'));
 
         // NOTE: For deposits on triples in INTUITION V2:
         // curveId determines the bonding curve used:
@@ -268,6 +267,7 @@ export function useVote(): UseVoteResult {
       multiVaultAddress,
       reset,
       updateStatus,
+      t,
     ]
   );
 
