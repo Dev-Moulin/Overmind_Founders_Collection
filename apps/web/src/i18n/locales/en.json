@@ -156,6 +156,8 @@
     "soleVoterMessage": "Active Support position. Withdraw to vote Oppose.",
     "progressiveInitWarning": "The Progressive curve must be initialized first. This requires 3 transactions.",
     "blockedOppositePosition": "Blocked: opposite position exists",
+    "blockedBothCurves": "Existing {{oppositeDirection}} position ({{curves}}){{source}}. Withdraw first to {{currentDirection}}.",
+    "blockedSingleCurve": "{{oppositeDirection}} position on {{blockedCurve}}{{source}}. {{freeCurve}} available.",
     "positionToWithdraw": "Existing position to withdraw",
     "curveType": "Bonding curve",
     "linearDesc": "Stable price for everyone",

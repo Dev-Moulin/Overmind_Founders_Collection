@@ -156,6 +156,8 @@
     "soleVoterMessage": "Position Support active. Retirez pour voter Oppose.",
     "progressiveInitWarning": "La courbe Progressive doit d'abord être initialisée. Cela implique 3 transactions.",
     "blockedOppositePosition": "Bloqué: position opposée existante",
+    "blockedBothCurves": "Position {{oppositeDirection}} existante ({{curves}}){{source}}. Retirez d'abord pour pouvoir {{currentDirection}}.",
+    "blockedSingleCurve": "Position {{oppositeDirection}} sur {{blockedCurve}}{{source}}. {{freeCurve}} disponible.",
     "positionToWithdraw": "Position existante à retirer",
     "curveType": "Courbe de bonding",
     "linearDesc": "Prix stable, tout le monde pareil",

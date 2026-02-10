@@ -1,18 +1,19 @@
 /**
  * useCurveAvailability - INTUITION protocol curve availability rules
  *
- * INTUITION Rules:
- * - Une seule direction à la fois (Support OU Oppose, pas les deux)
- * - Si tu as Support (sur n'importe quelle courbe) → tu ne peux PAS faire Oppose
- * - Si tu as Oppose (sur n'importe quelle courbe) → tu ne peux PAS faire Support
- * - Pour changer de direction → tu dois d'abord retirer (redeem) TOUTES tes positions
- * - Tu peux avoir Support Linear + Support Progressive (même direction = OK)
- * - Tu peux avoir Oppose Linear + Oppose Progressive (même direction = OK)
+ * INTUITION Rules (V2 - courbes indépendantes):
+ * - Les courbes Linear (curveId=1) et Progressive (curveId=2) sont INDÉPENDANTES
+ * - Tu PEUX avoir Support Linear + Oppose Progressive (cross-courbe OK)
+ * - Tu PEUX avoir Oppose Linear + Support Progressive (cross-courbe OK)
+ * - SEULE interdiction : Support ET Oppose sur la MÊME courbe
+ * - Pour voter dans la direction opposée sur une courbe → redeem ta position sur cette courbe
  *
  * @see VoteTotemPanel.tsx
  */
 
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { CURVE_LINEAR, CURVE_PROGRESSIVE } from '../index';
 import type { VoteCart } from '../../types/voteCart';
 
 /** Curve availability result with blocking reason */
@@ -56,6 +57,8 @@ export function useCurveAvailability({
   cart,
   selectedTotemId,
 }: UseCurveAvailabilityParams): CurveAvailability {
+  const { t } = useTranslation();
+
   return useMemo(() => {
     const direction = voteDirection === 'for' ? 'support' : voteDirection === 'against' ? 'oppose' : null;
 
@@ -64,65 +67,71 @@ export function useCurveAvailability({
       return { linear: true, progressive: true, blockedReason: null, allBlocked: false };
     }
 
-    // Check if user has ANY position in the opposite direction (on ANY curve)
-    const hasAnyForPosition = hasForPositionLinear || hasForPositionProgressive;
-    const hasAnyAgainstPosition = hasAgainstPositionLinear || hasAgainstPositionProgressive;
+    // Per-curve blocking by existing positions
+    // If I want Support → block ONLY the curve where I have Oppose
+    // If I want Oppose → block ONLY the curve where I have Support
+    const linearBlockedByPosition = direction === 'support' ? hasAgainstPositionLinear : hasForPositionLinear;
+    const progressiveBlockedByPosition = direction === 'support' ? hasAgainstPositionProgressive : hasForPositionProgressive;
 
-    // If I want Support, block ALL curves if I have ANY Oppose position
-    // If I want Oppose, block ALL curves if I have ANY Support position
-    const blockedByOppositePosition = direction === 'support' ? hasAnyAgainstPosition : hasAnyForPosition;
-
-    // Also check cart items for this totem - same logic
-    let blockedByCart = false;
+    // Per-curve blocking by cart items (same logic, per-curve)
+    let linearBlockedByCart = false;
+    let progressiveBlockedByCart = false;
     if (cart && selectedTotemId) {
       const cartItemsForTotem = cart.items.filter(item => item.totemId === selectedTotemId);
       for (const item of cartItemsForTotem) {
-        const itemIsSupport = item.direction === 'for';
-        const itemIsOppose = item.direction === 'against';
+        const isOpposite =
+          (direction === 'support' && item.direction === 'against') ||
+          (direction === 'oppose' && item.direction === 'for');
 
-        // If I want Support, check if cart has ANY Oppose
-        // If I want Oppose, check if cart has ANY Support
-        if (direction === 'support' && itemIsOppose) {
-          blockedByCart = true;
-          break;
-        } else if (direction === 'oppose' && itemIsSupport) {
-          blockedByCart = true;
-          break;
+        if (isOpposite) {
+          if (item.curveId === CURVE_LINEAR) linearBlockedByCart = true;
+          if (item.curveId === CURVE_PROGRESSIVE) progressiveBlockedByCart = true;
         }
       }
     }
 
-    const allBlocked = blockedByOppositePosition || blockedByCart;
+    const linearBlocked = linearBlockedByPosition || linearBlockedByCart;
+    const progressiveBlocked = progressiveBlockedByPosition || progressiveBlockedByCart;
+    const allBlocked = linearBlocked && progressiveBlocked;
 
     // Build blocked reason message
     let blockedReason: string | null = null;
-    if (allBlocked) {
+    if (linearBlocked || progressiveBlocked) {
       const oppositeDirection = direction === 'support' ? 'Oppose' : 'Support';
       const currentDirection = direction === 'support' ? 'Support' : 'Oppose';
-      const source = blockedByCart ? ' (panier inclus)' : '';
+      const hasCartBlocking = linearBlockedByCart || progressiveBlockedByCart;
+      const source = hasCartBlocking ? ' (panier inclus)' : '';
 
-      // List which curves have opposite positions
-      const curves: string[] = [];
-      if (direction === 'support') {
-        if (hasAgainstPositionLinear) curves.push('Linear');
-        if (hasAgainstPositionProgressive) curves.push('Progressive');
+      // Which curves are blocked?
+      const blockedCurves: string[] = [];
+      if (linearBlocked) blockedCurves.push('Linear');
+      if (progressiveBlocked) blockedCurves.push('Progressive');
+
+      if (allBlocked) {
+        // Both curves blocked — user must redeem to continue
+        blockedReason = t('founderExpanded.blockedBothCurves', {
+          oppositeDirection,
+          curves: blockedCurves.join(' + '),
+          source,
+          currentDirection,
+        });
       } else {
-        if (hasForPositionLinear) curves.push('Linear');
-        if (hasForPositionProgressive) curves.push('Progressive');
-      }
-
-      if (curves.length > 0) {
-        blockedReason = `Position ${oppositeDirection} existante (${curves.join(' + ')})${source}. Retirez d'abord pour pouvoir ${currentDirection}.`;
-      } else if (blockedByCart) {
-        blockedReason = `Vote ${oppositeDirection} dans le panier. ${currentDirection} impossible sur le même totem.`;
+        // Only one curve blocked — inform user the other is available
+        const freeCurve = linearBlocked ? 'Progressive' : 'Linear';
+        blockedReason = t('founderExpanded.blockedSingleCurve', {
+          oppositeDirection,
+          blockedCurve: blockedCurves[0],
+          source,
+          freeCurve,
+        });
       }
     }
 
     return {
-      linear: !allBlocked,
-      progressive: !allBlocked,
+      linear: !linearBlocked,
+      progressive: !progressiveBlocked,
       blockedReason,
       allBlocked,
     };
-  }, [voteDirection, hasForPositionLinear, hasForPositionProgressive, hasAgainstPositionLinear, hasAgainstPositionProgressive, cart, selectedTotemId]);
+  }, [voteDirection, hasForPositionLinear, hasForPositionProgressive, hasAgainstPositionLinear, hasAgainstPositionProgressive, cart, selectedTotemId, t]);
 }

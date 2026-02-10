@@ -130,7 +130,11 @@ export function usePositionBothSides(
   const hasForPosition = hasForPositionLinear || hasForPositionProgressive;
   const hasAgainstPosition = hasAgainstPositionLinear || hasAgainstPositionProgressive;
 
-  // Determine which side the user is on (prioritize Linear if both exist)
+  // Mixed directions: FOR on one curve AND AGAINST on another (cross-curve)
+  // Only possible after curve independence fix (e.g., Support Linear + Oppose Progressive)
+  const hasMixedDirections = hasForPosition && hasAgainstPosition;
+
+  // Determine which side the user is on (prioritize FOR if both exist)
   const positionDirection: 'for' | 'against' | null =
     hasForPosition ? 'for' :
     hasAgainstPosition ? 'against' :
@@ -205,6 +209,8 @@ export function usePositionBothSides(
     hasAgainstPositionLinear,
     hasAgainstPositionProgressive,
     hasAnyPosition: hasForPosition || hasAgainstPosition,
+    // Mixed directions (cross-curve: FOR on one, AGAINST on another)
+    hasMixedDirections,
     // Direction and curve
     positionDirection,
     positionCurveId,
@@ -225,6 +231,7 @@ export function usePositionBothSides(
     hasForPositionProgressive,
     hasAgainstPositionLinear,
     hasAgainstPositionProgressive,
+    hasMixedDirections,
     positionDirection,
     positionCurveId,
     isLoading,
