@@ -322,10 +322,12 @@ export function useVoteCart(): UseVoteCartResult {
         return prev;
       }
 
-      // Determine if withdrawal is needed (position on opposite side)
+      // Determine if withdrawal is needed (position on opposite side AND same curve)
+      // With independent curves, opposite direction on a different curve is allowed
       const needsWithdraw =
         !!input.currentPosition &&
-        input.currentPosition.direction !== input.direction;
+        input.currentPosition.direction !== input.direction &&
+        input.currentPosition.curveId === (input.curveId ?? CURVE_LINEAR);
 
       const newItem: VoteCartItem = {
         id: generateItemId(),
@@ -433,10 +435,11 @@ export function useVoteCart(): UseVoteCartResult {
           items: prev.items.map((item) => {
             if (item.id !== itemId) return item;
 
-            // Recalculate needsWithdraw based on new direction
+            // Recalculate needsWithdraw based on new direction (same curve only)
             const needsWithdraw =
               !!item.currentPosition &&
-              item.currentPosition.direction !== direction;
+              item.currentPosition.direction !== direction &&
+              item.currentPosition.curveId === item.curveId;
 
             return { ...item, direction, needsWithdraw };
           }),

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from '@apollo/client';
+import { useQuery } from '@apollo/client/react/hooks';
 import { useAccount } from 'wagmi';
 import { formatEther, type Hex, type Address } from 'viem';
 import { useTranslation } from 'react-i18next';
@@ -160,7 +160,7 @@ export function WithdrawModal({
       className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
       onClick={handleBackdropClick}
     >
-      <div className="bg-gradient-to-b from-gray-900 to-gray-800 rounded-xl shadow-2xl border border-white/20 max-w-md w-full">
+      <div className="bg-linear-to-b from-gray-900 to-gray-800 rounded-xl shadow-2xl border border-white/20 max-w-md w-full">
         {/* Header */}
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center justify-between">

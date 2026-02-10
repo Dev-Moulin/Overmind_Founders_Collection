@@ -507,8 +507,11 @@ export function VoteTotemPanel({
   const userTotalForShares = forSharesLinear + forSharesProgressive;
   const tripleTotalForShares = BigInt(proactiveClaimInfo?.forTotalShares || '0');
   // Si l'utilisateur a >= 99% des shares FOR, on considère qu'il est le seul votant significatif
-  const isSoleForVoter = tripleTotalForShares > 0n && userTotalForShares > 0n &&
+  const isSoleForVoterRaw = tripleTotalForShares > 0n && userTotalForShares > 0n &&
     (userTotalForShares * 100n / tripleTotalForShares >= 99n);
+  // With independent curves: only block Oppose if user has FOR on BOTH curves
+  // If user has FOR only on Linear, Oppose Progressive is legitimate (different vault)
+  const isSoleForVoter = isSoleForVoterRaw && hasForPositionLinear && hasForPositionProgressive;
 
   // DEBUG: Log pour vérifier les valeurs (temporaire) - se déclenche quand les données changent
   useEffect(() => {
@@ -520,7 +523,10 @@ export function VoteTotemPanel({
         userTotalForShares: userTotalForShares.toString(),
         tripleTotalForShares: tripleTotalForShares.toString(),
         percentage: `${percentage}%`,
+        isSoleForVoterRaw,
         isSoleForVoter,
+        hasForPositionLinear,
+        hasForPositionProgressive,
       });
     }
   }, [userTotalForShares, tripleTotalForShares, proactiveClaimInfo?.forTotalShares, isSoleForVoter]);

@@ -188,13 +188,14 @@ export function useAddToCart({
     const isNewTotem = isCreatingNewTotem || !proactiveClaimInfo;
 
     // Include current position so cart can detect if withdrawal is needed for opposite-side vote
+    // Only include if position is on the SAME curve as the vote (independent curves rule)
     const currentPositionForCart = pendingRedeemInfo
       ? {
           direction: (pendingRedeemInfo.redeemDirection === 'Support' ? 'for' : 'against') as 'for' | 'against',
           shares: pendingRedeemInfo.shares,
           curveId: pendingRedeemInfo.curveId,
         }
-      : hasAnyPosition && positionDirection && positionCurveId
+      : hasAnyPosition && positionDirection && positionCurveId && positionCurveId === selectedCurve
         ? { direction: positionDirection, shares: currentUserShares, curveId: positionCurveId }
         : undefined;
 
