@@ -13,6 +13,7 @@
  */
 
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { formatEther } from 'viem';
 import { truncateAmount } from '../../utils/formatters';
 import { CURVE_LINEAR, type CurveId } from '../index';
@@ -98,6 +99,8 @@ export function useDirectionChange({
   againstSharesLinear,
   againstSharesProgressive,
 }: UseDirectionChangeParams): UseDirectionChangeResult {
+  const { t } = useTranslation();
+
   // Track pending redeem curve when user wants to change direction
   const [pendingRedeemCurve, setPendingRedeemCurve] = useState<CurveId | null>(null);
   // Track if both curves are pending redeem
@@ -120,8 +123,8 @@ export function useDirectionChange({
       ? { shares: forSharesProgressive, formatted: forSharesProgressive > 0n ? truncateAmount(formatEther(forSharesProgressive)) : '0', hasPosition: forSharesProgressive > 0n }
       : { shares: againstSharesProgressive, formatted: againstSharesProgressive > 0n ? truncateAmount(formatEther(againstSharesProgressive)) : '0', hasPosition: againstSharesProgressive > 0n };
 
-    const currentDirectionLabel = voteDirection === 'against' ? 'Support' : 'Oppose';
-    const targetDirectionLabel = voteDirection === 'against' ? 'Oppose' : 'Support';
+    const currentDirectionLabel = voteDirection === 'against' ? t('vote.support') : t('vote.oppose');
+    const targetDirectionLabel = voteDirection === 'against' ? t('vote.oppose') : t('vote.support');
 
     return {
       linear: linearPosition,
@@ -129,7 +132,7 @@ export function useDirectionChange({
       currentDirectionLabel,
       targetDirectionLabel,
     };
-  }, [curveAvailability.allBlocked, voteDirection, forSharesLinear, forSharesProgressive, againstSharesLinear, againstSharesProgressive, pendingRedeemCurve, pendingRedeemBoth]);
+  }, [curveAvailability.allBlocked, voteDirection, forSharesLinear, forSharesProgressive, againstSharesLinear, againstSharesProgressive, pendingRedeemCurve, pendingRedeemBoth, t]);
 
   // Calculate pending redeem info for display (after user chose a SINGLE curve)
   const pendingRedeemInfo = useMemo((): PendingRedeemInfo | null => {
@@ -145,13 +148,13 @@ export function useDirectionChange({
 
     return {
       curveId: pendingRedeemCurve,
-      curveLabel: pendingRedeemCurve === CURVE_LINEAR ? 'Linear' : 'Progressive',
+      curveLabel: pendingRedeemCurve === CURVE_LINEAR ? t('curve.linear') : t('curve.progressive'),
       shares,
       formatted: truncateAmount(formatEther(shares)),
-      redeemDirection: isRedeemingFor ? 'Support' : 'Oppose',
-      newDirection: voteDirection === 'for' ? 'Support' : 'Oppose',
+      redeemDirection: isRedeemingFor ? t('vote.support') : t('vote.oppose'),
+      newDirection: voteDirection === 'for' ? t('vote.support') : t('vote.oppose'),
     };
-  }, [pendingRedeemCurve, pendingRedeemBoth, voteDirection, forSharesLinear, forSharesProgressive, againstSharesLinear, againstSharesProgressive]);
+  }, [pendingRedeemCurve, pendingRedeemBoth, voteDirection, forSharesLinear, forSharesProgressive, againstSharesLinear, againstSharesProgressive, t]);
 
   // Calculate pending redeem info for BOTH curves
   const pendingRedeemBothInfo = useMemo((): PendingRedeemBothInfo | null => {
@@ -164,14 +167,14 @@ export function useDirectionChange({
     if (linearShares <= 0n && progressiveShares <= 0n) return null;
 
     return {
-      redeemDirection: isRedeemingFor ? 'Support' : 'Oppose',
-      newDirection: voteDirection === 'for' ? 'Support' : 'Oppose',
+      redeemDirection: isRedeemingFor ? t('vote.support') : t('vote.oppose'),
+      newDirection: voteDirection === 'for' ? t('vote.support') : t('vote.oppose'),
       linearShares,
       progressiveShares,
       linearFormatted: truncateAmount(formatEther(linearShares)),
       progressiveFormatted: truncateAmount(formatEther(progressiveShares)),
     };
-  }, [pendingRedeemBoth, voteDirection, forSharesLinear, forSharesProgressive, againstSharesLinear, againstSharesProgressive]);
+  }, [pendingRedeemBoth, voteDirection, forSharesLinear, forSharesProgressive, againstSharesLinear, againstSharesProgressive, t]);
 
   // Handle curve choice when user selects a SINGLE curve (inline section)
   // Does NOT execute redeem - just selects curve and stores pending redeem info

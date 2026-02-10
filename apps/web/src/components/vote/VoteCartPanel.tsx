@@ -36,6 +36,7 @@ function DraggableAmountInput({
   canAfford?: boolean;
   showSpinners?: boolean;
 }) {
+  const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartX = useRef(0);
@@ -112,7 +113,7 @@ function DraggableAmountInput({
       className={`relative flex items-center cursor-ew-resize select-none ${isDragging ? 'opacity-80' : ''}`}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
-      title="Glisser pour ajuster"
+      title={t('voteCart.dragToAdjust')}
     >
       <input
         ref={inputRef}
@@ -279,7 +280,7 @@ const CartItemRow = memo(function CartItemRow({
               backgroundColor: `${item.direction === 'for' ? SUPPORT_COLORS.base : OPPOSE_COLORS.base}30`,
               color: item.direction === 'for' ? SUPPORT_COLORS.base : OPPOSE_COLORS.base,
             }}
-            title={item.direction === 'for' ? 'Support' : 'Oppose'}
+            title={item.direction === 'for' ? t('vote.support') : t('vote.oppose')}
           >
             {item.direction === 'for' ? 'S' : 'O'}
           </span>
@@ -290,7 +291,7 @@ const CartItemRow = memo(function CartItemRow({
               backgroundColor: `${item.direction === 'for' ? SUPPORT_COLORS.base : OPPOSE_COLORS.base}20`,
               color: item.direction === 'for' ? SUPPORT_COLORS.base : OPPOSE_COLORS.base,
             }}
-            title={item.curveId === 1 ? 'Linear' : 'Progressive'}
+            title={item.curveId === 1 ? t('curve.linear') : t('curve.progressive')}
           >
             {item.curveId === 1 ? 'L' : 'P'}
           </span>
@@ -331,7 +332,7 @@ const CartItemRow = memo(function CartItemRow({
           canAfford={canAfford}
           showSpinners={true}
         />
-        <span className="text-xs text-white/40">TRUST</span>
+        <span className="text-xs text-white/40">{t('common.trustUnit')}</span>
 
         {/* MAX button for blocked items */}
         {canAdjustToMax && (

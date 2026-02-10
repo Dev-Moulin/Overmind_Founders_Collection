@@ -164,7 +164,7 @@ export function useAddToCart({
     }
 
     if (voteDirection === 'withdraw') {
-      setError(t('founderExpanded.withdrawNotInCart', 'Withdraw non disponible dans le panier'));
+      setError(t('founderExpanded.withdrawNotInCart'));
       setTimeout(() => setError(null), 3000);
       return;
     }
@@ -177,7 +177,7 @@ export function useAddToCart({
         newTotemData,
         predicateAtomId: selectedPredicateWithAtom?.atomId
       });
-      setError('Données manquantes pour ajouter au panier');
+      setError(t('errors.missingCartData'));
       setTimeout(() => setError(null), 3000);
       return;
     }
@@ -264,7 +264,7 @@ export function useAddToCart({
       }
     } catch (err) {
       console.error('[useAddToCart] Error adding to cart:', err);
-      setError('Erreur lors de l\'ajout au panier');
+      setError(t('errors.addToCartError'));
       setTimeout(() => setError(null), 3000);
     }
     console.log('[useAddToCart] ========== ADD TO CART END ==========');

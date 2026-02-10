@@ -88,7 +88,7 @@ export function useCrossPredicateRedeem({
         );
       }
 
-      setSuccess(t('founderExpanded.crossPredicateRedeemSuccess', 'Positions retirées avec succès !'));
+      setSuccess(t('founderExpanded.crossPredicateRedeemSuccess'));
       setTimeout(() => setSuccess(null), 3000);
       callbacks.onClose();
 
@@ -99,7 +99,7 @@ export function useCrossPredicateRedeem({
       refetchPosition();
     } catch (err) {
       console.error('[useCrossPredicateRedeem] Cross-predicate redeem error:', err);
-      setError(t('founderExpanded.crossPredicateRedeemError', 'Erreur lors du retrait'));
+      setError(t('founderExpanded.crossPredicateRedeemError'));
       setTimeout(() => setError(null), 3000);
     } finally {
       setIsLoading(false);

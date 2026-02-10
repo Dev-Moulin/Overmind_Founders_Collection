@@ -8,6 +8,7 @@
  */
 
 import { formatEther } from 'viem';
+import { useTranslation } from 'react-i18next';
 import { truncateAmount } from '../../../utils/formatters';
 import { SUPPORT_COLORS, OPPOSE_COLORS, CURVE_COLORS } from '../../../config/colors';
 
@@ -49,6 +50,7 @@ export function TotemCard({
   isConnected,
   userPosition,
 }: TotemCardProps) {
+  const { t } = useTranslation();
   const hasTrust = userPosition && userPosition.trust > 0n;
   const trustValue = hasTrust ? parseFloat(formatEther(userPosition.trust)) : 0;
   const sharesValue = hasTrust ? parseFloat(formatEther(userPosition.shares)) : 0;
@@ -88,11 +90,11 @@ export function TotemCard({
       {isConnected && (
         <div className="flex items-center gap-1.5 mt-1 text-xs">
           <span className={hasTrust ? 'text-cyan-400' : 'text-white/30'}>
-            {truncateAmount(trustValue)} TRUST
+            {truncateAmount(trustValue)} {t('common.trustUnit')}
           </span>
           <span className="text-white/20">·</span>
           <span className={hasTrust ? 'text-white/60' : 'text-white/30'}>
-            {truncateAmount(sharesValue, 2)} shares
+            {truncateAmount(sharesValue, 2)} {t('common.shares')}
           </span>
           {/* Position badges [S/O] [L/P] */}
           {userPosition && (userPosition.linearTrust > 0n || userPosition.progressiveTrust > 0n) && (
@@ -136,8 +138,8 @@ export function TotemCard({
             {linearSupportValue > 0 && (
               <div className="flex justify-between items-center text-xs">
                 <span>
-                  <span className="font-medium" style={{ color: SUPPORT_COLORS.base }}>Support</span>
-                  <span className="ml-1" style={{ color: `${CURVE_COLORS.linear.text}B0` }}>Linear</span>
+                  <span className="font-medium" style={{ color: SUPPORT_COLORS.base }}>{t('vote.support')}</span>
+                  <span className="ml-1" style={{ color: `${CURVE_COLORS.linear.text}B0` }}>{t('curve.linear')}</span>
                 </span>
                 <span className="text-white/80 font-medium">{truncateAmount(linearSupportValue)}</span>
               </div>
@@ -145,8 +147,8 @@ export function TotemCard({
             {linearOpposeValue > 0 && (
               <div className="flex justify-between items-center text-xs">
                 <span>
-                  <span className="font-medium" style={{ color: OPPOSE_COLORS.base }}>Oppose</span>
-                  <span className="ml-1" style={{ color: `${CURVE_COLORS.linear.text}B0` }}>Linear</span>
+                  <span className="font-medium" style={{ color: OPPOSE_COLORS.base }}>{t('vote.oppose')}</span>
+                  <span className="ml-1" style={{ color: `${CURVE_COLORS.linear.text}B0` }}>{t('curve.linear')}</span>
                 </span>
                 <span className="text-white/80 font-medium">{truncateAmount(linearOpposeValue)}</span>
               </div>
@@ -154,8 +156,8 @@ export function TotemCard({
             {progressiveSupportValue > 0 && (
               <div className="flex justify-between items-center text-xs">
                 <span>
-                  <span className="font-medium" style={{ color: SUPPORT_COLORS.base }}>Support</span>
-                  <span className="ml-1" style={{ color: `${CURVE_COLORS.progressive.text}B0` }}>Progressive</span>
+                  <span className="font-medium" style={{ color: SUPPORT_COLORS.base }}>{t('vote.support')}</span>
+                  <span className="ml-1" style={{ color: `${CURVE_COLORS.progressive.text}B0` }}>{t('curve.progressive')}</span>
                 </span>
                 <span className="text-white/80 font-medium">{truncateAmount(progressiveSupportValue)}</span>
               </div>
@@ -163,8 +165,8 @@ export function TotemCard({
             {progressiveOpposeValue > 0 && (
               <div className="flex justify-between items-center text-xs">
                 <span>
-                  <span className="font-medium" style={{ color: OPPOSE_COLORS.base }}>Oppose</span>
-                  <span className="ml-1" style={{ color: `${CURVE_COLORS.progressive.text}B0` }}>Progressive</span>
+                  <span className="font-medium" style={{ color: OPPOSE_COLORS.base }}>{t('vote.oppose')}</span>
+                  <span className="ml-1" style={{ color: `${CURVE_COLORS.progressive.text}B0` }}>{t('curve.progressive')}</span>
                 </span>
                 <span className="text-white/80 font-medium">{truncateAmount(progressiveOpposeValue)}</span>
               </div>

@@ -1,6 +1,6 @@
 {
   "header": {
-    "title": "INTUITION Founders Totem",
+    "title": "INTUITION Founders Collection",
     "nav": {
       "propose": "Proposer",
       "vote": "Voter",
@@ -32,7 +32,10 @@
     "founder": "Fondateur",
     "relation": "Relation",
     "totem": "Totem",
-    "default": "défaut"
+    "default": "défaut",
+    "trustUnit": "TRUST",
+    "balance": "Solde",
+    "net": "Net"
   },
   "vote": {
     "for": "Soutenir",
@@ -48,6 +51,11 @@
     "amountHelper": "Montant de TRUST à déposer pour ce vote",
     "direction": "Direction du vote :",
     "voteButton": "Voter"
+  },
+  "curve": {
+    "linear": "Linear",
+    "progressive": "Progressive",
+    "total": "Total"
   },
   "claimExists": {
     "title": "Ce claim existe déjà",
@@ -68,7 +76,13 @@
     "success": "Retrait effectué avec succès !",
     "multipleSuccess": "{{count}} retraits effectués !",
     "partialSuccess": "{{success}}/{{total}} retraits réussis",
-    "error": "Erreur lors du retrait"
+    "error": "Erreur lors du retrait",
+    "claim": "Claim",
+    "position": "Position",
+    "loadingPosition": "Chargement de votre position...",
+    "noSharesInVault": "Vous n'avez pas de TRUST dans ce vault.",
+    "yourShares": "Vos {{shares}}",
+    "estimationAfterFees": "Estimation (après frais ~7%)"
   },
   "errors": {
     "claimIdMissing": "Claim ID manquant",
@@ -77,7 +91,22 @@
     "switchNetwork": "Veuillez passer sur INTUITION L3 Testnet (Chain ID: 13579) pour utiliser cette application.",
     "error": "Erreur",
     "loadingError": "Erreur lors du chargement",
-    "seeConsole": "Voir la console (F12) pour plus de détails"
+    "seeConsole": "Voir la console (F12) pour plus de détails",
+    "walletClientNotReady": "Client wallet non prêt",
+    "noSharesToWithdraw": "Aucun share à retirer",
+    "cartEmpty": "Le panier est vide",
+    "missingCartData": "Données manquantes pour ajouter au panier",
+    "addToCartError": "Erreur lors de l'ajout au panier",
+    "insufficientBalance": "Balance TRUST insuffisante. Assurez-vous d'avoir assez de TRUST."
+  },
+  "toast": {
+    "signWithdrawal": "Veuillez signer la transaction de retrait...",
+    "checkingBalance": "Vérification de la balance...",
+    "signVoteTransaction": "Veuillez signer la transaction de vote...",
+    "creatingRelations": "Création des relations en cours...",
+    "relationsCreated": "Relations créées ! Récupération des IDs...",
+    "blockchainVerification": "Vérification blockchain en cours...",
+    "idsFetched": "IDs récupérés ! Préparation des dépôts..."
   },
   "transaction": {
     "pleaseSign": "Veuillez signer la transaction dans votre wallet"
@@ -101,7 +130,7 @@
   "founderExpanded": {
     "biography": "Biographie",
     "stats": "Statistiques",
-    "totalVotes": "Total votes",
+    "totalVotes": "Votes totaux",
     "proposals": "Propositions",
     "recentActivity": "Activité récente",
     "voteCart": "Panier de votes",
@@ -152,10 +181,10 @@
     "selectWithdrawAmount": "Sélectionnez un montant à retirer",
     "noPositionToWithdraw": "Vous n'avez pas de position sur ce totem",
     "voteFirstToWithdraw": "Votez Soutenir ou Opposer d'abord pour pouvoir retirer",
-    "opposeBlockedProtocol": "Oppose impossible sur un nouveau triple (protocole)",
+    "opposeBlockedProtocol": "Oppose impossible sur un nouveau triple",
     "soleVoterMessage": "Position Support active. Retirez pour voter Oppose.",
     "progressiveInitWarning": "La courbe Progressive doit d'abord être initialisée. Cela implique 3 transactions.",
-    "blockedOppositePosition": "Bloqué: position opposée existante",
+    "blockedOppositePosition": "Bloqué : position opposée existante",
     "blockedBothCurves": "Position {{oppositeDirection}} existante ({{curves}}){{source}}. Retirez d'abord pour pouvoir {{currentDirection}}.",
     "blockedSingleCurve": "Position {{oppositeDirection}} sur {{blockedCurve}}{{source}}. {{freeCurve}} disponible.",
     "positionToWithdraw": "Position existante à retirer",
@@ -168,7 +197,54 @@
     "selectedCount": "{{selected}}/{{total}} sélectionnées",
     "positionsSelectedCount": "({{count}} positions sélectionnées)",
     "sequentialWithdraws": "{{count}} retraits seront effectués séquentiellement",
-    "withdrawAllPositions": "Retirer tout"
+    "withdrawAllPositions": "Retirer tout",
+    "voteTotemTitle": "Vote Totem",
+    "modeLabel": "Mode",
+    "directionLabel": "Direction",
+    "yourPositions": "Vos positions",
+    "willBeWithdrawnOnValidation": "seront retirées lors de la validation du panier.",
+    "enterAmountNewPosition": "Entrez le montant pour votre nouvelle position",
+    "cartIncluded": "(panier inclus)",
+    "youHaveTrustIn": "Vous avez {{amount}} TRUST en",
+    "estimatedRecovery": "Vous récupérerez ~{{amount}} TRUST (après {{fees}}% frais)",
+    "autoWithdrawalInfo": "Pour {{direction}} {{curve}}, retrait automatique.",
+    "amountForNewPosition": "Montant pour votre nouvelle position {{direction}}",
+    "noVotesOnCurve": "Pas de votes sur cette courbe",
+    "voteActivity": "Activité des votes",
+    "totemsTab": "Totems",
+    "bestTriplesTab": "Meilleurs Triples",
+    "scrollToSee": "Scroll pour voir les fondateurs",
+    "dragToAdjust": "Glisser pour ajuster",
+    "deposit": "Dépôt",
+    "redeem": "Retrait",
+    "pendingRedeemTitle": "Changement de direction prévu",
+    "positionOnBothCurves": "Position {{direction}} sur les deux courbes",
+    "positionOnCurve": "Position {{direction}} sur {{curve}}",
+    "positionsWillBeWithdrawn": "Vos positions seront retirées pour permettre {{direction}}.",
+    "selectCurveToWithdraw": "Pour {{direction}}, sélectionnez la courbe à retirer :",
+    "noPositionOnCurve": "Pas de position sur {{curve}}",
+    "withdrawBothPositions": "Retirer les deux positions",
+    "pendingRedeemDescription": "Votre position {{direction}} sur {{curve}} ({{amount}} TRUST) sera retirée lors de la validation du panier.",
+    "pendingRedeemBothDescription": "Vos positions {{direction}} sur {{linearCurve}} ({{linearAmount}}) et {{progressiveCurve}} ({{progressiveAmount}}) seront retirées lors de la validation du panier.",
+    "pendingCartAmount": "+{{amount}} TRUST en attente dans le panier",
+    "balanceRecoverable": "Solde : {{balance}} + ~{{recoverable}} récupérable",
+    "crossPredicateRedeem": "Retirer ({{amount}} TRUST)",
+    "crossPredicateTitle": "Position existante avec un autre prédicat",
+    "crossPredicateDesc": "Vous avez déjà voté sur ce totem avec",
+    "crossPredicateDesc2": " Pour voter avec un autre prédicat, vous devez d'abord retirer vos positions.",
+    "canWithdrawUpTo": "Vous pouvez retirer jusqu'à",
+    "currentFounder": "fondateur actuel",
+    "noPosition": "Aucune position"
+  },
+  "founderInfo": {
+    "totalMarketCap": "Capitalisation totale",
+    "totalHolders": "Total Holders",
+    "voters": "votants",
+    "claims": "Claims",
+    "atomId": "Atom ID",
+    "noVotesOnCurve": "Pas de votes sur cette courbe",
+    "topTotemsTab": "Top Totems",
+    "voteGraphTab": "Graphe des votes"
   },
   "creation": {
     "totemName": "Nom du totem",
@@ -196,7 +272,7 @@
   },
   "homePage": {
     "title": "INTUITION",
-    "subtitle": "Founders Totem",
+    "subtitle": "Founders Collection",
     "description": "Proposez et votez pour les totems qui représentent les 42 fondateurs de la collection INTUITION. Créez des identités on-chain uniques.",
     "viewAllTotems": "Voir tous les Totems",
     "results": "Résultats",
@@ -257,38 +333,38 @@
     "loading": "Chargement des fondateurs..."
   },
   "votePage": {
-    "title": "Vote for Totems",
+    "title": "Voter pour les Totems",
     "description": "Soutenez vos propositions de totems préférées en votant Soutenir ou Opposer",
     "stats": {
       "totalTotems": "Total Totems",
-      "founders": "Founders",
+      "founders": "Fondateurs",
       "totalClaims": "Total Claims"
     },
     "filters": {
-      "filterByFounder": "Filter by Founder",
-      "allFounders": "All Founders",
-      "sortBy": "Sort by",
-      "netScore": "Net Score (Highest)",
+      "filterByFounder": "Filtrer par Fondateur",
+      "allFounders": "Tous les Fondateurs",
+      "sortBy": "Trier par",
+      "netScore": "Score net (Plus haut)",
       "mostFor": "Plus de votes Soutenir",
       "mostAgainst": "Plus de votes Opposer",
-      "mostClaims": "Most Claims",
-      "search": "Search",
-      "searchPlaceholder": "Search totems, founders, predicates..."
+      "mostClaims": "Plus de Claims",
+      "search": "Rechercher",
+      "searchPlaceholder": "Rechercher totems, fondateurs, prédicats..."
     },
-    "showing": "Showing {count} of {total} totems",
-    "noResults": "No totems found matching your filters.",
-    "loading": "Loading totems..."
+    "showing": "Affichage de {count} sur {total} totems",
+    "noResults": "Aucun totem ne correspond à vos filtres.",
+    "loading": "Chargement des totems..."
   },
   "results": {
     "topTotems": {
-      "titleTrust": "Top Totems (TRUST)",
-      "titleWallets": "Top Totems (Votes)"
+      "titleTrust": "Meilleurs Totems (TRUST)",
+      "titleWallets": "Meilleurs Totems (Votes)"
     },
     "carousel": {
-      "showWallets": "Voir Net Votes",
-      "showTrust": "Voir Total TRUST",
-      "votes": "Net Votes",
-      "trust": "Total TRUST"
+      "showWallets": "Voir Votes Nets",
+      "showTrust": "Voir TRUST Total",
+      "votes": "Votes Nets",
+      "trust": "TRUST Total"
     }
   },
   "resultsPage": {
@@ -369,6 +445,11 @@
     "noDataInTimeframe": "Aucune donnée sur {{timeframe}}",
     "switchTo": "Voir {{timeframe}}"
   },
+  "graph": {
+    "voteGraphTitle": "Graphe des votes",
+    "for": "POUR",
+    "against": "CONTRE"
+  },
   "voteCart": {
     "insufficientFunds": "Fonds insuffisants",
     "insufficientBalance": "Balance insuffisante",
@@ -388,7 +469,12 @@
     "unknownError": "Erreur inconnue",
     "foundersValidated": "{{completed}}/{{total}} fondateurs validés",
     "votesFoundersSummary": "{{votes}} vote(s) - {{founders}} fondateur(s)",
-    "validateAll": "Valider ({{count}} vote(s))"
+    "validateAll": "Valider ({{count}} vote(s))",
+    "dragToAdjust": "Glisser pour ajuster",
+    "presetMin": "Min"
+  },
+  "footer": {
+    "builtOn": "Construit sur"
   },
   "admin": {
     "loadingAtoms": "Chargement des atoms...",
@@ -407,7 +493,11 @@
     "sourceManual": "Manuel",
     "sourceTwitter": "Twitter",
     "sourceGitHub": "GitHub",
-    "sourceGenerated": "DiceBear (généré)"
+    "sourceGenerated": "DiceBear (généré)",
+    "creationError": "Erreur lors de la création",
+    "predicateCreationError": "Erreur lors de la création du prédicat",
+    "objectCreationError": "Erreur lors de la création de l'objet",
+    "atomCreationError": "Erreur lors de la création de l'atom OFC"
   },
   "voteMarket": {
     "statsError": "Erreur chargement stats",
@@ -415,7 +505,10 @@
     "hide": "Masquer",
     "details": "Détails",
     "allTotems": "Tous les totems",
-    "topTotem": "Top totem"
+    "topTotem": "Meilleur totem",
+    "title": "Marché des votes",
+    "totalTrust": "TRUST Total",
+    "totems": "Totems"
   },
   "networkGuard": {
     "wrongNetwork": "Mauvais réseau détecté",

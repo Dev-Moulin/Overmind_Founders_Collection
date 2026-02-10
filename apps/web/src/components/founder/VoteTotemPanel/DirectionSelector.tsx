@@ -93,7 +93,7 @@ export function DirectionSelector({
 
   return (
     <div className={blurClass} style={dimStyle}>
-      <label className="block text-xs text-white/60 mb-1">Direction</label>
+      <label className="block text-xs text-white/60 mb-1">{t('founderExpanded.directionLabel')}</label>
       <div className="flex gap-2">
         {/* Support button */}
         <button
