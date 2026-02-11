@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FounderHomeCard } from '../components/founder';
 import { FounderExpandedView } from '../components/founder';
+import { AlphabetIndex } from '../components/founder/AlphabetIndex/AlphabetIndex';
 import { useFoundersForHomePage, type FounderForHomePage, type TopTotem } from '../hooks';
 import '../carousel-3d.css';
 
@@ -184,6 +185,12 @@ export function HomePage3DCarousel() {
   // Ref pour la section carrousel (pour bloquer le scroll natif)
   const carouselSectionRef = useRef<HTMLDivElement>(null);
 
+  // Ref pour le container scroll snap (root de l'IntersectionObserver)
+  const pageContainerRef = useRef<HTMLDivElement>(null);
+
+  // Visibilité du carousel (pour afficher/masquer l'AlphabetIndex)
+  const [isCarouselVisible, setIsCarouselVisible] = useState(false);
+
   // Ref pour le timeout d'auto-centrage
   const autoCenterTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -343,6 +350,32 @@ export function HomePage3DCarousel() {
     };
   }, [loading, snapToNearestCard]);
 
+  // IntersectionObserver: afficher l'AlphabetIndex quand la section carousel est visible
+  useEffect(() => {
+    const section = carouselSectionRef.current;
+    const container = pageContainerRef.current;
+    if (!section || !container) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsCarouselVisible(entry.isIntersecting),
+      { root: container, threshold: 0.3 }
+    );
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, []);
+
+  // Navigate to a specific founder by ID (used by AlphabetIndex)
+  const goToFounder = useCallback((founderId: string) => {
+    if (founders.length === 0) return;
+    const founderIndex = founders.findIndex((f) => f.id === founderId);
+    if (founderIndex === -1) return;
+
+    const anglePerItem = 360 / founders.length;
+    const targetRotation = -(founderIndex) * anglePerItem;
+
+    setCarouselRotation(targetRotation);
+  }, [founders]);
+
   // Handler pour clic sur une card
   const handleCardClick = useCallback((position: number, quantity: number, founderId: string) => {
     return (e: React.MouseEvent) => {
@@ -368,107 +401,117 @@ export function HomePage3DCarousel() {
   }, [carouselRotation, frontCardPosition, selectFounder]);
 
   return (
-    <div className="carousel-page-container">
-      {/* ÉCRAN 1: Hero + Stats */}
-      <section className="carousel-screen hero-screen">
-        <div className="max-w-4xl mx-auto px-4">
-          {/* Hero */}
-          <div className="text-center pt-20 pb-12">
-            <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
-              {t('homePage.title')}
-              <span className="block text-slate-400 mt-2">{t('homePage.subtitle')}</span>
-            </h1>
-            <p className="text-xl text-white/70 max-w-2xl mx-auto">
-              {t('homePage.description')}
-            </p>
-          </div>
+    <>
+      {/* Alphabet bar — fixed below header, outside carousel event scope */}
+      {!selectedFounderId && isCarouselVisible && !loading && (
+        <AlphabetIndex
+          founders={founders}
+          onSelectFounder={goToFounder}
+        />
+      )}
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-20">
-            <div className="glass-card p-6 text-center">
-              <div className="text-4xl font-bold text-slate-400">{stats.totalFounders}</div>
-              <div className="text-white/60">{t('homePage.stats.founders')}</div>
+      <div className="carousel-page-container" ref={pageContainerRef}>
+        {/* ÉCRAN 1: Hero + Stats */}
+        <section className="carousel-screen hero-screen">
+          <div className="max-w-4xl mx-auto px-4">
+            {/* Hero */}
+            <div className="text-center pt-20 pb-12">
+              <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
+                {t('homePage.title')}
+                <span className="block text-slate-400 mt-2">{t('homePage.subtitle')}</span>
+              </h1>
+              <p className="text-xl text-white/70 max-w-2xl mx-auto">
+                {t('homePage.description')}
+              </p>
             </div>
-            <div className="glass-card p-6 text-center">
-              <div className="text-4xl font-bold text-slate-400">{stats.foundersWithAtoms}</div>
-              <div className="text-white/60">{t('homePage.stats.onChain')}</div>
-            </div>
-            <div className="glass-card p-6 text-center">
-              <div className="text-4xl font-bold text-slate-400">{stats.totalProposals}</div>
-              <div className="text-white/60">{t('homePage.stats.proposals')}</div>
-            </div>
-            <div className="glass-card p-6 text-center">
-              <div className="text-4xl font-bold text-slate-400">{stats.foundersWithTotems}</div>
-              <div className="text-white/60">{t('homePage.stats.withTotem')}</div>
-            </div>
-          </div>
 
-          {/* Indicateur scroll down */}
-          <div className="text-center animate-bounce">
-            <span className="text-white/50 text-sm">Scroll pour voir les founders</span>
-            <div className="text-white/30 text-2xl">↓</div>
-          </div>
-        </div>
-      </section>
-
-      {/* ÉCRAN 2: Carrousel uniquement */}
-      <section className="carousel-screen carousel-section" ref={carouselSectionRef}>
-        {error && (
-          <div className="glass-card p-6 text-center text-red-400 absolute top-4 left-1/2 -translate-x-1/2">
-            {t('homePage.loadingError')} : {error.message}
-          </div>
-        )}
-
-        {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="animate-spin w-12 h-12 border-4 border-slate-500 border-t-transparent rounded-full" />
-          </div>
-        ) : (
-          <>
-            <div className='banner-fullscreen'>
-              <div
-                className='slider'
-                style={{
-                  '--quantity': founders.length,
-                  transform: `rotateY(${carouselRotation}deg)`
-                } as React.CSSProperties}
-              >
-                {founders.map((founder, index) => {
-                  const position = index + 1;
-                  const distance = getDistanceFromFront(position, frontCardPosition, founders.length);
-                  const flipAngle = getFlipAngle(distance);
-                  const isFront = position === frontCardPosition;
-
-                  return (
-                    <div
-                      key={founder.id}
-                      className={`item ${isFront ? 'is-front' : ''}`}
-                      style={{ '--position': position } as React.CSSProperties}
-                    >
-                      <FlippableCard
-                        founder={founder}
-                        topTotems={topTotemsMap.get(founder.name) || []}
-                        flipAngle={flipAngle}
-                        isFront={isFront}
-                        isSelected={founder.id === selectedFounderId}
-                        onClick={handleCardClick(position, founders.length, founder.id)}
-                      />
-                    </div>
-                  );
-                })}
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-20">
+              <div className="glass-card p-6 text-center">
+                <div className="text-4xl font-bold text-slate-400">{stats.totalFounders}</div>
+                <div className="text-white/60">{t('homePage.stats.founders')}</div>
+              </div>
+              <div className="glass-card p-6 text-center">
+                <div className="text-4xl font-bold text-slate-400">{stats.foundersWithAtoms}</div>
+                <div className="text-white/60">{t('homePage.stats.onChain')}</div>
+              </div>
+              <div className="glass-card p-6 text-center">
+                <div className="text-4xl font-bold text-slate-400">{stats.totalProposals}</div>
+                <div className="text-white/60">{t('homePage.stats.proposals')}</div>
+              </div>
+              <div className="glass-card p-6 text-center">
+                <div className="text-4xl font-bold text-slate-400">{stats.foundersWithTotems}</div>
+                <div className="text-white/60">{t('homePage.stats.withTotem')}</div>
               </div>
             </div>
 
-            {/* Overlay avec backdrop-filter HORS du contexte 3D */}
-            <FrontCardOverlay
-              founder={frontFounder}
-              topTotems={frontFounderTotems}
-              onSelect={selectFounder}
-              selectedFounderId={selectedFounderId}
-            />
-          </>
-        )}
-      </section>
+            {/* Indicateur scroll down */}
+            <div className="text-center animate-bounce">
+              <span className="text-white/50 text-sm">Scroll pour voir les founders</span>
+              <div className="text-white/30 text-2xl">↓</div>
+            </div>
+          </div>
+        </section>
+
+        {/* ÉCRAN 2: Carrousel uniquement */}
+        <section className="carousel-screen carousel-section" ref={carouselSectionRef}>
+          {error && (
+            <div className="glass-card p-6 text-center text-red-400 absolute top-4 left-1/2 -translate-x-1/2">
+              {t('homePage.loadingError')} : {error.message}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="animate-spin w-12 h-12 border-4 border-slate-500 border-t-transparent rounded-full" />
+            </div>
+          ) : (
+            <>
+              <div className='banner-fullscreen'>
+                <div
+                  className='slider'
+                  style={{
+                    '--quantity': founders.length,
+                    transform: `rotateY(${carouselRotation}deg)`
+                  } as React.CSSProperties}
+                >
+                  {founders.map((founder, index) => {
+                    const position = index + 1;
+                    const distance = getDistanceFromFront(position, frontCardPosition, founders.length);
+                    const flipAngle = getFlipAngle(distance);
+                    const isFront = position === frontCardPosition;
+
+                    return (
+                      <div
+                        key={founder.id}
+                        className={`item ${isFront ? 'is-front' : ''}`}
+                        style={{ '--position': position } as React.CSSProperties}
+                      >
+                        <FlippableCard
+                          founder={founder}
+                          topTotems={topTotemsMap.get(founder.name) || []}
+                          flipAngle={flipAngle}
+                          isFront={isFront}
+                          isSelected={founder.id === selectedFounderId}
+                          onClick={handleCardClick(position, founders.length, founder.id)}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Overlay avec backdrop-filter HORS du contexte 3D */}
+              <FrontCardOverlay
+                founder={frontFounder}
+                topTotems={frontFounderTotems}
+                onSelect={selectFounder}
+                selectedFounderId={selectedFounderId}
+              />
+            </>
+          )}
+        </section>
+      </div>
 
       {/* Expanded Founder View (when a founder is selected) */}
       {selectedFounder && (
@@ -477,6 +520,6 @@ export function HomePage3DCarousel() {
           onClose={closeExpandedView}
         />
       )}
-    </div>
+    </>
   );
 }

@@ -21,16 +21,10 @@ export function NetworkSwitch() {
   return (
     <button
       onClick={toggleNetwork}
-      className={`
-        px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider
-        transition-all duration-200 hover:scale-105 active:scale-95
-        border-2 shadow-lg
-        ${
-          isTestnet
-            ? 'bg-red-500/20 border-red-500 text-red-400 hover:bg-red-500/30'
-            : 'bg-green-500/20 border-green-500 text-green-400 hover:bg-green-500/30'
-        }
-      `}
+      className={`glass-button text-xs font-bold uppercase tracking-wider ${
+        isTestnet ? 'text-red-400' : 'text-green-400'
+      }`}
+      style={{ padding: '6px 15px' }}
       title={`Switch to ${isTestnet ? 'Mainnet' : 'Testnet'}`}
     >
       {network}

@@ -433,6 +433,15 @@ export function useFoundersForHomePage() {
       progressiveWinner: progressiveWinnerMap.get(founder.name) || null,
     }));
 
+    // Sort alphabetically by last name for carousel navigation
+    enrichedFounders.sort((a, b) => {
+      const getLastName = (name: string) => {
+        const parts = name.split(' ');
+        return parts.length > 1 ? parts[parts.length - 1] : parts[0];
+      };
+      return getLastName(a.name).localeCompare(getLastName(b.name));
+    });
+
     // Calculate stats
     const foundersWithAtoms = enrichedFounders.filter((f) => f.atomId).length;
     const foundersWithTotems = enrichedFounders.filter((f) => f.winningTotem).length;
