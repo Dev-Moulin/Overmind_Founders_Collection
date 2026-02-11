@@ -21,7 +21,8 @@ export function LanguageSwitcher() {
   return (
     <button
       onClick={toggleLanguage}
-      className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200 hover:scale-105 active:scale-95 bg-white/10 hover:bg-white/20 text-white border border-white/20"
+      className="glass-button text-xs font-bold uppercase tracking-wider"
+      style={{ padding: '6px 15px' }}
       title={`Switch to ${nextLang}`}
     >
       {currentLang}

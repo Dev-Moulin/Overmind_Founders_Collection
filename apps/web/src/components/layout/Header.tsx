@@ -37,8 +37,8 @@ export function Header() {
   };
 
   return (
-    <header className="flex justify-between items-center px-6 py-4 border-b border-white/10 bg-black/20 backdrop-blur-sm">
-      <div className="flex items-center gap-6">
+    <header className="relative z-50 flex items-center px-6 py-3 gap-4 border-b border-white/10 bg-black/20 backdrop-blur-sm overflow-visible">
+      <div className="flex items-center gap-6 shrink-0">
         <Link to="/" onClick={handleLogoClick} className="text-xl font-bold text-white hover:text-slate-400 transition-colors">
           {t('header.title')}
         </Link>
@@ -52,7 +52,10 @@ export function Header() {
         )}
       </div>
 
-      <div className="flex items-center gap-3">
+      {/* Slot pour l'AlphabetIndex (injecté via portal quand le carousel est visible) */}
+      <div id="navbar-alphabet-slot" className="flex-1 min-w-0 flex justify-center items-end translate-y-[15px] overflow-visible" />
+
+      <div className="flex items-center gap-3 shrink-0">
         <LanguageSwitcher />
         <NetworkSwitch />
         <WalletConnectButton />

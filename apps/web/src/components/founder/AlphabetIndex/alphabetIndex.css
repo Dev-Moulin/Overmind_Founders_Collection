@@ -1,0 +1,388 @@
+/* ============================================
+   DOCK MAGNIFICATION EFFECT (macOS style)
+
+   ============================================ */
+
+/* === SHARED DOCK ITEM BASE === */
+.dock-item {
+  --s: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Hovered item */
+.dock-item:hover {
+  --s: 2.5;
+}
+
+/* Direct neighbors (distance 1) */
+.dock-item:has(+ .dock-item:hover),
+.dock-item:hover + .dock-item {
+  --s: 1.7;
+}
+
+/* Two-away neighbors (distance 2) */
+.dock-item:has(+ .dock-item + .dock-item:hover),
+.dock-item:hover + .dock-item + .dock-item {
+  --s: 1.3;
+}
+
+/* === DOCK LETTER === */
+.dock-letter {
+  width: calc(26px * var(--s));
+  height: calc(30px * var(--s));
+  font-size: calc(13px * var(--s));
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: 6px;
+  transition: width 150ms ease, height 150ms ease, font-size 150ms ease,
+              color 150ms ease, background-color 150ms ease;
+}
+
+.dock-letter:hover {
+  color: white;
+}
+
+.dock-letter.active {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.dock-letter.disabled {
+  color: rgba(255, 255, 255, 0.2);
+  pointer-events: none;
+  --s: 1 !important;
+}
+
+/* === DOCK PHOTO ITEM (inline in bar, morphs into mini-card) === */
+.dock-photo-item {
+  width: fit-content;
+  max-width: calc(30px * var(--s));
+  height: calc(30px * var(--s));
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: rgba(15, 23, 42, 0.95);
+  box-shadow: none;
+  flex-shrink: 0;
+  animation: photoFadeIn 200ms ease-out;
+  transition: max-width 300ms ease, height 300ms ease, border-radius 300ms ease,
+              border-color 300ms ease, box-shadow 300ms ease, background 300ms ease,
+              backdrop-filter 300ms ease;
+}
+
+.dock-photo-item:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.dock-photo-item img,
+.dock-photo-item .photo-placeholder {
+  flex-shrink: 0;
+  width: calc(30px * var(--s) - 4px);
+  height: calc(30px * var(--s) - 4px);
+  border-radius: 50%;
+  object-fit: cover;
+  transition: width 300ms ease, height 300ms ease, margin 300ms ease, border-radius 300ms ease;
+}
+
+.dock-photo-item .photo-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: calc(12px * var(--s));
+  font-weight: 700;
+  transition: width 200ms ease, height 200ms ease, margin 200ms ease, font-size 200ms ease;
+}
+
+/* Expanded state: photo morphs into mini-card (glass-card style) */
+.dock-photo-item.expanded {
+  max-width: 280px;
+  height: 60px;
+  border-radius: 12px;
+  justify-content: flex-start;
+
+  /* Match glass-card appearance from carousel */
+  background: rgba(30, 30, 30, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-top-color: rgba(255, 255, 255, 0.25);
+  border-left-color: rgba(255, 255, 255, 0.2);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.15),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.1),
+    0 8px 32px rgba(0, 0, 0, 0.2),
+    0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dock-photo-item.expanded img,
+.dock-photo-item.expanded .photo-placeholder {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  margin: 6px;
+}
+
+.dock-photo-item.expanded .photo-placeholder {
+  font-size: 16px;
+}
+
+/* Mini-card info (hidden by default, revealed on expand) */
+.dock-photo-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  overflow: hidden;
+  opacity: 0;
+  max-width: 0;
+  padding-right: 0;
+  white-space: nowrap;
+  transition: opacity 200ms ease 100ms, max-width 300ms ease, padding-right 300ms ease;
+}
+
+.dock-photo-item.expanded .dock-photo-info {
+  opacity: 1;
+  max-width: 200px;
+  padding-right: 12px;
+}
+
+.dock-photo-info .photo-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dock-photo-info .photo-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.dock-photo-info .photo-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.1);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+/* === ALPHABET BAR — HORIZONTAL (desktop/tablet) === */
+.alphabet-bar-horizontal {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 2px 0;
+  height: 60px;
+  overflow: visible;
+}
+
+/* === ALPHABET BAR — VERTICAL (mobile) === */
+.alphabet-bar-vertical {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 4px 2px;
+  position: fixed;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 50;
+}
+
+.alphabet-bar-vertical .dock-letter {
+  width: calc(16px * var(--s));
+  height: calc(14px * var(--s));
+  font-size: calc(8px * var(--s));
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.alphabet-bar-vertical .dock-letter.active {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.alphabet-bar-vertical .dock-letter.disabled {
+  color: rgba(255, 255, 255, 0.15);
+}
+
+/* === MOBILE PHOTO PANEL (separate from vertical bar) === */
+.alphabet-popover-content {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(16px);
+  padding: 4px;
+}
+
+/* Mobile dock uses transform:scale (visual only, OK for isolated panel) */
+.founder-photo-dock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 12px;
+  animation: dockFadeIn 200ms ease-out;
+}
+
+.founder-photo-dock .dock-item {
+  position: relative;
+  transform: scale(var(--s));
+  transition: transform 150ms ease;
+}
+
+.founder-photo-dock .dock-item img,
+.founder-photo-dock .dock-item .photo-placeholder {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  transition: border-color 150ms ease;
+}
+
+.founder-photo-dock .dock-item:hover img,
+.founder-photo-dock .dock-item:hover .photo-placeholder {
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.founder-photo-dock .dock-item .photo-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* Mobile mini-card (absolute popup, glass-card style) */
+.founder-mini-card {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  white-space: nowrap;
+  pointer-events: auto;
+  animation: miniCardFadeIn 200ms ease-out;
+  z-index: 60;
+
+  /* Match glass-card appearance from carousel */
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-top-color: rgba(255, 255, 255, 0.25);
+  border-left-color: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.15),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.1),
+    0 8px 32px rgba(0, 0, 0, 0.2),
+    0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.founder-mini-card img,
+.founder-mini-card .photo-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+}
+
+.founder-mini-card .photo-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.founder-mini-card .mini-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.founder-mini-card .mini-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+}
+
+.founder-mini-card .mini-card-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.founder-mini-card .mini-card-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.1);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+/* === ANIMATIONS === */
+@keyframes photoFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes dockFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes miniCardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}

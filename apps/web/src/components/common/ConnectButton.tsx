@@ -33,6 +33,7 @@ export function WalletConnectButton() {
                     onClick={openConnectModal}
                     type="button"
                     className="glass-button"
+                    style={{ padding: '6px 20px' }}
                   >
                     Connect Wallet
                   </button>
@@ -46,6 +47,7 @@ export function WalletConnectButton() {
                     onClick={openChainModal}
                     type="button"
                     className="glass-button glass-button-error"
+                    style={{ padding: '6px 20px' }}
                   >
                     Wrong network
                   </button>
@@ -58,6 +60,7 @@ export function WalletConnectButton() {
                   onClick={openAccountModal}
                   type="button"
                   className="glass-button glass-button-connected"
+                  style={{ padding: '6px 20px' }}
                 >
                   {account.displayName}
                 </button>
