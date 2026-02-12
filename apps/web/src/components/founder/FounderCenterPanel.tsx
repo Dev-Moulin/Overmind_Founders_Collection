@@ -274,7 +274,7 @@ export function FounderCenterPanel({
   return (
     <div ref={containerRef} className="glass-card p-4 h-full flex flex-col overflow-hidden">
       {/* Trading Chart Section - Always visible at top with integrated curve toggle */}
-      <div className="mb-3 shrink-0">
+      <div className="mb-3 shrink-0 relative z-10">
         <Suspense fallback={<div className="h-[120px] bg-white/5 rounded-lg animate-pulse" />}>
           <TradingChart
             data={timelineData}
