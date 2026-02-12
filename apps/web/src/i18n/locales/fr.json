@@ -277,7 +277,9 @@
     "removeImage": "Supprimer l'image",
     "dropOrClick": "Glissez une image ici ou cliquez pour parcourir",
     "pinataNotConfigured": "Upload de fichier indisponible (Pinata non configure)",
-    "categoryImage": "Image de la catégorie (optionnel)"
+    "categoryImage": "Image de la catégorie (optionnel)",
+    "similarCategoryFound": "Catégorie similaire : {{name}}. Utiliser ?",
+    "similarTotemFound": "Totem similaire : {{name}} (dans {{category}}). Utiliser ?"
   },
   "homePage": {
     "title": "INTUITION",
