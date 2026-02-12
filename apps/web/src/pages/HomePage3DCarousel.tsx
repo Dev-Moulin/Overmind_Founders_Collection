@@ -290,7 +290,7 @@ export function HomePage3DCarousel() {
     // === WHEEL (souris/trackpad) ===
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
-      const delta = e.deltaY * 0.04;
+      const delta = e.deltaY * -0.04;
       setCarouselRotation(prev => prev + delta);
 
       if (autoCenterTimeoutRef.current) {
