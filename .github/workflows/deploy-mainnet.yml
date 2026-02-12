@@ -1,6 +1,8 @@
 name: Deploy to Mainnet (GitHub Pages)
 
 on:
+  push:
+    branches: [main]
   release:
     types: [published]
   workflow_dispatch: # Permet de déclencher manuellement depuis l'UI GitHub
