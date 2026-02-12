@@ -41,29 +41,35 @@ https://github.com/user-attachments/assets/c01eb480-f585-43c7-9fd3-a7b1c47c0d64
 
 
 
-https://github.com/user-attachments/assets/c01eb480-f585-43c7-9fd3-a7b1c47c0d64
-
-
 
 ### 2. Browse Founders
 
 Explore the 42 founders through the 3D carousel or use the alphabet dock for instant navigation.
 
-<video src="assets/videos/carousel.mp4" controls width="100%"></video>
 
-<video src="assets/videos/dock-alphabet.mp4" controls width="100%"></video>
+https://github.com/user-attachments/assets/2a79425e-6e9b-4bed-a85b-01e9455c3ecb
+
+https://github.com/user-attachments/assets/90f16b76-9f0a-4492-8506-30bdec5a3b54
+
 
 ### 3. Select and Vote
 
 Pick a founder, choose a totem, select your voting direction (Support or Oppose) and curve (Linear or Progressive), then add to your cart.
 
-<video src="assets/videos/selection-ajout-panier.mp4" controls width="100%"></video>
+
+
+https://github.com/user-attachments/assets/4953c431-b68e-4f7e-a97a-34cce9f55ee5
+
+
 
 ### 4. Multi-Founder Batch
 
 Stack votes for multiple founders in a single cart and validate them all in one batch transaction.
 
-<video src="assets/videos/multi-fondeur-validation.mp4" controls width="100%"></video>
+
+https://github.com/user-attachments/assets/47646e3f-ea24-46df-8b5b-0160d1db643f
+
+
 
 ### 5. Results
 
@@ -191,27 +197,41 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 Connexion via RainbowKit. Seuls les wallets detenant le NFT de l'airdrop INTUITION (5 novembre 2025) peuvent participer.
 
-<video src="assets/videos/connection-deconnection.mp4" controls width="100%"></video>
+
+
+https://github.com/user-attachments/assets/c01eb480-f585-43c7-9fd3-a7b1c47c0d64
+
+
+
 
 ### 2. Parcourir les Fondateurs
 
 Explorez les 42 fondateurs via le carrousel 3D ou utilisez le dock alphabetique pour une navigation instantanee.
 
-<video src="assets/videos/carousel.mp4" controls width="100%"></video>
 
-<video src="assets/videos/dock-alphabet.mp4" controls width="100%"></video>
+https://github.com/user-attachments/assets/2a79425e-6e9b-4bed-a85b-01e9455c3ecb
+
+https://github.com/user-attachments/assets/90f16b76-9f0a-4492-8506-30bdec5a3b54
+
 
 ### 3. Selectionner et Voter
 
 Choisissez un fondateur, un totem, votre direction de vote (Support ou Oppose) et la courbe (Lineaire ou Progressive), puis ajoutez au panier.
 
-<video src="assets/videos/selection-ajout-panier.mp4" controls width="100%"></video>
+
+
+https://github.com/user-attachments/assets/4953c431-b68e-4f7e-a97a-34cce9f55ee5
+
+
 
 ### 4. Panier Multi-Fondateur
 
 Empilez des votes pour plusieurs fondateurs dans un seul panier et validez le tout en une transaction batch.
 
-<video src="assets/videos/multi-fondeur-validation.mp4" controls width="100%"></video>
+
+https://github.com/user-attachments/assets/47646e3f-ea24-46df-8b5b-0160d1db643f
+
+
 
 ### 5. Resultats
 
