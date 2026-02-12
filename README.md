@@ -35,7 +35,15 @@
 
 Connect using RainbowKit. Only wallets that hold the INTUITION airdrop NFT (November 5, 2025) can participate.
 
-<video src="assets/videos/connection-deconnection.mp4" controls width="100%"></video>
+
+
+https://github.com/user-attachments/assets/c01eb480-f585-43c7-9fd3-a7b1c47c0d64
+
+
+
+https://github.com/user-attachments/assets/c01eb480-f585-43c7-9fd3-a7b1c47c0d64
+
+
 
 ### 2. Browse Founders
 
