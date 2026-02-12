@@ -34,6 +34,10 @@ export interface TotemCreationInput {
   categoryTermId: string | null;
   /** Whether this is a new category */
   isNewCategory: boolean;
+  /** Optional image URL (IPFS or HTTP) */
+  image?: string;
+  /** Optional category image URL (for new categories) */
+  categoryImage?: string;
 }
 
 /**
@@ -119,7 +123,7 @@ export interface UseCreateTotemWithTriplesResult {
  * ```
  */
 export function useCreateTotemWithTriples(): UseCreateTotemWithTriplesResult {
-  const { getOrCreateAtom, findAtomByLabel } = useIntuition();
+  const { getOrCreateAtom, getOrCreateAtomWithImage, findAtomByLabel } = useIntuition();
   const { createBatch } = useBatchTriples();
 
   const [step, setStep] = useState<CreationStep>('idle');
@@ -155,13 +159,11 @@ export function useCreateTotemWithTriples(): UseCreateTotemWithTriplesResult {
           totemId = existingTotemId;
           totemAlreadyExisted = true;
         } else {
-          // Create atom WITHOUT deposit (undefined = will use min deposit from SDK)
-          // Note: getOrCreateAtom uses createAtom which accepts depositAmount as string
-          // Passing undefined means it will use SDK default (which is min deposit)
-          const totemResult = await getOrCreateAtom(input.name);
+          // Create atom — with image uses Thing schema, without uses simple string
+          const totemResult = await getOrCreateAtomWithImage(input.name, input.image);
           totemId = totemResult.termId;
           totemCreated = totemResult.created;
-          console.log('[useCreateTotemWithTriples] Totem created:', totemId);
+          console.log('[useCreateTotemWithTriples] Totem created:', totemId, input.image ? '(with image)' : '(string)');
         }
 
         // ====================================================================
@@ -178,11 +180,11 @@ export function useCreateTotemWithTriples(): UseCreateTotemWithTriplesResult {
           categoryId = input.categoryTermId as Hex;
           console.log('[useCreateTotemWithTriples] Using existing category:', categoryId);
         } else {
-          // Create new category atom
-          const categoryResult = await getOrCreateAtom(input.category);
+          // Create new category atom — with image uses Thing schema
+          const categoryResult = await getOrCreateAtomWithImage(input.category, input.categoryImage);
           categoryId = categoryResult.termId;
           categoryCreated = categoryResult.created;
-          console.log('[useCreateTotemWithTriples] Category created/found:', categoryId);
+          console.log('[useCreateTotemWithTriples] Category created/found:', categoryId, input.categoryImage ? '(with image)' : '(string)');
         }
 
         // ====================================================================
@@ -259,7 +261,7 @@ export function useCreateTotemWithTriples(): UseCreateTotemWithTriplesResult {
         return null;
       }
     },
-    [getOrCreateAtom, findAtomByLabel, createBatch, reset]
+    [getOrCreateAtom, getOrCreateAtomWithImage, findAtomByLabel, createBatch, reset]
   );
 
   return {

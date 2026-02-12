@@ -268,7 +268,16 @@
     "totemExists": "Ce totem existe déjà !",
     "useExistingTotem": "Voulez-vous utiliser ce totem existant pour voter ?",
     "useThisTotem": "Utiliser ce totem",
-    "createTotemInfo": "Créez le totem maintenant pour pouvoir voter dessus. La relation avec le founder sera créée lors du vote."
+    "createTotemInfo": "Créez le totem maintenant pour pouvoir voter dessus. La relation avec le founder sera créée lors du vote.",
+    "totemImage": "Image (optionnel)",
+    "imageUrlPlaceholder": "Coller l'URL de l'image...",
+    "uploadImage": "Uploader une image",
+    "uploading": "Upload de l'image...",
+    "uploadError": "Echec de l'upload de l'image",
+    "removeImage": "Supprimer l'image",
+    "dropOrClick": "Glissez une image ici ou cliquez pour parcourir",
+    "pinataNotConfigured": "Upload de fichier indisponible (Pinata non configure)",
+    "categoryImage": "Image de la catégorie (optionnel)"
   },
   "homePage": {
     "title": "INTUITION",

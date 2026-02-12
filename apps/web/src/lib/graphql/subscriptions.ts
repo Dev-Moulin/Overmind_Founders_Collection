@@ -198,6 +198,7 @@ export const SUBSCRIBE_TOTEM_CATEGORIES = gql`
       object {
         term_id
         label
+        image
       }
       created_at
     }
