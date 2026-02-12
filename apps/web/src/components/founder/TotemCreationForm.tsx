@@ -27,6 +27,7 @@ import {
   useCreateTotemWithTriples,
   type TotemCreationResult,
 } from '../../hooks/blockchain/claims/useCreateTotemWithTriples';
+import { uploadImageToPinata } from '../../utils/pinataUpload';
 
 // Type the JSON imports
 const typedCategoriesConfig = categoriesData as CategoryConfigType;
@@ -37,6 +38,8 @@ export interface NewTotemData {
   category: string;
   categoryTermId: string | null; // null if new category
   isNewCategory: boolean;
+  image?: string;
+  categoryImage?: string;
 }
 
 interface TotemCreationFormProps {
@@ -60,8 +63,19 @@ export function TotemCreationForm({
 
   // Form state
   const [totemName, setTotemName] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [customCategoryInput, setCustomCategoryInput] = useState('');
+  const [catImageUrl, setCatImageUrl] = useState('');
+  const [catImageFile, setCatImageFile] = useState<File | null>(null);
+  const [catImagePreview, setCatImagePreview] = useState<string | null>(null);
+  const [isCatDragging, setIsCatDragging] = useState(false);
+  const catFileInputRef = useRef<HTMLInputElement>(null);
 
   // State for handling "totem already exists" confirmation
   const [pendingResult, setPendingResult] = useState<TotemCreationResult | null>(null);
@@ -77,17 +91,18 @@ export function TotemCreationForm({
 
     // Add dynamic categories that don't exist in static list
     dynamicCategories.forEach((dynCat) => {
-      if (!staticLabels.has(dynCat.label)) {
+      if (dynCat.label && !staticLabels.has(dynCat.label)) {
         merged.push({
           id: dynCat.termId,
           label: dynCat.label,
           name: dynCat.label,
           termId: dynCat.termId,
+          image: dynCat.image,
         });
       }
     });
 
-    return merged.sort((a, b) => a.label.localeCompare(b.label));
+    return merged.sort((a, b) => (a.label || '').localeCompare(b.label || ''));
   }, [dynamicCategories]);
 
   // Determine if using a custom category (input has text and no chip selected)
@@ -110,6 +125,10 @@ export function TotemCreationForm({
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
+  // Effective image: URL input takes priority, then file preview (uploaded later)
+  const effectiveImageUrl = imageUrl.trim() || undefined;
+  const effectiveCatImageUrl = catImageUrl.trim() || undefined;
+
   // Transmit data to parent on every change (without onChange in deps to avoid infinite loop)
   useEffect(() => {
     if (isValid) {
@@ -118,16 +137,18 @@ export function TotemCreationForm({
         category: effectiveCategory,
         categoryTermId: effectiveCategoryTermId,
         isNewCategory,
+        image: effectiveImageUrl,
+        categoryImage: isNewCategory ? effectiveCatImageUrl : undefined,
       });
     } else {
       onChangeRef.current(null); // Signal invalid/incomplete data
     }
-  }, [totemName, effectiveCategory, effectiveCategoryTermId, isNewCategory, isValid]);
+  }, [totemName, effectiveCategory, effectiveCategoryTermId, isNewCategory, isValid, effectiveImageUrl, effectiveCatImageUrl]);
 
   // Handle category chip selection
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
-    setCustomCategoryInput(''); // Clear custom input when selecting a chip
+    setCustomCategoryInput(category); // Fill input with selected category
   };
 
   // Handle custom category input
@@ -138,6 +159,89 @@ export function TotemCreationForm({
     }
   };
 
+  // Handle image URL input
+  const handleImageUrlChange = (value: string) => {
+    setImageUrl(value);
+    if (value.trim()) {
+      setImagePreview(value.trim());
+      setImageFile(null);
+    } else if (!imageFile) {
+      setImagePreview(null);
+    }
+  };
+
+  // Handle image file (from input or drop)
+  const handleFile = (file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    setImageFile(file);
+    setImageUrl('');
+    const preview = URL.createObjectURL(file);
+    setImagePreview(preview);
+  };
+
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleFile(file);
+  };
+
+  // Drag & drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFile(file);
+  };
+
+  // Remove image
+  const handleRemoveImage = () => {
+    if (imagePreview && imageFile) {
+      URL.revokeObjectURL(imagePreview);
+    }
+    setImageUrl('');
+    setImageFile(null);
+    setImagePreview(null);
+  };
+
+  // Category image handlers
+  const handleCatFile = (file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    setCatImageFile(file);
+    setCatImageUrl('');
+    setCatImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleCatImageUrlChange = (value: string) => {
+    setCatImageUrl(value);
+    if (value.trim()) {
+      setCatImagePreview(value.trim());
+      setCatImageFile(null);
+    } else if (!catImageFile) {
+      setCatImagePreview(null);
+    }
+  };
+
+  const handleRemoveCatImage = () => {
+    if (catImagePreview && catImageFile) {
+      URL.revokeObjectURL(catImagePreview);
+    }
+    setCatImageUrl('');
+    setCatImageFile(null);
+    setCatImagePreview(null);
+  };
+
   // Handle totem creation (NEW: create atom + category triple without deposit)
   const handleCreateTotem = async () => {
     if (!isValid) return;
@@ -145,11 +249,38 @@ export function TotemCreationForm({
     // Show info toast for atom creation
     toast.info(t('creation.verifyingTotem'), { id: 'totem-creation' });
 
+    // Upload files to Pinata if needed
+    let finalImageUrl = effectiveImageUrl;
+    let finalCatImageUrl = effectiveCatImageUrl;
+    const filesToUpload: { file: File; target: 'totem' | 'category' }[] = [];
+    if (imageFile && !imageUrl.trim()) filesToUpload.push({ file: imageFile, target: 'totem' });
+    if (isNewCategory && catImageFile && !catImageUrl.trim()) filesToUpload.push({ file: catImageFile, target: 'category' });
+
+    if (filesToUpload.length > 0) {
+      try {
+        setIsUploading(true);
+        toast.info(t('creation.uploading'), { id: 'totem-creation' });
+        for (const { file, target } of filesToUpload) {
+          const url = await uploadImageToPinata(file);
+          if (target === 'totem') finalImageUrl = url;
+          else finalCatImageUrl = url;
+        }
+      } catch (uploadErr) {
+        toast.error(t('creation.uploadError'), { id: 'totem-creation' });
+        setIsUploading(false);
+        return;
+      } finally {
+        setIsUploading(false);
+      }
+    }
+
     const result = await createTotem({
       name: totemName.trim(),
       category: effectiveCategory,
       categoryTermId: effectiveCategoryTermId,
       isNewCategory,
+      image: finalImageUrl,
+      categoryImage: isNewCategory ? finalCatImageUrl : undefined,
     });
 
     if (result) {
@@ -182,6 +313,8 @@ export function TotemCreationForm({
   const handleConfirmAndRedirect = (result: TotemCreationResult) => {
     // Reset form
     setTotemName('');
+    handleRemoveImage();
+    handleRemoveCatImage();
     setSelectedCategory('');
     setCustomCategoryInput('');
     setPendingResult(null);
@@ -230,31 +363,108 @@ export function TotemCreationForm({
           />
         </div>
 
-        {/* 2. Category Selection */}
+        {/* 2. Image (optional) — drop zone + URL input */}
+        <div>
+          <label className="block text-xs text-white/60 mb-1.5">
+            {t('creation.totemImage')}
+          </label>
+
+          {imagePreview ? (
+            /* Image preview with remove button */
+            <div className="flex items-center gap-3 p-2 bg-white/5 border border-white/10 rounded-lg">
+              <img
+                src={imagePreview}
+                alt="preview"
+                className="w-12 h-12 rounded-lg object-cover border border-white/20"
+                onError={() => setImagePreview(null)}
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-white/60 truncate">
+                  {imageFile ? imageFile.name : imageUrl}
+                </p>
+              </div>
+              <button
+                onClick={handleRemoveImage}
+                className="text-xs text-red-400/70 hover:text-red-400 transition-colors shrink-0 px-2"
+              >
+                {t('creation.removeImage')}
+              </button>
+            </div>
+          ) : (
+            /* Drop zone + click to browse */
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`flex flex-col items-center justify-center gap-1 p-4 border border-dashed rounded-lg cursor-pointer transition-colors ${
+                isDragging
+                  ? 'border-slate-400 bg-slate-500/20'
+                  : 'border-white/20 bg-white/5 hover:border-white/30 hover:bg-white/10'
+              }`}
+            >
+              <p className="text-xs text-white/50">
+                {t('creation.dropOrClick')}
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageFileChange}
+                className="hidden"
+              />
+            </div>
+          )}
+
+          {/* URL input — always visible when no preview */}
+          {!imagePreview && (
+            <input
+              type="text"
+              value={imageUrl}
+              onChange={(e) => handleImageUrlChange(e.target.value)}
+              placeholder={t('creation.imageUrlPlaceholder')}
+              className="w-full mt-1.5 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:border-slate-500/50 focus:ring-1 focus:ring-slate-500/30"
+            />
+          )}
+        </div>
+
+        {/* 3. Category Selection */}
         <div>
           <label className="block text-xs text-white/60 mb-1.5">
             {t('creation.category')}
           </label>
 
-          {/* Category chips - existing categories (static + dynamic from blockchain) */}
-          <div className="flex flex-wrap gap-1.5 mb-2">
+          {/* Category chips - styled like triple tags */}
+          <div className="flex flex-wrap gap-2 mb-2">
             {allCategories.map((cat) => {
-              // Check if this is a dynamic category (not in STATIC_CATEGORIES)
               const isDynamic = !STATIC_CATEGORIES.some((s) => s.label === cat.label);
+              const isActive = selectedCategory === cat.label;
               return (
                 <button
                   key={cat.id}
                   onClick={() => handleCategorySelect(cat.label)}
-                  className={`px-2.5 py-1 text-xs rounded-full transition-colors ${
-                    selectedCategory === cat.label
-                      ? 'bg-slate-500/40 text-white ring-1 ring-slate-500/50'
+                  className={`flex items-center gap-1.5 pl-[5px] pr-[7px] pt-[3px] pb-[4px] my-[2px] rounded-full transition-all ${
+                    isActive
+                      ? 'bg-slate-500/30 animate-blur-to-focus animate-ring-pulse'
                       : isDynamic
-                        ? 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white border border-dashed border-white/30'
-                        : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
+                        ? 'bg-white/5 ring-1 ring-dashed ring-white/20 hover:bg-white/10'
+                        : 'bg-white/10 hover:bg-white/15'
                   }`}
                   title={isDynamic ? t('creation.communityCategory') : undefined}
                 >
-                  {cat.label}
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0 overflow-hidden ${
+                    isActive ? 'bg-white/20 text-white' : 'bg-white/10 text-white/50'
+                  }`}>
+                    {cat.image
+                      ? <img src={cat.image} alt="" className="w-full h-full object-cover" />
+                      : cat.label.charAt(0).toUpperCase()
+                    }
+                  </div>
+                  <span className={`text-xs font-medium ${
+                    isActive ? 'text-white' : 'text-white/60'
+                  }`}>
+                    {cat.label}
+                  </span>
                 </button>
               );
             })}
@@ -278,6 +488,64 @@ export function TotemCreationForm({
                 {t('creation.newCategoryInfo')}
               </p>
             )}
+
+            {/* Category image — only when creating a new category */}
+            {isNewCategory && (
+              <div className="mt-2">
+                <label className="block text-[10px] text-white/40 mb-1">
+                  {t('creation.categoryImage')}
+                </label>
+                {catImagePreview ? (
+                  <div className="flex items-center gap-2 p-1.5 bg-white/5 border border-white/10 rounded-lg">
+                    <img
+                      src={catImagePreview}
+                      alt=""
+                      className="w-8 h-8 rounded-md object-cover border border-white/20"
+                      onError={() => setCatImagePreview(null)}
+                    />
+                    <span className="text-[10px] text-white/50 truncate flex-1">
+                      {catImageFile ? catImageFile.name : catImageUrl}
+                    </span>
+                    <button
+                      onClick={handleRemoveCatImage}
+                      className="text-[10px] text-red-400/70 hover:text-red-400 shrink-0 px-1"
+                    >
+                      {t('creation.removeImage')}
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsCatDragging(true); }}
+                    onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsCatDragging(false); }}
+                    onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setIsCatDragging(false); const f = e.dataTransfer.files?.[0]; if (f) handleCatFile(f); }}
+                    onClick={() => catFileInputRef.current?.click()}
+                    className={`flex items-center justify-center p-2 border border-dashed rounded-lg cursor-pointer transition-colors ${
+                      isCatDragging
+                        ? 'border-slate-400 bg-slate-500/20'
+                        : 'border-white/15 bg-white/5 hover:border-white/25'
+                    }`}
+                  >
+                    <p className="text-[10px] text-white/40">{t('creation.dropOrClick')}</p>
+                    <input
+                      ref={catFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCatFile(f); }}
+                      className="hidden"
+                    />
+                  </div>
+                )}
+                {!catImagePreview && (
+                  <input
+                    type="text"
+                    value={catImageUrl}
+                    onChange={(e) => handleCatImageUrlChange(e.target.value)}
+                    placeholder={t('creation.imageUrlPlaceholder')}
+                    className="w-full mt-1 px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[11px] text-white placeholder-white/25 focus:outline-none focus:border-slate-500/50"
+                  />
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -285,7 +553,10 @@ export function TotemCreationForm({
         {isValid && (
           <div className="bg-white/5 rounded-lg p-3 border border-white/10">
             <p className="text-[10px] text-white/40 mb-2">{t('creation.preview')}</p>
-            <div className="space-y-1 text-xs">
+            <div className="flex items-center gap-2 text-xs">
+              {imagePreview && (
+                <img src={imagePreview} alt="" className="w-8 h-8 rounded-md object-cover border border-white/20 shrink-0" />
+              )}
               <p className="text-white/70">
                 <span className="text-white font-medium">{totemName}</span>
                 <span className="text-white/40"> • </span>
@@ -344,9 +615,9 @@ export function TotemCreationForm({
             </p>
             <button
               onClick={handleCreateTotem}
-              disabled={isLoading}
+              disabled={isLoading || isUploading}
               className={`w-full py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
-                isLoading
+                isLoading || isUploading
                   ? 'bg-slate-600/30 text-white/50 cursor-wait'
                   : 'bg-linear-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-lg shadow-purple-500/20'
               }`}

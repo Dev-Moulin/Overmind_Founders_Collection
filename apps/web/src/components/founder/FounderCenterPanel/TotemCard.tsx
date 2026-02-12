@@ -27,6 +27,8 @@ export interface UserPositionData {
 export interface TotemCardProps {
   /** Totem label */
   label: string;
+  /** Totem image URL */
+  image?: string;
   /** Totem category */
   category?: string;
   /** Whether this totem is selected */
@@ -43,6 +45,7 @@ export interface TotemCardProps {
 
 export function TotemCard({
   label,
+  image,
   category,
   isSelected,
   index,
@@ -76,14 +79,19 @@ export function TotemCard({
         ? 'bg-slate-500/30 ring-1 ring-slate-500/50 animate-ring-pulse'
         : `bg-white/5 hover:bg-white/10 ${cascadeClass}`
     }`}>
-      {/* Header: Totem name + Category */}
-      <div className="flex items-start justify-between gap-1">
-        <span className={`text-sm font-medium truncate flex-1 ${isSelected ? 'text-white' : 'text-white/80'}`}>
-          {label}
-        </span>
-        <span className="text-xs text-white/40 truncate max-w-[60px]">
-          {category || ''}
-        </span>
+      {/* Header: Image + Totem name + Category */}
+      <div className="flex items-start gap-1.5">
+        {image && (
+          <img src={image} alt="" className="w-6 h-6 rounded-md object-cover border border-white/20 shrink-0 mt-0.5" />
+        )}
+        <div className="flex items-start justify-between gap-1 flex-1 min-w-0">
+          <span className={`text-sm font-medium truncate flex-1 ${isSelected ? 'text-white' : 'text-white/80'}`}>
+            {label}
+          </span>
+          <span className="text-xs text-white/40 truncate max-w-[60px]">
+            {category || ''}
+          </span>
+        </div>
       </div>
 
       {/* User position (only if connected) */}

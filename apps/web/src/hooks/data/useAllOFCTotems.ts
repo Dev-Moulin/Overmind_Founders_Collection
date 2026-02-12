@@ -23,6 +23,7 @@ export interface OFCTotem {
 export interface DynamicCategory {
   termId: string;
   label: string;
+  image?: string;
 }
 
 interface UseAllOFCTotemsReturn {
@@ -42,7 +43,7 @@ export function useAllOFCTotems(): UseAllOFCTotemsReturn {
     triples: Array<{
       term_id: string;
       subject: { term_id: string; label: string; image?: string };
-      object: { term_id: string; label: string };
+      object: { term_id: string; label: string; image?: string };
       created_at: string;
     }>;
   }>(SUBSCRIBE_TOTEM_CATEGORIES);
@@ -59,22 +60,26 @@ export function useAllOFCTotems(): UseAllOFCTotemsReturn {
         const category = triple.object.label;
         const categoryTermId = triple.object.term_id;
 
-        catMap.set(totemId, category);
+        // Skip entries with null labels (e.g. atoms created via Thing schema)
+        if (category) {
+          catMap.set(totemId, category);
 
-        // Collect unique categories
-        if (!categoriesMap.has(categoryTermId)) {
-          categoriesMap.set(categoryTermId, {
-            termId: categoryTermId,
-            label: category,
-          });
+          // Collect unique categories
+          if (!categoriesMap.has(categoryTermId)) {
+            categoriesMap.set(categoryTermId, {
+              termId: categoryTermId,
+              label: category,
+              image: triple.object.image || undefined,
+            });
+          }
         }
 
-        if (!totemsMap.has(totemId)) {
+        if (!totemsMap.has(totemId) && triple.subject.label) {
           totemsMap.set(totemId, {
             id: totemId,
             label: triple.subject.label,
             image: triple.subject.image,
-            category,
+            category: category || '',
           });
         }
       });
@@ -84,7 +89,7 @@ export function useAllOFCTotems(): UseAllOFCTotemsReturn {
       totems: Array.from(totemsMap.values()),
       categoryMap: catMap,
       dynamicCategories: Array.from(categoriesMap.values()).sort((a, b) =>
-        a.label.localeCompare(b.label)
+        (a.label || '').localeCompare(b.label || '')
       ),
     };
   }, [data]);

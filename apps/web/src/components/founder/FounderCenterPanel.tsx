@@ -333,7 +333,7 @@ export function FounderCenterPanel({
               </div>
             ) : allTotems.length > 0 ? (
               <GooeySwitch
-                options={allTotems.map(t => ({ id: t.id, label: t.label, category: t.category }))}
+                options={allTotems.map(t => ({ id: t.id, label: t.label, category: t.category, image: t.image }))}
                 value={selectedTotemId || ''}
                 onChange={(id) => {
                   const totem = allTotems.find(t => t.id === id);
@@ -348,6 +348,7 @@ export function FounderCenterPanel({
                   return (
                     <TotemCard
                       label={option.label}
+                      image={option.image as string | undefined}
                       category={option.category as string}
                       isSelected={isSelected}
                       index={index}

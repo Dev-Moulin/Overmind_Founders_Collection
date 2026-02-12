@@ -13,5 +13,6 @@ export interface CategoryConfigType {
     label: string;
     name: string;
     termId: string | null;
+    image?: string;
   }>;
 }

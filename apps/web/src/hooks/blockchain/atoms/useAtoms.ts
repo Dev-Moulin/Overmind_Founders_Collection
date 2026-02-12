@@ -159,6 +159,65 @@ export function useAtoms() {
   );
 
   /**
+   * Create an Atom with image (for totems with image via Thing schema)
+   */
+  const createAtomWithImage = useCallback(
+    async (name: string, image: string, depositAmount?: string): Promise<CreateAtomResult> => {
+      if (!walletClient || !publicClient) {
+        throw new Error('Wallet not connected');
+      }
+
+      const config = {
+        walletClient,
+        publicClient,
+        address: multiVaultAddress,
+      };
+
+      const deposit = depositAmount ? parseEther(depositAmount) : undefined;
+      const result = await createAtomFromThing(config, { name, image }, deposit);
+
+      return {
+        uri: result.uri,
+        transactionHash: result.transactionHash,
+        termId: result.state.termId,
+      };
+    },
+    [walletClient, publicClient, multiVaultAddress]
+  );
+
+  /**
+   * Get or create an atom with optional image - uses Thing schema if image provided
+   */
+  const getOrCreateAtomWithImage = useCallback(
+    async (
+      name: string,
+      image?: string,
+      depositAmount?: string
+    ): Promise<{ termId: Hex; created: boolean }> => {
+      console.log('[useAtoms] getOrCreateAtomWithImage called for:', name, image ? '(with image)' : '(no image)');
+
+      const existingId = await findAtomByLabel(name);
+      if (existingId) {
+        console.log('[useAtoms] Atom already exists:', { name, termId: existingId });
+        return { termId: existingId, created: false };
+      }
+
+      if (image) {
+        console.log('[useAtoms] Creating atom with image (Thing schema):', name);
+        const result = await createAtomWithImage(name, image, depositAmount);
+        console.log('[useAtoms] Atom with image created:', { name, termId: result.termId });
+        return { termId: result.termId, created: true };
+      }
+
+      console.log('[useAtoms] Creating atom without image (string):', name);
+      const result = await createAtom(name, depositAmount);
+      console.log('[useAtoms] Atom created:', { name, termId: result.termId });
+      return { termId: result.termId, created: true };
+    },
+    [findAtomByLabel, createAtom, createAtomWithImage]
+  );
+
+  /**
    * Create an Atom with full metadata (for founders)
    */
   const createFounderAtom = useCallback(
@@ -207,6 +266,8 @@ export function useAtoms() {
     findAtomByLabel,
     createAtom,
     getOrCreateAtom,
+    createAtomWithImage,
+    getOrCreateAtomWithImage,
     createAtomWithDescription,
     getOrCreateAtomWithDescription,
     createFounderAtom,
