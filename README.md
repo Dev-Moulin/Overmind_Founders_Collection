@@ -3,6 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Built with INTUITION](https://img.shields.io/badge/Built%20with-INTUITION-purple)](https://www.intuition.systems/)
 [![Deployed on INTUITION](https://img.shields.io/badge/Deployed%20on-INTUITION%20L3-blue)](https://www.intuition.systems/)
+[![Live Demo](https://img.shields.io/badge/Live-Demo-green)](https://dev-moulin.github.io/Overmind_Founders_Collection/)
 
 [Version Francaise ci-dessous](#-version-francaise)
 
@@ -147,6 +148,7 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 ## Links
 
+- **Live Demo:** https://dev-moulin.github.io/Overmind_Founders_Collection/
 - **INTUITION Website:** https://www.intuition.systems/
 - **INTUITION Docs:** https://www.docs.intuition.systems/
 
@@ -309,6 +311,7 @@ Ce projet est sous licence MIT - voir le fichier [LICENSE](./LICENSE) pour les d
 
 ## Liens
 
+- **Demo Live :** https://dev-moulin.github.io/Overmind_Founders_Collection/
 - **Site INTUITION :** https://www.intuition.systems/
 - **Documentation INTUITION :** https://www.docs.intuition.systems/
 
