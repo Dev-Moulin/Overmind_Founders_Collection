@@ -22,12 +22,13 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import categoriesData from '../../../../../packages/shared/src/data/categories.json';
 import type { CategoryConfigType } from '../../types/category';
-import type { DynamicCategory } from '../../hooks/data/useAllOFCTotems';
+import type { DynamicCategory, OFCTotem } from '../../hooks/data/useAllOFCTotems';
 import {
   useCreateTotemWithTriples,
   type TotemCreationResult,
 } from '../../hooks/blockchain/claims/useCreateTotemWithTriples';
 import { uploadImageToPinata } from '../../utils/pinataUpload';
+import { useFuzzySearch } from '../../hooks/search/useFuzzySearch';
 
 // Type the JSON imports
 const typedCategoriesConfig = categoriesData as CategoryConfigType;
@@ -47,6 +48,8 @@ interface TotemCreationFormProps {
   onChange: (data: NewTotemData | null) => void;
   /** Dynamic categories from blockchain (user-created) */
   dynamicCategories?: DynamicCategory[];
+  /** Existing totems for duplicate detection */
+  existingTotems?: OFCTotem[];
   /** Called when a totem is successfully created on-chain */
   onTotemCreated?: (result: TotemCreationResult) => void;
 }
@@ -57,6 +60,7 @@ const STATIC_CATEGORIES = typedCategoriesConfig.categories;
 export function TotemCreationForm({
   onChange,
   dynamicCategories = [],
+  existingTotems = [],
   onTotemCreated,
 }: TotemCreationFormProps) {
   const { t } = useTranslation();
@@ -104,6 +108,15 @@ export function TotemCreationForm({
 
     return merged.sort((a, b) => (a.label || '').localeCompare(b.label || ''));
   }, [dynamicCategories]);
+
+  // Fuzzy search: filter categories as user types
+  const categoryMatches = useFuzzySearch(allCategories, ['label'], customCategoryInput);
+  const visibleCategories = customCategoryInput.trim().length < 2
+    ? allCategories
+    : categoryMatches.map(r => r.item);
+
+  // Fuzzy search: detect similar existing totems
+  const totemMatches = useFuzzySearch(existingTotems, ['label'], totemName);
 
   // Determine if using a custom category (input has text and no chip selected)
   const isNewCategory = customCategoryInput.trim().length > 0 && selectedCategory === '';
@@ -361,6 +374,23 @@ export function TotemCreationForm({
             placeholder={t('creation.totemNamePlaceholder')}
             className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:border-slate-500/50 focus:ring-1 focus:ring-slate-500/30"
           />
+          {/* Similar totem suggestions */}
+          {totemMatches.length > 0 && (
+            <div className="mt-1.5 space-y-1">
+              {totemMatches.slice(0, 3).map((match) => (
+                <button
+                  key={match.item.id}
+                  onClick={() => {
+                    setTotemName(match.item.label);
+                    if (match.item.category) handleCategorySelect(match.item.category);
+                  }}
+                  className="w-full text-left text-[10px] text-amber-400/70 hover:text-amber-300 transition-colors px-2 py-1 bg-amber-500/5 border border-amber-500/10 rounded-md"
+                >
+                  {t('creation.similarTotemFound', { name: match.item.label, category: match.item.category || '?' })}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* 2. Image (optional) — drop zone + URL input */}
@@ -434,9 +464,9 @@ export function TotemCreationForm({
             {t('creation.category')}
           </label>
 
-          {/* Category chips - styled like triple tags */}
-          <div className="flex flex-wrap gap-2 mb-2">
-            {allCategories.map((cat) => {
+          {/* Category chips - flex wrap limited to ~3 rows, scroll for overflow */}
+          <div className="flex flex-wrap gap-1.5 mb-2 max-h-[96px] overflow-y-auto pr-1 scrollbar-thin">
+            {visibleCategories.map((cat) => {
               const isDynamic = !STATIC_CATEGORIES.some((s) => s.label === cat.label);
               const isActive = selectedCategory === cat.label;
               return (
@@ -484,9 +514,23 @@ export function TotemCreationForm({
               }`}
             />
             {isNewCategory && (
-              <p className="text-[10px] text-orange-400/70 mt-1">
-                {t('creation.newCategoryInfo')}
-              </p>
+              categoryMatches.length > 0 ? (
+                <div className="mt-1 space-y-1">
+                  {categoryMatches.slice(0, 3).map((match) => (
+                    <button
+                      key={match.item.id}
+                      onClick={() => handleCategorySelect(match.item.label)}
+                      className="w-full text-left text-[10px] text-amber-400/70 hover:text-amber-300 transition-colors px-2 py-1 bg-amber-500/5 border border-amber-500/10 rounded-md"
+                    >
+                      {t('creation.similarCategoryFound', { name: match.item.label })}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[10px] text-orange-400/70 mt-1">
+                  {t('creation.newCategoryInfo')}
+                </p>
+              )
             )}
 
             {/* Category image — only when creating a new category */}

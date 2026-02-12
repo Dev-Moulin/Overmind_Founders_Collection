@@ -371,6 +371,7 @@ export function FounderCenterPanel({
             <TotemCreationForm
               onChange={(data) => onNewTotemChange?.(data)}
               dynamicCategories={dynamicCategories}
+              existingTotems={ofcTotems}
               onTotemCreated={onTotemCreated}
             />
           )}
