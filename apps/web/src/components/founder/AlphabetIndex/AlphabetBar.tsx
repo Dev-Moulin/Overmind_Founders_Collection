@@ -19,6 +19,7 @@ function computeAnchorOffset(
   totalLetters: number,
   activeLetterIdx: number | null,
   photoCount: number,
+  hasDice: boolean,
 ): number {
   // Build virtual list of item base widths matching the DOM order
   const items: number[] = [];
@@ -34,6 +35,8 @@ function computeAnchorOffset(
       }
     }
   }
+  // Dice button after Z
+  if (hasDice) items.push(LETTER_BASE_W);
 
   let totalExpansion = 0;
   let expansionBefore = 0;
@@ -63,6 +66,56 @@ interface AlphabetBarProps {
   /** Direct setter for touch scrubber (bypasses hover timing) */
   onTouchLetter?: (letter: string) => void;
   onTouchEnd?: () => void;
+  /** Random dice button callback */
+  onRandomClick?: () => void;
+}
+
+/* Dot positions (top%, left%) for each face value */
+const FACE_DOTS: Record<number, [string, string][]> = {
+  1: [['50%', '50%']],
+  2: [['25%', '25%'], ['75%', '75%']],
+  3: [['25%', '25%'], ['50%', '50%'], ['75%', '75%']],
+  4: [['25%', '25%'], ['25%', '75%'], ['75%', '25%'], ['75%', '75%']],
+  5: [['25%', '25%'], ['25%', '75%'], ['50%', '50%'], ['75%', '25%'], ['75%', '75%']],
+  6: [['25%', '25%'], ['25%', '75%'], ['50%', '25%'], ['50%', '75%'], ['75%', '25%'], ['75%', '75%']],
+};
+
+function DiceDockItem({ onClick }: { onClick: () => void }) {
+  const [rolling, setRolling] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  const handleClick = () => {
+    if (rolling) return;
+    setRolling(true);
+    setTimeout(() => {
+      setRolling(false);
+      onClick();
+    }, 800);
+  };
+
+  return (
+    <div
+      className="dock-item dock-dice"
+      onClick={handleClick}
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      <div className="dice-scene">
+        <div className="dice-cube">
+          <div className={`dice-inner ${rolling ? 'rolling' : ''}`}>
+            {[1, 2, 3, 4, 5, 6].map((n) => (
+              <div key={n} className={`dice-face face-${n}`}>
+                {FACE_DOTS[n].map(([top, left], i) => (
+                  <span key={i} className="dot" style={{ top, left }} />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      {showTooltip && <div className="dice-tooltip">Random</div>}
+    </div>
+  );
 }
 
 /**
@@ -83,6 +136,7 @@ export const AlphabetBar = memo(function AlphabetBar({
   onSelectFounder,
   onTouchLetter,
   onTouchEnd,
+  onRandomClick,
 }: AlphabetBarProps) {
   const isTouchingRef = useRef(false);
   const lastTouchLetterRef = useRef<string | null>(null);
@@ -163,8 +217,9 @@ export const AlphabetBar = memo(function AlphabetBar({
       letterGroups.length,
       activeLetterIdx,
       activeLetterFounders.length,
+      !!onRandomClick,
     );
-  }, [hoveredLetterIdx, letterGroups.length, activeLetterIdx, activeLetterFounders.length, orientation]);
+  }, [hoveredLetterIdx, letterGroups.length, activeLetterIdx, activeLetterFounders.length, orientation, onRandomClick]);
 
   const handleLetterMouseEnter = useCallback((letter: string, index: number, hasFounders: boolean) => {
     if (hasFounders) onHoverStart(letter);
@@ -257,6 +312,7 @@ export const AlphabetBar = memo(function AlphabetBar({
           ))}
         </Fragment>
       ))}
+      {onRandomClick && <DiceDockItem onClick={onRandomClick} />}
     </div>
   );
 });
