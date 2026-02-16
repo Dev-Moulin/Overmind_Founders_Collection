@@ -11,6 +11,8 @@
   justify-content: center;
   cursor: pointer;
   user-select: none;
+  margin: 0 calc(-1px * var(--s));
+  transition: margin 150ms ease;
 }
 
 /* Hovered item */
@@ -101,7 +103,7 @@
 /* Expanded state: photo morphs into mini-card (glass-card style) */
 .dock-photo-item.expanded {
   max-width: 280px;
-  height: 60px;
+  height: 66px;
   border-radius: 12px;
   justify-content: flex-start;
 
@@ -121,10 +123,10 @@
 
 .dock-photo-item.expanded img,
 .dock-photo-item.expanded .photo-placeholder {
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  margin: 6px;
+  width: 50px;
+  height: 50px;
+  min-width: 50px;
+  margin: 7px;
 }
 
 .dock-photo-item.expanded .photo-placeholder {

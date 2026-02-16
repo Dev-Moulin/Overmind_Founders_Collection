@@ -1,4 +1,4 @@
-import { Fragment, memo, useCallback, useMemo, useRef, useState } from 'react';
+import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { LetterGroup } from '../../../hooks/ui/useFounderAlphabetIndex';
 import type { FounderForHomePage } from '../../../types/founder';
 import { FounderDockItem } from './FounderDockItem';
@@ -87,6 +87,63 @@ export const AlphabetBar = memo(function AlphabetBar({
   const isTouchingRef = useRef(false);
   const lastTouchLetterRef = useRef<string | null>(null);
   const [hoveredLetterIdx, setHoveredLetterIdx] = useState<number | null>(null);
+
+  // --- Mini-card sticky avec switch progressif ---
+  const [expandedFounderId, setExpandedFounderId] = useState<string | null>(null);
+  const [closingFounderId, setClosingFounderId] = useState<string | null>(null);
+  const expandTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const expandedIdRef = useRef<string | null>(null);
+  const switchingRef = useRef(false);
+
+  useEffect(() => { expandedIdRef.current = expandedFounderId; }, [expandedFounderId]);
+
+  // Reset quand la lettre active change (photos démontées/remontées)
+  useEffect(() => {
+    setExpandedFounderId(null);
+    setClosingFounderId(null);
+    switchingRef.current = false;
+    if (expandTimeoutRef.current) { clearTimeout(expandTimeoutRef.current); expandTimeoutRef.current = null; }
+    if (closeTimeoutRef.current) { clearTimeout(closeTimeoutRef.current); closeTimeoutRef.current = null; }
+  }, [activeLetter]);
+
+  const handlePhotoMouseEnter = useCallback((founderId: string) => {
+    if (expandTimeoutRef.current) { clearTimeout(expandTimeoutRef.current); expandTimeoutRef.current = null; }
+    if (expandedIdRef.current !== null || switchingRef.current) {
+      // Switch : hover → 100ms → nouvelle s'ouvre → 150ms → ancienne se ferme
+      const oldId = expandedIdRef.current;
+      switchingRef.current = true;
+      expandTimeoutRef.current = setTimeout(() => {
+        setExpandedFounderId(founderId);
+        expandTimeoutRef.current = null;
+        switchingRef.current = false;
+        // L'ancienne passe en closing (garde expanded visuellement pendant 150ms)
+        if (oldId) {
+          if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+          setClosingFounderId(oldId);
+          closeTimeoutRef.current = setTimeout(() => {
+            setClosingFounderId(null);
+            closeTimeoutRef.current = null;
+          }, 650);
+        }
+      }, 200);
+    } else {
+      // Première ouverture → délai 400ms
+      expandTimeoutRef.current = setTimeout(() => {
+        setExpandedFounderId(founderId);
+        expandTimeoutRef.current = null;
+      }, 400);
+    }
+  }, []);
+
+  const handlePhotoMouseLeave = useCallback(() => {
+    if (expandTimeoutRef.current) {
+      clearTimeout(expandTimeoutRef.current);
+      expandTimeoutRef.current = null;
+    }
+    if (switchingRef.current) switchingRef.current = false;
+    // Si déjà expanded → sticky, on ne ferme PAS
+  }, []);
 
   const className = orientation === 'horizontal'
     ? 'alphabet-bar-horizontal'
@@ -180,7 +237,7 @@ export const AlphabetBar = memo(function AlphabetBar({
           <div
             data-letter={hasFounders ? letter : undefined}
             className={`dock-item dock-letter ${!hasFounders ? 'disabled' : ''} ${activeLetter === letter ? 'active' : ''}`}
-            style={!hasFounders ? { '--s': 1 } as React.CSSProperties : undefined}
+            style={!hasFounders ? { '--s': 1 } as React.CSSProperties : activeLetter === letter ? { '--s': 2.2 } as React.CSSProperties : undefined}
             onMouseEnter={() => handleLetterMouseEnter(letter, index, hasFounders)}
             onMouseLeave={handleLetterMouseLeave}
             onClick={() => hasFounders && onClick(letter)}
@@ -192,7 +249,10 @@ export const AlphabetBar = memo(function AlphabetBar({
             <FounderDockItem
               key={founder.id}
               founder={founder}
+              expanded={expandedFounderId === founder.id || closingFounderId === founder.id}
               onSelect={onSelectFounder!}
+              onMouseEnter={() => handlePhotoMouseEnter(founder.id)}
+              onMouseLeave={handlePhotoMouseLeave}
             />
           ))}
         </Fragment>

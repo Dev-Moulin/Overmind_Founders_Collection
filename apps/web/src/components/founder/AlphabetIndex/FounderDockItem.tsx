@@ -1,47 +1,33 @@
-import { memo, useState, useRef, useCallback } from 'react';
+import { memo } from 'react';
 import type { FounderForHomePage } from '../../../types/founder';
 import { getFounderImageUrl } from '../../../utils/founderImage';
 
 interface FounderDockItemProps {
   founder: FounderForHomePage;
+  expanded: boolean;
   onSelect: (founderId: string) => void;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
 }
 
 /**
  * Photo fondateur inline dans la barre, avec morph vers mini-card.
- * - Par defaut : photo circulaire avec magnification dock (--s)
- * - Apres 300ms hover : la photo s'ouvre en mini-card (nom, votes, badge NEW)
- * - Clic : naviguer vers le fondateur dans le carrousel
+ * Composant controle : l'etat expanded est gere par AlphabetBar
+ * pour coordonner le sticky (une seule mini-card ouverte a la fois).
  */
 export const FounderDockItem = memo(function FounderDockItem({
   founder,
+  expanded,
   onSelect,
+  onMouseEnter,
+  onMouseLeave,
 }: FounderDockItemProps) {
-  const [expanded, setExpanded] = useState(false);
-  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleMouseEnter = useCallback(() => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-    hoverTimeoutRef.current = setTimeout(() => {
-      setExpanded(true);
-    }, 400);
-  }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-    }
-    hoverTimeoutRef.current = setTimeout(() => {
-      setExpanded(false);
-      hoverTimeoutRef.current = null;
-    }, 500);
-  }, []);
-
   return (
     <div
       className={`dock-item dock-photo-item ${expanded ? 'expanded' : ''}`}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      style={{ '--s': 1.7 } as React.CSSProperties}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       onClick={() => onSelect(founder.id)}
     >
       <img
