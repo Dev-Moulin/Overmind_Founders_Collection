@@ -15,7 +15,7 @@ import { useMemo } from 'react';
 import { useQuery, gql } from '@apollo/client';
 import { formatEther } from 'viem';
 import { truncateAmount } from '../../utils/formatters';
-import { getCacheFetchPolicy, FIVE_MINUTES } from '../../lib/queryCacheTTL';
+import { getCacheFetchPolicy, TWO_MINUTES } from '../../lib/queryCacheTTL';
 
 /**
  * GraphQL query for founder vote market stats
@@ -184,7 +184,7 @@ export function useVoteMarketStats(
   const fetchPolicy = getCacheFetchPolicy(
     'GetFounderVoteMarket',
     { founderName },
-    FIVE_MINUTES
+    TWO_MINUTES
   );
 
   const { data, loading, error, refetch } = useQuery<{

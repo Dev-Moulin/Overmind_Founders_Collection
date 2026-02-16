@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { FounderHomeCard } from '../components/founder';
 import { FounderExpandedView } from '../components/founder';
 import { AlphabetIndex } from '../components/founder/AlphabetIndex/AlphabetIndex';
-import { useFoundersForHomePage, type FounderForHomePage, type TopTotem } from '../hooks';
+import { useFoundersData } from '../contexts/FoundersDataContext';
+import type { FounderForHomePage } from '../types/founder';
+import type { TopTotem } from '../hooks/data/useTopTotems';
 
 import { useTextScramble } from '../hooks/ui/useTextScramble';
 import '../carousel-3d.css';
@@ -253,7 +255,7 @@ function HeroSection({ stats, loading }: { stats: { totalTrustVoted: number; uni
  */
 export function HomePage3DCarousel() {
   const { t } = useTranslation();
-  const { founders, loading, error, stats, topTotemsMap } = useFoundersForHomePage();
+  const { founders, loading, error, stats, topTotemsMap } = useFoundersData();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // État de rotation du carrousel unique (en degrés)

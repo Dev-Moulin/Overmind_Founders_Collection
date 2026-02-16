@@ -10,7 +10,7 @@ import { GET_USER_POSITION } from '../../lib/graphql/queries';
 import { WithdrawModal } from './WithdrawModal';
 import type { ExistingClaimInfo } from '../../types/claim';
 import { SUPPORT_COLORS, OPPOSE_COLORS } from '../../config/colors';
-import { getCacheFetchPolicy, FIVE_MINUTES } from '../../lib/queryCacheTTL';
+import { getCacheFetchPolicy, TWO_MINUTES } from '../../lib/queryCacheTTL';
 
 // Re-export for backward compatibility
 export type { ExistingClaimInfo } from '../../types/claim';
@@ -78,7 +78,7 @@ export function ClaimExistsModal({
   const positionFetchPolicy = getCacheFetchPolicy(
     'GetUserPosition',
     { walletAddress: address?.toLowerCase(), termId: claim?.termId?.toLowerCase() },
-    FIVE_MINUTES
+    TWO_MINUTES
   );
 
   // Also query GraphQL as fallback (for display purposes)

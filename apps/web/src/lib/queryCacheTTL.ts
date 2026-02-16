@@ -14,11 +14,12 @@ import type { WatchQueryFetchPolicy } from '@apollo/client';
 /** Time constants */
 export const ONE_SECOND = 1000;
 export const ONE_MINUTE = ONE_SECOND * 60;
+export const TWO_MINUTES = ONE_MINUTE * 2;
 export const FIVE_MINUTES = ONE_MINUTE * 5;
 export const TEN_MINUTES = ONE_MINUTE * 10;
 
-/** Default TTL for queries (5 minutes) */
-export const DEFAULT_TTL = FIVE_MINUTES;
+/** Default TTL for queries (2 minutes) */
+export const DEFAULT_TTL = TWO_MINUTES;
 
 /** Map storing last fetch timestamps by query key */
 const queryTimestamps = new Map<string, number>();

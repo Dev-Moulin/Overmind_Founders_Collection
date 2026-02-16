@@ -14,13 +14,11 @@
 import { useMemo, useCallback } from 'react';
 import { useQuery } from '@apollo/client';
 import { formatEther } from 'viem';
-import {
-  GET_USER_POSITIONS_FOR_TERMS,
-  GET_FOUNDER_TRIPLES_WITH_DETAILS,
-} from '../../lib/graphql/queries';
+import { GET_USER_POSITIONS_FOR_TERMS } from '../../lib/graphql/queries';
 import { filterValidTriples, type RawTriple } from '../../utils/tripleGuards';
 import { formatSignedAmount } from '../../utils/formatters';
-import { getCacheFetchPolicy, FIVE_MINUTES } from '../../lib/queryCacheTTL';
+import { getCacheFetchPolicy, TWO_MINUTES } from '../../lib/queryCacheTTL';
+import { useFoundersData } from '../../contexts/FoundersDataContext';
 
 /** Predicates used for founder-totem relationships */
 const FOUNDER_PREDICATES = ['has totem', 'embodies'];
@@ -127,11 +125,6 @@ interface GetUserPositionsResult {
   positions: UserPosition[];
 }
 
-/** Result type for GET_FOUNDER_TRIPLES_WITH_DETAILS */
-interface GetFounderTriplesResult {
-  triples: TripleInfo[];
-}
-
 /**
  * Hook to fetch user's votes for a specific founder
  *
@@ -149,35 +142,16 @@ export function useUserVotesForFounder(
   walletAddress: string | undefined,
   founderName: string
 ): UseUserVotesForFounderReturn {
+  const { proposalsByFounder, loading: contextLoading, refetch: refetchContext } = useFoundersData();
+
   // Normalize wallet address to lowercase
   const normalizedAddress = walletAddress?.toLowerCase();
 
-  // TTL-based cache policy: only fetch if data is older than 5 minutes
-  const triplesFetchPolicy = getCacheFetchPolicy(
-    'GetFounderTriplesWithDetails',
-    { founderName },
-    FIVE_MINUTES
-  );
-
-  // Query 1: Get founder's triples with full details (first, to get term_ids)
-  const {
-    data: triplesData,
-    loading: triplesLoading,
-    error: triplesError,
-    refetch: refetchTriples,
-  } = useQuery<GetFounderTriplesResult>(GET_FOUNDER_TRIPLES_WITH_DETAILS, {
-    variables: { founderName },
-    skip: !founderName,
-    // TTL-based: 'cache-first' if fresh, 'cache-and-network' if stale
-    fetchPolicy: triplesFetchPolicy,
-    nextFetchPolicy: 'cache-first',
-  });
-
-  // Filter valid triples first (removes those with null object/subject/predicate)
+  // Get triples from Context instead of query
   const validTriples = useMemo(() => {
-    if (!triplesData?.triples) return [];
-    return filterValidTriples(triplesData.triples as RawTriple[], 'useUserVotesForFounder');
-  }, [triplesData?.triples]);
+    const proposals = proposalsByFounder.get(founderName) ?? [];
+    return filterValidTriples(proposals as RawTriple[], 'useUserVotesForFounder');
+  }, [proposalsByFounder, founderName]);
 
   // Extract all term_ids (triple term_ids + counter_term_ids) for positions query
   // Also create map for later lookup
@@ -204,7 +178,7 @@ export function useUserVotesForFounder(
   const positionsFetchPolicy = getCacheFetchPolicy(
     'GetUserPositionsForTerms',
     { walletAddress: normalizedAddress, founderName },
-    FIVE_MINUTES
+    TWO_MINUTES
   );
 
   // Query 2: Get user's positions for founder's triples only (efficient)
@@ -339,17 +313,16 @@ export function useUserVotesForFounder(
   );
 
   // Combined loading state
-  const loading = positionsLoading || triplesLoading;
+  const loading = positionsLoading || contextLoading;
 
   // Combined error
-  const error = positionsError || triplesError;
+  const error = positionsError;
 
   // Combined refetch - forces network-only to bypass cache after mutations
   const refetch = useCallback(() => {
-    // Force network request, bypassing any cache
     refetchPositions({ fetchPolicy: 'network-only' });
-    refetchTriples({ fetchPolicy: 'network-only' });
-  }, [refetchPositions, refetchTriples]);
+    refetchContext();
+  }, [refetchPositions, refetchContext]);
 
   // Memoize return value to prevent unnecessary re-renders
   return useMemo(() => ({

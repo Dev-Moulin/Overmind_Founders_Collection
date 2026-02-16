@@ -80,6 +80,7 @@ export interface Triple {
     total_shares: string;
     total_assets: string;
   };
+  counter_term_id?: string;
   counter_term?: {
     id: string;
     total_assets: string;
@@ -430,10 +431,14 @@ export interface GetFounderPanelStatsResult {
  */
 export interface GetDepositsByTermIdsResult {
   deposits: Array<{
+    id: string;
     term_id: string;
     sender_id: string;
     vault_type: string;
     curve_id: string;
+    shares: string;
     assets_after_fees: string;
+    created_at: string;
+    transaction_hash: string;
   }>;
 }
