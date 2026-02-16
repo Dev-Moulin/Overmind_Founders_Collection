@@ -13,16 +13,11 @@
  */
 
 import { useMemo } from 'react';
-import { useQuery } from '@apollo/client';
 import { formatEther } from 'viem';
-import {
-  GET_FOUNDER_TRIPLES_WITH_DETAILS,
-  GET_DEPOSITS_FOR_TIMELINE,
-} from '../../lib/graphql/queries';
 import type { Timeframe, VoteDataPoint } from '../../components/graph/TradingChart';
 import { filterValidTriples, type RawTriple } from '../../utils/tripleGuards';
 import { truncateAmount } from '../../utils/formatters';
-import { getCacheFetchPolicy, FIVE_MINUTES } from '../../lib/queryCacheTTL';
+import { useFoundersData } from '../../contexts/FoundersDataContext';
 
 /**
  * Triple info from query (may have null fields due to data integrity issues)
@@ -180,65 +175,24 @@ export function useVotesTimeline(
   selectedTotemId?: string,
   curveFilter: CurveFilter = 'progressive'
 ): UseVotesTimelineResult {
+  const { proposalsByFounder, depositsByTermId, loading: contextLoading, error: contextError, refetch } = useFoundersData();
+
   // Fetch more data for All timeframe
   const limit = timeframe === 'All' ? 500 : 100;
 
-  // TTL-based cache policy: only fetch if data is older than 5 minutes
-  const triplesFetchPolicy = getCacheFetchPolicy(
-    'GetFounderTriplesWithDetails_Timeline',
-    { founderName },
-    FIVE_MINUTES
-  );
-
-  // Query 1: Get founder's triples to get term_ids
-  const {
-    data: triplesData,
-    loading: triplesLoading,
-    error: triplesError,
-  } = useQuery<{ triples: TripleInfo[] }>(GET_FOUNDER_TRIPLES_WITH_DETAILS, {
-    variables: { founderName },
-    skip: !founderName,
-    // TTL-based: 'cache-first' if fresh, 'cache-and-network' if stale
-    fetchPolicy: triplesFetchPolicy,
-    nextFetchPolicy: 'cache-first',
-  });
-
-  // Filter valid triples first (removes those with null object/subject/predicate)
+  // Get triples from Context instead of query
   const validTriples = useMemo(() => {
-    if (!triplesData?.triples) return [];
-    return filterValidTriples(triplesData.triples as RawTriple[], 'useVotesTimeline');
-  }, [triplesData?.triples]);
-
-  // Extract term_ids AND counter_term_ids from valid triples
-  // We need BOTH to properly track FOR (term_id) and AGAINST (counter_term_id) votes
-  const termIds = useMemo(() => {
-    const ids: string[] = [];
-    validTriples.forEach((t) => {
-      ids.push(t.term_id);
-      // Use counter_term_id (direct field from GraphQL) or counter_term?.id (nested object)
-      const counterTermId = (t as TripleInfo).counter_term_id || t.counter_term?.id;
-      if (counterTermId) {
-        ids.push(counterTermId);
-      }
-    });
-    return ids;
-  }, [validTriples]);
+    const proposals = proposalsByFounder.get(founderName) ?? [];
+    return filterValidTriples(proposals as RawTriple[], 'useVotesTimeline');
+  }, [proposalsByFounder, founderName]);
 
   // Create a map: termId/counterTermId -> { objectId, isFor, totemLabel }
-  // This allows:
-  // 1. Filtering deposits by selected totem (using objectId)
-  // 2. Determining if a deposit is FOR or AGAINST (using isFor)
-  // 3. Getting totem label for activity feed (using totemLabel)
   const termToInfoMap = useMemo(() => {
     const map = new Map<string, { objectId: string; isFor: boolean; totemLabel: string }>();
     for (const triple of validTriples) {
-      // triple.object is guaranteed non-null by filterValidTriples
       const objectId = triple.object.term_id;
       const totemLabel = triple.object.label;
-      // Deposit on term_id = FOR vote
       map.set(triple.term_id, { objectId, isFor: true, totemLabel });
-      // Deposit on counter_term_id = AGAINST vote
-      // Use counter_term_id (direct field from GraphQL) or counter_term?.id (nested object)
       const counterTermId = (triple as TripleInfo).counter_term_id || triple.counter_term?.id;
       if (counterTermId) {
         map.set(counterTermId, { objectId, isFor: false, totemLabel });
@@ -247,31 +201,34 @@ export function useVotesTimeline(
     return map;
   }, [validTriples]);
 
-  // TTL-based cache policy for deposits (per founder)
-  const depositsFetchPolicy = getCacheFetchPolicy(
-    'GetDepositsForTimeline',
-    { founderName, limit },
-    FIVE_MINUTES
-  );
-
-  // Query 2: Get deposits for those term_ids
-  const {
-    data: depositsData,
-    loading: depositsLoading,
-    error: depositsError,
-    refetch: refetchDeposits,
-  } = useQuery<{ deposits: RawDeposit[] }>(GET_DEPOSITS_FOR_TIMELINE, {
-    variables: { termIds, limit },
-    skip: termIds.length === 0,
-    // TTL-based: 'cache-first' if fresh, 'cache-and-network' if stale
-    fetchPolicy: depositsFetchPolicy,
-    nextFetchPolicy: 'cache-first',
-  });
+  // Get deposits from Context instead of query, apply sort + limit client-side
+  const allDeposits = useMemo((): RawDeposit[] => {
+    const termIds = [...termToInfoMap.keys()];
+    const rawDeposits: RawDeposit[] = termIds.flatMap((id) => {
+      const deps = depositsByTermId.get(id);
+      if (!deps) return [];
+      return deps.map((d) => ({
+        id: d.id,
+        sender_id: d.sender_id,
+        term_id: d.term_id,
+        vault_type: d.vault_type,
+        shares: d.shares,
+        assets_after_fees: d.assets_after_fees,
+        created_at: d.created_at,
+        transaction_hash: d.transaction_hash,
+        curve_id: d.curve_id,
+      }));
+    });
+    // Sort by created_at DESC + limit (matches original query behavior)
+    return rawDeposits
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, limit);
+  }, [termToInfoMap, depositsByTermId, limit]);
 
   // Helper function to check if deposit matches curve filter
   const matchesCurveFilter = (deposit: RawDeposit): boolean => {
     if (curveFilter === 'all') return true;
-    const depositCurveId = deposit.curve_id || '1'; // Default to Linear if not specified
+    const depositCurveId = deposit.curve_id || '1';
     if (curveFilter === 'progressive') return depositCurveId === '2';
     if (curveFilter === 'linear') return depositCurveId === '1';
     return true;
@@ -279,21 +236,16 @@ export function useVotesTimeline(
 
   // Get deposits filtered only by totem and curve (not by timeframe) to check data availability
   const totemDeposits = useMemo(() => {
-    if (!depositsData?.deposits) return [];
-
-    return depositsData.deposits.filter((d) => {
-      // Filter by curve
+    return allDeposits.filter((d) => {
       if (!matchesCurveFilter(d)) return false;
-      // Get term info (objectId and isFor)
       const termInfo = termToInfoMap.get(d.term_id);
-      if (!termInfo) return false; // Unknown deposit
-      // Filter by totem if specified
+      if (!termInfo) return false;
       if (selectedTotemId) {
         if (termInfo.objectId !== selectedTotemId) return false;
       }
       return true;
     });
-  }, [depositsData?.deposits, selectedTotemId, termToInfoMap, curveFilter]);
+  }, [allDeposits, selectedTotemId, termToInfoMap, curveFilter]);
 
   // Check if data exists at all for this totem
   const hasAnyData = totemDeposits.length > 0;
@@ -308,28 +260,24 @@ export function useVotesTimeline(
     );
     const dataAge = now - oldestDepositTime;
 
-    // Check which timeframes would show data
     const timeframes: Timeframe[] = ['12H', '24H', '7D', 'All'];
 
     for (const tf of timeframes) {
       const duration = getTimeframeDuration(tf);
-      // If data age is within this timeframe, it would show data
       if (dataAge <= duration) {
-        // Only suggest if it's different from current timeframe
         if (tf !== timeframe) {
           return tf;
         }
-        return null; // Current timeframe is good
+        return null;
       }
     }
 
-    // Data is older than 7D, suggest "All"
     return timeframe !== 'All' ? 'All' : null;
   }, [hasAnyData, totemDeposits, timeframe]);
 
   // Process and aggregate data
   const { chartData, stats } = useMemo(() => {
-    if (!depositsData?.deposits || depositsData.deposits.length === 0) {
+    if (allDeposits.length === 0) {
       return {
         chartData: [],
         stats: {
@@ -350,7 +298,7 @@ export function useVotesTimeline(
     // Note: We use termToInfoMap to:
     // 1. Match deposit.term_id to object.term_id (totem)
     // 2. Determine if deposit is FOR (term_id) or AGAINST (counter_term_id)
-    let filteredDeposits = depositsData.deposits.filter((d) => {
+    let filteredDeposits = allDeposits.filter((d: RawDeposit) => {
       const timestamp = new Date(d.created_at).getTime();
       if (timeframe !== 'All' && timestamp < cutoff) return false;
       // Filter by curve type
@@ -471,15 +419,13 @@ export function useVotesTimeline(
         voteCount: filteredDeposits.length,
       },
     };
-  }, [depositsData, timeframe, selectedTotemId, termToInfoMap, curveFilter]);
+  }, [allDeposits, timeframe, selectedTotemId, termToInfoMap, curveFilter]);
 
   // Recent votes for activity feed (5 most recent, all curves, no timeframe filter)
   const recentVotes = useMemo((): RecentVote[] => {
-    if (!depositsData?.deposits) return [];
-
-    // Get deposits sorted by date desc, enrich with isFor and totemLabel
-    return depositsData.deposits
-      .map((deposit) => {
+    // allDeposits is already sorted by created_at DESC
+    return allDeposits
+      .map((deposit: RawDeposit) => {
         const termInfo = termToInfoMap.get(deposit.term_id);
         if (!termInfo) return null;
         return {
@@ -493,24 +439,20 @@ export function useVotesTimeline(
       })
       .filter((v): v is RecentVote => v !== null)
       .slice(0, 5);
-  }, [depositsData?.deposits, termToInfoMap]);
-
-  // Combined loading and error states
-  const loading = triplesLoading || depositsLoading;
-  const error = triplesError || depositsError;
+  }, [allDeposits, termToInfoMap]);
 
   // Memoize error object to prevent unnecessary re-renders
-  const errorObj = useMemo(() => error ? new Error(error.message) : null, [error]);
+  const errorObj = useMemo(() => contextError ? new Error(contextError.message) : null, [contextError]);
 
   // Memoize return value to prevent unnecessary re-renders
   return useMemo(() => ({
     data: chartData,
-    loading,
+    loading: contextLoading,
     error: errorObj,
-    refetch: refetchDeposits,
+    refetch,
     stats,
     suggestedTimeframe,
     hasAnyData,
     recentVotes,
-  }), [chartData, loading, errorObj, refetchDeposits, stats, suggestedTimeframe, hasAnyData, recentVotes]);
+  }), [chartData, contextLoading, errorObj, refetch, stats, suggestedTimeframe, hasAnyData, recentVotes]);
 }

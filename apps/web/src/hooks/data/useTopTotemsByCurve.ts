@@ -14,13 +14,11 @@
  */
 
 import { useMemo } from 'react';
-import { useQuery } from '@apollo/client';
 import { formatEther } from 'viem';
 import { useFounderProposals } from './useFounderProposals';
 import { useAllOFCTotems } from './useAllOFCTotems';
 import { filterValidTriples, type RawTriple } from '../../utils/tripleGuards';
-import { GET_DEPOSITS_FOR_TERMS_BY_CURVE } from '../../lib/graphql/queries';
-import { getCacheFetchPolicy, FIVE_MINUTES } from '../../lib/queryCacheTTL';
+import { useFoundersData } from '../../contexts/FoundersDataContext';
 
 /** Stats for a single curve */
 export interface CurveStats {
@@ -91,10 +89,6 @@ interface DepositNode {
   vault_type: string;
 }
 
-interface GetDepositsForTermsByCurveResult {
-  deposits: DepositNode[];
-}
-
 /**
  * Hook to get top totems with Linear/Progressive breakdown
  *
@@ -112,49 +106,33 @@ interface GetDepositsForTermsByCurveResult {
  */
 export function useTopTotemsByCurve(founderName: string): UseTopTotemsByCurveReturn {
   const { proposals, loading: proposalsLoading, error: proposalsError } = useFounderProposals(founderName);
+  const { depositsByTermId, loading: contextLoading } = useFoundersData();
   const { categoryMap, loading: categoryLoading } = useAllOFCTotems();
 
   // Filter valid proposals AND only keep totems with OFC category
   const validProposals = useMemo(() => {
     if (!proposals || proposals.length === 0) return [];
     const filtered = filterValidTriples(proposals as RawTriple[], 'useTopTotemsByCurve');
-    // Only keep proposals where the totem (object) has an OFC category
     return filtered.filter((p) => categoryMap.has(p.object.term_id));
   }, [proposals, categoryMap]);
 
-  // Collect all term_ids and counter_term_ids for deposits query
-  const termIds = useMemo(() => {
-    const ids: string[] = [];
+  // Collect deposits from Context instead of a separate query
+  const deposits = useMemo(() => {
+    const allDeposits: DepositNode[] = [];
     validProposals.forEach((p) => {
-      ids.push(p.term_id);
+      const forDeposits = depositsByTermId.get(p.term_id);
+      if (forDeposits) allDeposits.push(...forDeposits);
       if (p.counter_term?.id) {
-        ids.push(p.counter_term.id);
+        const againstDeposits = depositsByTermId.get(p.counter_term.id);
+        if (againstDeposits) allDeposits.push(...againstDeposits);
       }
     });
-    return ids;
-  }, [validProposals]);
-
-  // TTL-based cache policy: only fetch if data is older than 5 minutes
-  // Use founderName as key since termIds is derived from founder's proposals
-  const depositsFetchPolicy = getCacheFetchPolicy(
-    'GetDepositsForTermsByCurve',
-    { founderName },
-    FIVE_MINUTES
-  );
-
-  // Query deposits with curve breakdown
-  const { data: depositsData, loading: depositsLoading, error: depositsError } =
-    useQuery<GetDepositsForTermsByCurveResult>(GET_DEPOSITS_FOR_TERMS_BY_CURVE, {
-      variables: { termIds },
-      skip: termIds.length === 0,
-      // TTL-based: 'cache-first' if fresh, 'cache-and-network' if stale
-      fetchPolicy: depositsFetchPolicy,
-      nextFetchPolicy: 'cache-first',
-    });
+    return allDeposits;
+  }, [validProposals, depositsByTermId]);
 
   // Process deposits into totem stats
   const result = useMemo((): Omit<UseTopTotemsByCurveReturn, 'loading' | 'error'> => {
-    if (validProposals.length === 0 || !depositsData) {
+    if (validProposals.length === 0 || deposits.length === 0) {
       return {
         totems: [],
         linearWinner: null,
@@ -208,7 +186,7 @@ export function useTopTotemsByCurve(founderName: string): UseTopTotemsByCurveRet
     let totalLinear = 0;
     let totalProgressive = 0;
 
-    depositsData.deposits.forEach((deposit) => {
+    deposits.forEach((deposit) => {
       const termInfo = termToTotemMap.get(deposit.term_id);
       if (!termInfo) return;
 
@@ -296,13 +274,13 @@ export function useTopTotemsByCurve(founderName: string): UseTopTotemsByCurveRet
       totalLinearTrust: totalLinear,
       totalProgressiveTrust: totalProgressive,
     };
-  }, [validProposals, depositsData]);
+  }, [validProposals, deposits]);
 
   // Memoize loading and error
-  const loading = proposalsLoading || depositsLoading || categoryLoading;
+  const loading = proposalsLoading || contextLoading || categoryLoading;
   const errorObj = useMemo(
-    () => (proposalsError || depositsError) as Error | undefined,
-    [proposalsError, depositsError]
+    () => proposalsError as Error | undefined,
+    [proposalsError]
   );
 
   // Memoize return value to prevent unnecessary re-renders

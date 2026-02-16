@@ -1,19 +1,15 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo } from 'react';
 import { useQuery } from '@apollo/client';
 import { formatEther } from 'viem';
 import {
-  GET_FOUNDER_PROPOSALS,
-  // GET_USER_PROPOSALS,  // COMMENTED - useUserProposals disabled
   COUNT_USER_PROPOSALS_FOR_FOUNDER,
 } from '../../lib/graphql/queries';
 import type {
-  GetFounderProposalsResult,
-  // GetUserProposalsResult,  // COMMENTED - useUserProposals disabled
   CountUserProposalsForFounderResult,
   ProposalWithVotes,
 } from '../../lib/graphql/types';
 import { enrichTripleWithVotes } from '../../utils/voteCalculations';
-import { getCacheFetchPolicy, FIVE_MINUTES } from '../../lib/queryCacheTTL';
+import { useFoundersData } from '../../contexts/FoundersDataContext';
 
 /**
  * Hook to fetch all proposals for a specific founder
@@ -27,43 +23,20 @@ import { getCacheFetchPolicy, FIVE_MINUTES } from '../../lib/queryCacheTTL';
  * ```
  */
 export function useFounderProposals(founderName: string) {
-  // Use TTL-based cache policy: only fetch if data is older than 5 minutes
-  const fetchPolicy = getCacheFetchPolicy(
-    'GetFounderProposals',
-    { founderName },
-    FIVE_MINUTES
-  );
+  const { proposalsByFounder, loading, error, refetch } = useFoundersData();
 
-  const { data, loading, error, refetch } = useQuery<GetFounderProposalsResult>(
-    GET_FOUNDER_PROPOSALS,
-    {
-      variables: { founderName },
-      skip: !founderName,
-      // TTL-based: 'cache-first' if fresh, 'cache-and-network' if stale
-      fetchPolicy,
-      nextFetchPolicy: 'cache-first',
-      // Ensure refetch always goes to network
-      notifyOnNetworkStatusChange: true,
-    }
-  );
+  const proposals: ProposalWithVotes[] = useMemo(() => {
+    const rawTriples = proposalsByFounder.get(founderName);
+    if (!rawTriples) return [];
+    return rawTriples.map(enrichTripleWithVotes);
+  }, [proposalsByFounder, founderName]);
 
-  const proposals: ProposalWithVotes[] = useMemo(
-    () => data?.triples.map(enrichTripleWithVotes) || [],
-    [data]
-  );
-
-  // Wrapped refetch that forces network-only to bypass cache after mutations
-  const forceRefetch = useCallback(() => {
-    return refetch({ fetchPolicy: 'network-only' } as Parameters<typeof refetch>[0]);
-  }, [refetch]);
-
-  // Memoize return value to prevent unnecessary re-renders
   return useMemo(() => ({
     proposals,
     loading,
     error,
-    refetch: forceRefetch,
-  }), [proposals, loading, error, forceRefetch]);
+    refetch,
+  }), [proposals, loading, error, refetch]);
 }
 
 /**

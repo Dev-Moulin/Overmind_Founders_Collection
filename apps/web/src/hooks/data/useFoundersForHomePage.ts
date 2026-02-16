@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef } from 'react';
+import { useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQuery } from '@apollo/client';
 import { formatEther } from 'viem';
 import foundersData from '../../../../../packages/shared/src/data/founders.json';
@@ -8,7 +8,7 @@ import type { Triple, GetDepositsByTermIdsResult } from '../../lib/graphql/types
 import { aggregateTriplesByObject } from '../../utils/aggregateVotes';
 import type { TopTotem } from '../data/useTopTotems';
 import { useAllOFCTotems } from './useAllOFCTotems';
-import { getCacheFetchPolicy, FIVE_MINUTES } from '../../lib/queryCacheTTL';
+import { getCacheFetchPolicy, TWO_MINUTES } from '../../lib/queryCacheTTL';
 
 // Re-export for backward compatibility
 export type { TrendDirection, WinningTotem, FounderForHomePage, CurveWinnerInfo };
@@ -83,7 +83,7 @@ export function useFoundersForHomePage() {
   const proposalsFetchPolicy = getCacheFetchPolicy(
     'GetAllProposals',
     {}, // No variables
-    FIVE_MINUTES
+    TWO_MINUTES
   );
 
   // Query 2: Get all proposals (triples)
@@ -91,6 +91,7 @@ export function useFoundersForHomePage() {
     data: proposalsData,
     loading: proposalsLoading,
     error: proposalsError,
+    refetch: refetchProposals,
   } = useQuery<ProposalsQueryResult>(GET_ALL_PROPOSALS, {
     // TTL-based: 'cache-first' if fresh, 'cache-and-network' if stale
     fetchPolicy: proposalsFetchPolicy,
@@ -141,7 +142,7 @@ export function useFoundersForHomePage() {
   const depositsFetchPolicy = getCacheFetchPolicy(
     'GetDepositsByTermIds_AllFounders',
     {}, // No variables needed - batched for all founders
-    FIVE_MINUTES
+    TWO_MINUTES
   );
 
   // Query 3: BATCHED deposits query - ONE query for ALL triples (term_id + counter_term_id)
@@ -149,6 +150,7 @@ export function useFoundersForHomePage() {
   const {
     data: depositsData,
     loading: depositsLoading,
+    refetch: refetchDeposits,
   } = useQuery<GetDepositsByTermIdsResult>(GET_DEPOSITS_BY_TERM_IDS, {
     variables: { termIds: allTermIds },
     skip: allTermIds.length === 0,
@@ -491,6 +493,39 @@ export function useFoundersForHomePage() {
     }
   }, [loading, atomsLoading, proposalsLoading, categoryLoading, depositsLoading]);
 
+  // Build proposalsByFounder Map for Context sharing (Phase 2)
+  // Uses ALL triples (not OFC-filtered) so each hook can apply its own filters
+  const proposalsByFounder = useMemo(() => {
+    const map = new Map<string, Triple[]>();
+    if (!proposalsData?.triples) return map;
+    proposalsData.triples.forEach((t) => {
+      const name = t.subject?.label;
+      if (!name) return;
+      if (!map.has(name)) map.set(name, []);
+      map.get(name)!.push(t);
+    });
+    return map;
+  }, [proposalsData?.triples]);
+
+  // Build depositsByTermId Map for Context sharing (Phase 2)
+  const depositsByTermId = useMemo(() => {
+    const map = new Map<string, GetDepositsByTermIdsResult['deposits']>();
+    if (!depositsData?.deposits) return map;
+    depositsData.deposits.forEach((d) => {
+      if (!map.has(d.term_id)) map.set(d.term_id, []);
+      map.get(d.term_id)!.push(d);
+    });
+    return map;
+  }, [depositsData?.deposits]);
+
+  // Combined refetch for Context invalidation (after vote)
+  const refetch = useCallback(async () => {
+    await Promise.all([
+      refetchProposals({ fetchPolicy: 'network-only' }),
+      refetchDeposits({ fetchPolicy: 'network-only' }),
+    ]);
+  }, [refetchProposals, refetchDeposits]);
+
   // Memoize return value to prevent unnecessary re-renders
   return useMemo(() => ({
     founders: result.founders,
@@ -499,5 +534,9 @@ export function useFoundersForHomePage() {
     stats: result.stats,
     // NEW: Batched top totems map - avoids 42 individual queries
     topTotemsMap: result.topTotemsMap,
-  }), [result.founders, loading, error, result.stats, result.topTotemsMap]);
+    // Context data sharing (Phase 2)
+    proposalsByFounder,
+    depositsByTermId,
+    refetch,
+  }), [result.founders, loading, error, result.stats, result.topTotemsMap, proposalsByFounder, depositsByTermId, refetch]);
 }

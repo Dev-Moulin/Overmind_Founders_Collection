@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'react';
 import { Layout } from './components/layout/Layout';
 import { NetworkGuard } from './components/layout/NetworkGuard';
 import { HomePage3DCarousel } from './pages/HomePage3DCarousel';
+import { FoundersDataProvider } from './contexts/FoundersDataContext';
 
 // Lazy loaded pages (not needed on initial load)
 const AdminAuditPage = lazy(() => import('./pages/AdminAuditPage').then(m => ({ default: m.AdminAuditPage })));
@@ -35,7 +36,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <HomePage3DCarousel />,
+        element: <FoundersDataProvider><HomePage3DCarousel /></FoundersDataProvider>,
       },
       {
         path: 'admin/audit',

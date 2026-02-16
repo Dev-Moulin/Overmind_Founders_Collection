@@ -86,6 +86,7 @@ export function FounderCenterPanel({
 }: FounderCenterPanelProps) {
   const { t } = useTranslation();
   const { isConnected, address } = useAccount();
+
   const { proposals, loading: proposalsLoading, refetch: refetchProposals } = useFounderProposals(founder.name);
   const { totems: ofcTotems, loading: ofcLoading, dynamicCategories } = useAllOFCTotems();
   const { votes: userVotes, loading: votesLoading, refetch: refetchVotes } = useUserVotesForFounder(address, founder.name);

@@ -1,16 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 
-// Mock Apollo client before importing
+// Mock Apollo client (still needed by useProposalLimit)
 vi.mock('@apollo/client', () => ({
   useQuery: vi.fn(),
   gql: vi.fn((strings: TemplateStringsArray) => strings.join('')),
 }));
 
+// Mock FoundersDataContext (used by useFounderProposals)
+const mockRefetch = vi.fn().mockResolvedValue(undefined);
+vi.mock('../../contexts/FoundersDataContext', () => ({
+  useFoundersData: vi.fn(),
+}));
+
 import { useQuery } from '@apollo/client';
+import { useFoundersData } from '../../contexts/FoundersDataContext';
 import {
   useFounderProposals,
-  // useUserProposals,  // COMMENTED - not exported from hook
   useProposalLimit,
   sortProposalsByVotes,
   getWinningProposal,
@@ -50,21 +56,32 @@ const mockTriplesWithoutVaults = [
   },
 ];
 
-describe('useFounderProposals', () => {
-  const mockRefetch = vi.fn();
+/** Helper to mock useFoundersData with a proposalsByFounder Map */
+function mockContextWith(triples: any[], founderName: string, overrides: Partial<{ loading: boolean; error: any }> = {}) {
+  const map = new Map<string, any[]>();
+  if (triples.length > 0) {
+    map.set(founderName, triples);
+  }
+  vi.mocked(useFoundersData).mockReturnValue({
+    founders: [],
+    stats: { totalTrustVoted: 0, uniqueVoters: 0, foundersWithTotems: 0, totalProposals: 0 },
+    topTotemsMap: new Map(),
+    proposalsByFounder: map,
+    depositsByTermId: new Map(),
+    loading: overrides.loading ?? false,
+    error: overrides.error ?? null,
+    refetch: mockRefetch,
+  } as any);
+}
 
+describe('useFounderProposals', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   describe('loading state', () => {
-    it('should return loading true when query is loading', () => {
-      vi.mocked(useQuery).mockReturnValue({
-        data: undefined,
-        loading: true,
-        error: undefined,
-        refetch: mockRefetch,
-      } as any);
+    it('should return loading true when context is loading', () => {
+      mockContextWith([], 'Joseph Lubin', { loading: true });
 
       const { result } = renderHook(() => useFounderProposals('Joseph Lubin'));
 
@@ -75,27 +92,17 @@ describe('useFounderProposals', () => {
 
   describe('successful query', () => {
     it('should return proposals after loading', () => {
-      vi.mocked(useQuery).mockReturnValue({
-        data: { triples: mockTriples },
-        loading: false,
-        error: undefined,
-        refetch: mockRefetch,
-      } as any);
+      mockContextWith(mockTriples, 'Joseph Lubin');
 
       const { result } = renderHook(() => useFounderProposals('Joseph Lubin'));
 
       expect(result.current.loading).toBe(false);
       expect(result.current.proposals.length).toBe(2);
-      expect(result.current.error).toBeUndefined();
+      expect(result.current.error).toBeNull();
     });
 
     it('should include vote counts in proposals', () => {
-      vi.mocked(useQuery).mockReturnValue({
-        data: { triples: mockTriples },
-        loading: false,
-        error: undefined,
-        refetch: mockRefetch,
-      } as any);
+      mockContextWith(mockTriples, 'Joseph Lubin');
 
       const { result } = renderHook(() => useFounderProposals('Joseph Lubin'));
 
@@ -106,12 +113,7 @@ describe('useFounderProposals', () => {
     });
 
     it('should calculate net votes', () => {
-      vi.mocked(useQuery).mockReturnValue({
-        data: { triples: mockTriples },
-        loading: false,
-        error: undefined,
-        refetch: mockRefetch,
-      } as any);
+      mockContextWith(mockTriples, 'Joseph Lubin');
 
       const { result } = renderHook(() => useFounderProposals('Joseph Lubin'));
 
@@ -121,12 +123,7 @@ describe('useFounderProposals', () => {
     });
 
     it('should calculate percentage correctly', () => {
-      vi.mocked(useQuery).mockReturnValue({
-        data: { triples: mockTriples },
-        loading: false,
-        error: undefined,
-        refetch: mockRefetch,
-      } as any);
+      mockContextWith(mockTriples, 'Joseph Lubin');
 
       const { result } = renderHook(() => useFounderProposals('Joseph Lubin'));
 
@@ -140,12 +137,7 @@ describe('useFounderProposals', () => {
     });
 
     it('should handle zero votes (percentage = 0)', () => {
-      vi.mocked(useQuery).mockReturnValue({
-        data: { triples: mockTriplesWithoutVaults },
-        loading: false,
-        error: undefined,
-        refetch: mockRefetch,
-      } as any);
+      mockContextWith(mockTriplesWithoutVaults, 'Test Founder');
 
       const { result } = renderHook(() => useFounderProposals('Test Founder'));
 
@@ -155,30 +147,18 @@ describe('useFounderProposals', () => {
       expect(proposal.votes.againstVotes).toBe('0');
     });
 
-    it('should provide refetch function that forces network-only', () => {
-      vi.mocked(useQuery).mockReturnValue({
-        data: { triples: mockTriples },
-        loading: false,
-        error: undefined,
-        refetch: mockRefetch,
-      } as any);
+    it('should provide refetch function', () => {
+      mockContextWith(mockTriples, 'Joseph Lubin');
 
       const { result } = renderHook(() => useFounderProposals('Joseph Lubin'));
 
       expect(typeof result.current.refetch).toBe('function');
-      result.current.refetch();
-      expect(mockRefetch).toHaveBeenCalledWith({ fetchPolicy: 'network-only' });
     });
   });
 
   describe('empty founder name', () => {
-    it('should skip query when founderName is empty', () => {
-      vi.mocked(useQuery).mockReturnValue({
-        data: undefined,
-        loading: false,
-        error: undefined,
-        refetch: mockRefetch,
-      } as any);
+    it('should return empty proposals when founderName is empty', () => {
+      mockContextWith([], '');
 
       const { result } = renderHook(() => useFounderProposals(''));
 
@@ -188,12 +168,7 @@ describe('useFounderProposals', () => {
 
   describe('empty results', () => {
     it('should return empty array when no proposals found', () => {
-      vi.mocked(useQuery).mockReturnValue({
-        data: { triples: [] },
-        loading: false,
-        error: undefined,
-        refetch: mockRefetch,
-      } as any);
+      mockContextWith([], 'Unknown Founder');
 
       const { result } = renderHook(() => useFounderProposals('Unknown Founder'));
 
@@ -202,14 +177,9 @@ describe('useFounderProposals', () => {
   });
 
   describe('error handling', () => {
-    it('should return error when query fails', () => {
+    it('should return error when context has error', () => {
       const mockError = new Error('GraphQL error');
-      vi.mocked(useQuery).mockReturnValue({
-        data: undefined,
-        loading: false,
-        error: mockError,
-        refetch: mockRefetch,
-      } as any);
+      mockContextWith([], 'Error Founder', { error: mockError });
 
       const { result } = renderHook(() => useFounderProposals('Error Founder'));
 
@@ -220,12 +190,7 @@ describe('useFounderProposals', () => {
 
   describe('proposal structure', () => {
     it('should include triple data in proposal', () => {
-      vi.mocked(useQuery).mockReturnValue({
-        data: { triples: mockTriples },
-        loading: false,
-        error: undefined,
-        refetch: mockRefetch,
-      } as any);
+      mockContextWith(mockTriples, 'Joseph Lubin');
 
       const { result } = renderHook(() => useFounderProposals('Joseph Lubin'));
 
@@ -236,42 +201,22 @@ describe('useFounderProposals', () => {
     });
   });
 
-  describe('query configuration', () => {
-    it('should call useQuery with correct variables', () => {
-      vi.mocked(useQuery).mockReturnValue({
-        data: { triples: mockTriples },
-        loading: false,
-        error: undefined,
-        refetch: mockRefetch,
-      } as any);
+  describe('context integration', () => {
+    it('should read from proposalsByFounder Map', () => {
+      mockContextWith(mockTriples, 'Joseph Lubin');
 
-      renderHook(() => useFounderProposals('Joseph Lubin'));
+      const { result } = renderHook(() => useFounderProposals('Joseph Lubin'));
 
-      expect(useQuery).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          variables: { founderName: 'Joseph Lubin' },
-          skip: false,
-        })
-      );
+      expect(useFoundersData).toHaveBeenCalled();
+      expect(result.current.proposals.length).toBe(2);
     });
 
-    it('should skip query when founderName is empty', () => {
-      vi.mocked(useQuery).mockReturnValue({
-        data: undefined,
-        loading: false,
-        error: undefined,
-        refetch: mockRefetch,
-      } as any);
+    it('should return empty when founder not in Map', () => {
+      mockContextWith(mockTriples, 'Joseph Lubin');
 
-      renderHook(() => useFounderProposals(''));
+      const { result } = renderHook(() => useFounderProposals('Unknown'));
 
-      expect(useQuery).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          skip: true,
-        })
-      );
+      expect(result.current.proposals).toEqual([]);
     });
   });
 });

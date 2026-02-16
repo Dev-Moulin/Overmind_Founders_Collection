@@ -277,17 +277,27 @@ export const GET_ALL_PROPOSALS = gql`
         term_id
         label
         image
+        emoji
+        type
       }
       predicate {
         term_id
         label
+        image
+        emoji
       }
       object {
         term_id
         label
         image
         emoji
+        type
       }
+      creator {
+        id
+      }
+      creator_id
+      counter_term_id
       triple_vault {
         total_shares
         total_assets
@@ -296,6 +306,8 @@ export const GET_ALL_PROPOSALS = gql`
         id
         total_assets
       }
+      block_number
+      transaction_hash
       created_at
     }
   }
@@ -906,11 +918,15 @@ export const GET_DEPOSITS_BY_TERM_IDS = gql`
         vault_type: { _in: ["Triple", "CounterTriple"] }
       }
     ) {
+      id
       term_id
       sender_id
       vault_type
       curve_id
+      shares
       assets_after_fees
+      created_at
+      transaction_hash
     }
   }
 `;
