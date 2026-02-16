@@ -2,6 +2,7 @@ import { useEffect, useCallback, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { FounderForHomePage } from '../../../types/founder';
 import { useFounderAlphabetIndex } from '../../../hooks/ui/useFounderAlphabetIndex';
+import { useRandomFounder } from '../../../hooks/ui/useRandomFounder';
 import { AlphabetBar } from './AlphabetBar';
 import { FounderPhotoDock } from './FounderPhotoDock';
 import './alphabetIndex.css';
@@ -98,6 +99,16 @@ export function AlphabetIndex({ founders, onSelectFounder }: AlphabetIndexProps)
     [close, onSelectFounder]
   );
 
+  // Random dice: pick a founder prioritized by user votes
+  const { pickRandom } = useRandomFounder(founders);
+  const handleRandomClick = useCallback(() => {
+    const founderId = pickRandom();
+    if (founderId) {
+      close();
+      onSelectFounder(founderId);
+    }
+  }, [pickRandom, close, onSelectFounder]);
+
   const desktopBar = (
     <div
       ref={containerRef}
@@ -114,6 +125,7 @@ export function AlphabetIndex({ founders, onSelectFounder }: AlphabetIndexProps)
         onHoverEnd={handleLetterHoverEnd}
         onClick={handleLetterClick}
         onSelectFounder={handleFounderSelect}
+        onRandomClick={handleRandomClick}
       />
     </div>
   );
@@ -134,6 +146,7 @@ export function AlphabetIndex({ founders, onSelectFounder }: AlphabetIndexProps)
           onClick={handleLetterClick}
           onTouchLetter={handleTouchLetter}
           onTouchEnd={close}
+          onRandomClick={handleRandomClick}
         />
         {activeLetter && activeLetterFounders.length > 0 && (
           <div className="fixed right-10 top-1/2 -translate-y-1/2 z-50">

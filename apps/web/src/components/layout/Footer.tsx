@@ -22,14 +22,6 @@ export function Footer() {
           >
             GitHub
           </a>
-          <a
-            href="https://base.org"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-white transition-colors"
-          >
-            Base
-          </a>
         </div>
       </div>
     </footer>

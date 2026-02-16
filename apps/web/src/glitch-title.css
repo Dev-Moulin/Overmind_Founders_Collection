@@ -1,0 +1,260 @@
+/* ========================================
+   GLITCH TITLE EFFECT
+   Effet glitch avec chromatic aberration,
+   scanlines et glow sur le titre INTUITION
+   ======================================== */
+
+/* --- Wrapper (positionnement relatif pour glow + scanlines) --- */
+.glitch-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* --- Titre principal avec pseudo-éléments chromatic --- */
+.glitch-title {
+  color: rgb(223, 191, 191);
+  position: relative;
+  font-size: clamp(3.5rem, 9vw, 6rem);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  margin: 0;
+  line-height: 1.1;
+  animation: glitch-skew 5s 5s infinite;
+}
+
+.glitch-title::before,
+.glitch-title::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #242424;
+}
+
+.glitch-title::before {
+  left: -2px;
+  text-shadow: -5px 0 magenta;
+  animation: glitch-noise-1 6s linear infinite alternate-reverse, glitch-skew 5s 5.05s infinite;
+}
+
+.glitch-title::after {
+  left: 2px;
+  text-shadow: -5px 0 lightgreen;
+  animation: glitch-noise-2 6s linear infinite alternate-reverse, glitch-skew 5s 5s infinite;
+}
+
+/* --- Glow diffus derrière le titre --- */
+.glitch-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  color: transparent;
+  font-size: clamp(3.5rem, 9vw, 6rem);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  text-align: center;
+  text-shadow: 0 0 80px rgba(223, 191, 191, 0.5);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* --- Sous-titre "Founders Collection" --- */
+.glitch-subtitle {
+  font-weight: 100;
+  font-size: clamp(1rem, 2vw, 1.4rem);
+  color: rgba(165, 141, 141, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 1em;
+  text-align: center;
+  margin-top: 0.5rem;
+  padding-left: 1em; /* Compense le letter-spacing pour centrage visuel */
+  animation: glitch-skew-sub 5s 5.02s infinite;
+}
+
+/* --- Navbar glitch container --- */
+.glitch-nav {
+  animation: glitch-skew 5s 5s infinite;
+}
+
+/* "INTUITION" dans la navbar — bold italic + chromatic */
+.glitch-nav-bold {
+  position: relative;
+  font-style: italic;
+  font-weight: 800;
+  font-size: 1.25rem;
+  letter-spacing: 0.04em;
+  color: rgb(223, 191, 191);
+}
+
+.glitch-nav-bold::before,
+.glitch-nav-bold::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.glitch-nav-bold::before {
+  left: -1px;
+  text-shadow: -2px 0 magenta;
+  animation: glitch-noise-1 6s linear infinite alternate-reverse, glitch-skew 5s 5.05s infinite;
+}
+
+.glitch-nav-bold::after {
+  left: 1px;
+  text-shadow: -2px 0 lightgreen;
+  animation: glitch-noise-2 6s linear infinite alternate-reverse, glitch-skew 5s 5s infinite;
+}
+
+/* "Founders Collection" dans la navbar — même style que le subtitle hero */
+.glitch-nav-light {
+  font-weight: 600;
+  font-size: 0.60rem;
+  color: rgba(165, 141, 141, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.35em;
+  animation: glitch-skew-sub 5s 5.02s infinite;
+}
+
+/* --- Scanlines overlay — couvre toute la page --- */
+.glitch-scanlines {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  mix-blend-mode: difference;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.glitch-scanlines::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 0.5%,
+    transparent 1%
+  );
+  animation: glitch-fudge 7s ease-in-out alternate infinite;
+}
+
+/* ========================================
+   KEYFRAMES
+   ======================================== */
+
+/* Glitch principal — bref skew/rotate toutes les 5s */
+@keyframes glitch-skew {
+  1%  { transform: rotateX(10deg) skewX(90deg); }
+  2%  { transform: rotateX(0deg) skewX(0deg); }
+}
+
+/* Glitch sous-titre — skew plus doux */
+@keyframes glitch-skew-sub {
+  1%  { transform: rotateX(10deg) skewX(70deg); }
+  2%  { transform: rotateX(0deg) skewX(0deg); }
+}
+
+/* Scanlines drift lent */
+@keyframes glitch-fudge {
+  from { transform: translateY(0); }
+  to   { transform: translateY(2%); }
+}
+
+/* Noise 1 — 30 étapes de clip-path aléatoires (pseudo ::before, magenta) */
+@keyframes glitch-noise-1 {
+  3.33%  { clip-path: inset(42% 0 35% 0); }
+  6.67%  { clip-path: inset(73% 0 18% 0); }
+  10%    { clip-path: inset(15% 0 62% 0); }
+  13.33% { clip-path: inset(88% 0 9% 0); }
+  16.67% { clip-path: inset(31% 0 54% 0); }
+  20%    { clip-path: inset(67% 0 22% 0); }
+  23.33% { clip-path: inset(5% 0 78% 0); }
+  26.67% { clip-path: inset(52% 0 41% 0); }
+  30%    { clip-path: inset(94% 0 3% 0); }
+  33.33% { clip-path: inset(22% 0 65% 0); }
+  36.67% { clip-path: inset(81% 0 12% 0); }
+  40%    { clip-path: inset(38% 0 47% 0); }
+  43.33% { clip-path: inset(61% 0 30% 0); }
+  46.67% { clip-path: inset(8% 0 85% 0); }
+  50%    { clip-path: inset(49% 0 38% 0); }
+  53.33% { clip-path: inset(76% 0 16% 0); }
+  56.67% { clip-path: inset(27% 0 59% 0); }
+  60%    { clip-path: inset(91% 0 5% 0); }
+  63.33% { clip-path: inset(14% 0 72% 0); }
+  66.67% { clip-path: inset(58% 0 33% 0); }
+  70%    { clip-path: inset(85% 0 10% 0); }
+  73.33% { clip-path: inset(33% 0 51% 0); }
+  76.67% { clip-path: inset(69% 0 24% 0); }
+  80%    { clip-path: inset(3% 0 90% 0); }
+  83.33% { clip-path: inset(45% 0 42% 0); }
+  86.67% { clip-path: inset(80% 0 14% 0); }
+  90%    { clip-path: inset(19% 0 68% 0); }
+  93.33% { clip-path: inset(55% 0 36% 0); }
+  96.67% { clip-path: inset(72% 0 20% 0); }
+  100%   { clip-path: inset(36% 0 56% 0); }
+}
+
+/* Noise 2 — 30 étapes de clip-path aléatoires (pseudo ::after, lightgreen) */
+@keyframes glitch-noise-2 {
+  0%     { clip-path: inset(57% 0 31% 0); }
+  3.33%  { clip-path: inset(24% 0 63% 0); }
+  6.67%  { clip-path: inset(82% 0 11% 0); }
+  10%    { clip-path: inset(39% 0 48% 0); }
+  13.33% { clip-path: inset(71% 0 21% 0); }
+  16.67% { clip-path: inset(6% 0 80% 0); }
+  20%    { clip-path: inset(53% 0 37% 0); }
+  23.33% { clip-path: inset(90% 0 4% 0); }
+  26.67% { clip-path: inset(18% 0 70% 0); }
+  30%    { clip-path: inset(64% 0 28% 0); }
+  33.33% { clip-path: inset(44% 0 43% 0); }
+  36.67% { clip-path: inset(9% 0 83% 0); }
+  40%    { clip-path: inset(75% 0 17% 0); }
+  43.33% { clip-path: inset(34% 0 55% 0); }
+  46.67% { clip-path: inset(87% 0 7% 0); }
+  50%    { clip-path: inset(21% 0 66% 0); }
+  53.33% { clip-path: inset(60% 0 32% 0); }
+  56.67% { clip-path: inset(46% 0 44% 0); }
+  60%    { clip-path: inset(79% 0 14% 0); }
+  63.33% { clip-path: inset(13% 0 76% 0); }
+  66.67% { clip-path: inset(66% 0 25% 0); }
+  70%    { clip-path: inset(41% 0 49% 0); }
+  73.33% { clip-path: inset(95% 0 2% 0); }
+  76.67% { clip-path: inset(28% 0 61% 0); }
+  80%    { clip-path: inset(83% 0 10% 0); }
+  83.33% { clip-path: inset(50% 0 39% 0); }
+  86.67% { clip-path: inset(16% 0 74% 0); }
+  90%    { clip-path: inset(68% 0 23% 0); }
+  93.33% { clip-path: inset(37% 0 52% 0); }
+  96.67% { clip-path: inset(86% 0 8% 0); }
+  100%   { clip-path: inset(48% 0 40% 0); }
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+@media (max-width: 640px) {
+  .glitch-subtitle {
+    font-size: clamp(0.4rem, 2.5vw, 0.65rem);
+    letter-spacing: 0.6em;
+  }
+}

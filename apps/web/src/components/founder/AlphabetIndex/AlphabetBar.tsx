@@ -1,4 +1,4 @@
-import { Fragment, memo, useCallback, useMemo, useRef, useState } from 'react';
+import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { LetterGroup } from '../../../hooks/ui/useFounderAlphabetIndex';
 import type { FounderForHomePage } from '../../../types/founder';
 import { FounderDockItem } from './FounderDockItem';
@@ -19,6 +19,7 @@ function computeAnchorOffset(
   totalLetters: number,
   activeLetterIdx: number | null,
   photoCount: number,
+  hasDice: boolean,
 ): number {
   // Build virtual list of item base widths matching the DOM order
   const items: number[] = [];
@@ -34,6 +35,8 @@ function computeAnchorOffset(
       }
     }
   }
+  // Dice button after Z
+  if (hasDice) items.push(LETTER_BASE_W);
 
   let totalExpansion = 0;
   let expansionBefore = 0;
@@ -63,6 +66,56 @@ interface AlphabetBarProps {
   /** Direct setter for touch scrubber (bypasses hover timing) */
   onTouchLetter?: (letter: string) => void;
   onTouchEnd?: () => void;
+  /** Random dice button callback */
+  onRandomClick?: () => void;
+}
+
+/* Dot positions (top%, left%) for each face value */
+const FACE_DOTS: Record<number, [string, string][]> = {
+  1: [['50%', '50%']],
+  2: [['25%', '25%'], ['75%', '75%']],
+  3: [['25%', '25%'], ['50%', '50%'], ['75%', '75%']],
+  4: [['25%', '25%'], ['25%', '75%'], ['75%', '25%'], ['75%', '75%']],
+  5: [['25%', '25%'], ['25%', '75%'], ['50%', '50%'], ['75%', '25%'], ['75%', '75%']],
+  6: [['25%', '25%'], ['25%', '75%'], ['50%', '25%'], ['50%', '75%'], ['75%', '25%'], ['75%', '75%']],
+};
+
+function DiceDockItem({ onClick }: { onClick: () => void }) {
+  const [rolling, setRolling] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  const handleClick = () => {
+    if (rolling) return;
+    setRolling(true);
+    setTimeout(() => {
+      setRolling(false);
+      onClick();
+    }, 800);
+  };
+
+  return (
+    <div
+      className="dock-item dock-dice"
+      onClick={handleClick}
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      <div className="dice-scene">
+        <div className="dice-cube">
+          <div className={`dice-inner ${rolling ? 'rolling' : ''}`}>
+            {[1, 2, 3, 4, 5, 6].map((n) => (
+              <div key={n} className={`dice-face face-${n}`}>
+                {FACE_DOTS[n].map(([top, left], i) => (
+                  <span key={i} className="dot" style={{ top, left }} />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      {showTooltip && <div className="dice-tooltip">Random</div>}
+    </div>
+  );
 }
 
 /**
@@ -83,10 +136,68 @@ export const AlphabetBar = memo(function AlphabetBar({
   onSelectFounder,
   onTouchLetter,
   onTouchEnd,
+  onRandomClick,
 }: AlphabetBarProps) {
   const isTouchingRef = useRef(false);
   const lastTouchLetterRef = useRef<string | null>(null);
   const [hoveredLetterIdx, setHoveredLetterIdx] = useState<number | null>(null);
+
+  // --- Mini-card sticky avec switch progressif ---
+  const [expandedFounderId, setExpandedFounderId] = useState<string | null>(null);
+  const [closingFounderId, setClosingFounderId] = useState<string | null>(null);
+  const expandTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const expandedIdRef = useRef<string | null>(null);
+  const switchingRef = useRef(false);
+
+  useEffect(() => { expandedIdRef.current = expandedFounderId; }, [expandedFounderId]);
+
+  // Reset quand la lettre active change (photos démontées/remontées)
+  useEffect(() => {
+    setExpandedFounderId(null);
+    setClosingFounderId(null);
+    switchingRef.current = false;
+    if (expandTimeoutRef.current) { clearTimeout(expandTimeoutRef.current); expandTimeoutRef.current = null; }
+    if (closeTimeoutRef.current) { clearTimeout(closeTimeoutRef.current); closeTimeoutRef.current = null; }
+  }, [activeLetter]);
+
+  const handlePhotoMouseEnter = useCallback((founderId: string) => {
+    if (expandTimeoutRef.current) { clearTimeout(expandTimeoutRef.current); expandTimeoutRef.current = null; }
+    if (expandedIdRef.current !== null || switchingRef.current) {
+      // Switch : hover → 100ms → nouvelle s'ouvre → 150ms → ancienne se ferme
+      const oldId = expandedIdRef.current;
+      switchingRef.current = true;
+      expandTimeoutRef.current = setTimeout(() => {
+        setExpandedFounderId(founderId);
+        expandTimeoutRef.current = null;
+        switchingRef.current = false;
+        // L'ancienne passe en closing (garde expanded visuellement pendant 150ms)
+        if (oldId) {
+          if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+          setClosingFounderId(oldId);
+          closeTimeoutRef.current = setTimeout(() => {
+            setClosingFounderId(null);
+            closeTimeoutRef.current = null;
+          }, 650);
+        }
+      }, 200);
+    } else {
+      // Première ouverture → délai 400ms
+      expandTimeoutRef.current = setTimeout(() => {
+        setExpandedFounderId(founderId);
+        expandTimeoutRef.current = null;
+      }, 400);
+    }
+  }, []);
+
+  const handlePhotoMouseLeave = useCallback(() => {
+    if (expandTimeoutRef.current) {
+      clearTimeout(expandTimeoutRef.current);
+      expandTimeoutRef.current = null;
+    }
+    if (switchingRef.current) switchingRef.current = false;
+    // Si déjà expanded → sticky, on ne ferme PAS
+  }, []);
 
   const className = orientation === 'horizontal'
     ? 'alphabet-bar-horizontal'
@@ -106,8 +217,9 @@ export const AlphabetBar = memo(function AlphabetBar({
       letterGroups.length,
       activeLetterIdx,
       activeLetterFounders.length,
+      !!onRandomClick,
     );
-  }, [hoveredLetterIdx, letterGroups.length, activeLetterIdx, activeLetterFounders.length, orientation]);
+  }, [hoveredLetterIdx, letterGroups.length, activeLetterIdx, activeLetterFounders.length, orientation, onRandomClick]);
 
   const handleLetterMouseEnter = useCallback((letter: string, index: number, hasFounders: boolean) => {
     if (hasFounders) onHoverStart(letter);
@@ -180,6 +292,7 @@ export const AlphabetBar = memo(function AlphabetBar({
           <div
             data-letter={hasFounders ? letter : undefined}
             className={`dock-item dock-letter ${!hasFounders ? 'disabled' : ''} ${activeLetter === letter ? 'active' : ''}`}
+            style={!hasFounders ? { '--s': 1 } as React.CSSProperties : activeLetter === letter ? { '--s': 2.2 } as React.CSSProperties : undefined}
             onMouseEnter={() => handleLetterMouseEnter(letter, index, hasFounders)}
             onMouseLeave={handleLetterMouseLeave}
             onClick={() => hasFounders && onClick(letter)}
@@ -191,11 +304,15 @@ export const AlphabetBar = memo(function AlphabetBar({
             <FounderDockItem
               key={founder.id}
               founder={founder}
+              expanded={expandedFounderId === founder.id || closingFounderId === founder.id}
               onSelect={onSelectFounder!}
+              onMouseEnter={() => handlePhotoMouseEnter(founder.id)}
+              onMouseLeave={handlePhotoMouseLeave}
             />
           ))}
         </Fragment>
       ))}
+      {onRandomClick && <DiceDockItem onClick={onRandomClick} />}
     </div>
   );
 });

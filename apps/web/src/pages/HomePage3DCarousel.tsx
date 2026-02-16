@@ -10,6 +10,7 @@ import type { TopTotem } from '../hooks/data/useTopTotems';
 
 import { useTextScramble } from '../hooks/ui/useTextScramble';
 import '../carousel-3d.css';
+import '../glitch-title.css';
 
 /**
  * FrontCardOverlay - Card frontale avec effet glass HORS du contexte 3D
@@ -227,13 +228,18 @@ function HeroSection({ stats, loading }: { stats: { totalTrustVoted: number; uni
 
   return (
     <div ref={heroRef}>
-      {/* Hero */}
+      {/* Hero — Glitch title */}
       <div className="text-center pt-20 pb-12">
-        <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
-          {t('homePage.title')}
-          <span className="block text-slate-400 mt-2">{t('homePage.subtitle')}</span>
-        </h1>
-        <p className="text-xl text-white/70 max-w-2xl mx-auto">
+        <div className="glitch-wrapper">
+          <h1 className="glitch-title" data-text={t('homePage.title')}>
+            {t('homePage.title')}
+          </h1>
+          <div className="glitch-glow" aria-hidden="true">
+            {t('homePage.title')}
+          </div>
+          <p className="glitch-subtitle">{t('homePage.subtitle')}</p>
+        </div>
+        <p className="text-xl text-white/70 max-w-2xl mx-auto mt-8">
           {t('homePage.description')}
         </p>
       </div>
@@ -481,6 +487,9 @@ export function HomePage3DCarousel() {
 
   return (
     <>
+      {/* Scanlines overlay — couvre toute la page */}
+      <div className="glitch-scanlines" aria-hidden="true" />
+
       {/* Alphabet bar — fixed below header, outside carousel event scope */}
       {!selectedFounderId && isCarouselVisible && !loading && (
         <AlphabetIndex

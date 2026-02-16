@@ -11,6 +11,8 @@
   justify-content: center;
   cursor: pointer;
   user-select: none;
+  margin: 0 calc(-1px * var(--s));
+  transition: margin 150ms ease;
 }
 
 /* Hovered item */
@@ -54,7 +56,119 @@
 .dock-letter.disabled {
   color: rgba(255, 255, 255, 0.2);
   pointer-events: none;
-  --s: 1 !important;
+}
+
+/* === DOCK DICE (random button after Z) === */
+.dock-dice {
+  width: calc(26px * var(--s));
+  height: calc(30px * var(--s));
+  border-radius: 6px;
+  position: relative;
+  transition: width 150ms ease, height 150ms ease;
+}
+
+/* 3D dice scene — provides perspective */
+.dice-scene {
+  --dice-half: calc(7px * var(--s));
+  width: calc(14px * var(--s));
+  height: calc(14px * var(--s));
+  perspective: calc(84px * var(--s));
+  flex-shrink: 0;
+  transition: width 150ms ease, height 150ms ease, perspective 150ms ease;
+}
+
+/* Cube wrapper — handles translateZ centering */
+.dice-cube {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transform: translateZ(calc(-1 * var(--dice-half)));
+  transition: transform 150ms ease;
+}
+
+/* Inner — receives roll animation (separated from translateZ) */
+.dice-inner {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  transform-style: preserve-3d;
+}
+
+/* Faces */
+.dice-face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 15%;
+  background: rgba(20, 20, 40, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.face-1 { transform: rotateY(0deg)   translateZ(var(--dice-half)); }
+.face-2 { transform: rotateY(90deg)  translateZ(var(--dice-half)); }
+.face-3 { transform: rotateY(180deg) translateZ(var(--dice-half)); }
+.face-4 { transform: rotateY(-90deg) translateZ(var(--dice-half)); }
+.face-5 { transform: rotateX(90deg)  translateZ(var(--dice-half)); }
+.face-6 { transform: rotateX(-90deg) translateZ(var(--dice-half)); }
+
+/* Dots on faces */
+.dice-face .dot {
+  position: absolute;
+  width: 20%;
+  height: 20%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  transform: translate(-50%, -50%);
+}
+
+/* Roll animation — multi-axis tumble */
+@keyframes diceRoll {
+  0%   { transform: rotateX(0deg) rotateY(0deg); }
+  20%  { transform: rotateX(180deg) rotateY(90deg); }
+  40%  { transform: rotateX(360deg) rotateY(180deg); }
+  60%  { transform: rotateX(450deg) rotateY(360deg); }
+  80%  { transform: rotateX(630deg) rotateY(540deg); }
+  100% { transform: rotateX(720deg) rotateY(720deg); }
+}
+
+.dice-inner.rolling {
+  animation: diceRoll 800ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* Glassmorphism tooltip (same glass style as .founder-mini-card) */
+.dice-tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
+  border-radius: 8px;
+  pointer-events: none;
+  animation: miniCardFadeIn 200ms ease-out;
+
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-top-color: rgba(255, 255, 255, 0.25);
+  border-left-color: rgba(255, 255, 255, 0.2);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.15),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.1),
+    0 8px 32px rgba(0, 0, 0, 0.2),
+    0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* === DOCK PHOTO ITEM (inline in bar, morphs into mini-card) === */
@@ -102,7 +216,7 @@
 /* Expanded state: photo morphs into mini-card (glass-card style) */
 .dock-photo-item.expanded {
   max-width: 280px;
-  height: 60px;
+  height: 66px;
   border-radius: 12px;
   justify-content: flex-start;
 
@@ -122,10 +236,10 @@
 
 .dock-photo-item.expanded img,
 .dock-photo-item.expanded .photo-placeholder {
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  margin: 6px;
+  width: 50px;
+  height: 50px;
+  min-width: 50px;
+  margin: 7px;
 }
 
 .dock-photo-item.expanded .photo-placeholder {
@@ -217,6 +331,18 @@
 
 .alphabet-bar-vertical .dock-letter.disabled {
   color: rgba(255, 255, 255, 0.15);
+}
+
+.alphabet-bar-vertical .dock-dice {
+  width: calc(16px * var(--s));
+  height: calc(14px * var(--s));
+}
+
+.alphabet-bar-vertical .dice-scene {
+  --dice-half: calc(4.5px * var(--s));
+  width: calc(9px * var(--s));
+  height: calc(9px * var(--s));
+  perspective: calc(54px * var(--s));
 }
 
 /* === MOBILE PHOTO PANEL (separate from vertical bar) === */
