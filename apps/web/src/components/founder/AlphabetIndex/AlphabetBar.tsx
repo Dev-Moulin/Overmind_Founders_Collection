@@ -180,6 +180,7 @@ export const AlphabetBar = memo(function AlphabetBar({
           <div
             data-letter={hasFounders ? letter : undefined}
             className={`dock-item dock-letter ${!hasFounders ? 'disabled' : ''} ${activeLetter === letter ? 'active' : ''}`}
+            style={!hasFounders ? { '--s': 1 } as React.CSSProperties : undefined}
             onMouseEnter={() => handleLetterMouseEnter(letter, index, hasFounders)}
             onMouseLeave={handleLetterMouseLeave}
             onClick={() => hasFounders && onClick(letter)}

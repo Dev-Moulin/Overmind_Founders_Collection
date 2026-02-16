@@ -54,7 +54,6 @@
 .dock-letter.disabled {
   color: rgba(255, 255, 255, 0.2);
   pointer-events: none;
-  --s: 1 !important;
 }
 
 /* === DOCK PHOTO ITEM (inline in bar, morphs into mini-card) === */

@@ -5,6 +5,7 @@ import { WalletConnectButton } from '../common/ConnectButton';
 import { NetworkSwitch } from './NetworkSwitch';
 import { LanguageSwitcher } from '../common/LanguageSwitcher';
 import { ADMIN_WALLET } from '../../config/constants';
+import '../../glitch-title.css';
 
 export function Header() {
   const { t } = useTranslation();
@@ -39,8 +40,15 @@ export function Header() {
   return (
     <header className="relative z-50 flex items-center px-6 py-3 gap-4 border-b border-white/10 bg-black/20 backdrop-blur-sm overflow-visible">
       <div className="flex items-center gap-6 shrink-0">
-        <Link to="/" onClick={handleLogoClick} className="text-xl font-bold text-white hover:text-slate-400 transition-colors">
-          {t('header.title')}
+        <Link to="/" onClick={handleLogoClick} className="hover:opacity-80 transition-opacity">
+          <span className="glitch-nav flex flex-col items-start leading-tight">
+            <span className="glitch-nav-bold" data-text={t('homePage.title')}>
+              {t('homePage.title')}
+            </span>
+            <span className="glitch-nav-light">
+              {t('homePage.subtitle')}
+            </span>
+          </span>
         </Link>
 
         {isConnected && isAdmin && (
