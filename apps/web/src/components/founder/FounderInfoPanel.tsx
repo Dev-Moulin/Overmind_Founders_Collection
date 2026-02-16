@@ -11,7 +11,7 @@
  * @see Phase 9 in TODO_Implementation.md
  */
 
-import { useState, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FounderForHomePage } from '../../hooks';
 import { getFounderImageUrl } from '../../utils/founderImage';
@@ -291,6 +291,22 @@ export function FounderInfoPanel({
 
   // Fetch curve winners (Linear/Progressive) and all totems with curve breakdown
   const { totems: totemsByCurve, linearWinner, progressiveWinner, loading: curveLoading } = useTopTotemsByCurve(founder.name);
+
+  // Performance measurement: log total loading time once
+  const infoPanelStart = useRef(performance.now());
+  const infoPanelLogged = useRef(false);
+  const allInfoLoaded = !totemsLoading && !allTotemsLoading && !statsLoading && !tagsLoading && !curveLoading;
+  useEffect(() => {
+    if (allInfoLoaded && !infoPanelLogged.current) {
+      infoPanelLogged.current = true;
+      const elapsed = performance.now() - infoPanelStart.current;
+      console.log(
+        `%c[PERF] FounderInfoPanel loaded in ${elapsed.toFixed(0)}ms`,
+        'color: #ff9f43; font-weight: bold; font-size: 13px'
+      );
+      console.log(`  Totems: done, Stats: done, Tags: done, Curves: done`);
+    }
+  }, [allInfoLoaded]);
 
   // Extract social links from founder data
   const socialLinks = {

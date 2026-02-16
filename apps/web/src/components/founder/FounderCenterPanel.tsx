@@ -169,6 +169,22 @@ export function FounderCenterPanel({
     hasAnyData,
   } = useVotesTimeline(founder.name, timeframe, selectedTotemId, curveFilter);
 
+  // Performance measurement: log total loading time once
+  const centerPanelStart = useRef(performance.now());
+  const centerPanelLogged = useRef(false);
+  const allCenterLoaded = !proposalsLoading && !ofcLoading && !votesLoading && !timelineLoading;
+  useEffect(() => {
+    if (allCenterLoaded && !centerPanelLogged.current) {
+      centerPanelLogged.current = true;
+      const elapsed = performance.now() - centerPanelStart.current;
+      console.log(
+        `%c[PERF] FounderCenterPanel loaded in ${elapsed.toFixed(0)}ms`,
+        'color: #54a0ff; font-weight: bold; font-size: 13px'
+      );
+      console.log(`  Proposals: done, OFC: done, Votes: done, Timeline: done`);
+    }
+  }, [allCenterLoaded]);
+
   // Calculate dynamic chart title based on selected totem or global winner
   const chartTitleInfo = useMemo((): ChartTitleInfo | null => {
     // If a totem is selected, show its info

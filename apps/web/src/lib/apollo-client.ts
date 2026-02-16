@@ -23,12 +23,13 @@ const GRAPHQL_HTTP_ENDPOINT = networkConfig.graphqlHttp;
 const GRAPHQL_WS_ENDPOINT = networkConfig.graphqlWs;
 
 // Throttle link to prevent 429 rate limiting errors
-// - Limits concurrent requests to 1 (very conservative)
-// - Minimum 1000ms between requests (1 request/second max)
+// - Allows 5 concurrent requests (homepage 3 + panels ~8, staggered by minDelay)
+// - 200ms minimum between requests (prevents bursts without penalizing startup)
 // - Auto-retry with exponential backoff on 429/network errors
+// Note: Intuition has undocumented rate limits (429 confirmed at 10 concurrent).
 const throttleLink = createThrottleLink({
-  minDelay: 1000,     // 1s minimum between requests (matches API rate limit)
-  maxConcurrent: 1,   // Only 1 concurrent request to avoid rate limiting
+  minDelay: 200,      // 200ms between requests (prevents bursts)
+  maxConcurrent: 10,   // 5 concurrent requests (10 triggers 429 errors)
   maxRetries: 5,      // Retry 5 times on 429
   retryDelay: 3000,   // Start with 3s delay, doubles each retry
 });
