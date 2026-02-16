@@ -5,6 +5,8 @@ import { FounderHomeCard } from '../components/founder';
 import { FounderExpandedView } from '../components/founder';
 import { AlphabetIndex } from '../components/founder/AlphabetIndex/AlphabetIndex';
 import { useFoundersForHomePage, type FounderForHomePage, type TopTotem } from '../hooks';
+
+import { useTextScramble } from '../hooks/ui/useTextScramble';
 import '../carousel-3d.css';
 
 /**
@@ -165,6 +167,81 @@ function FlippableCard({ founder, topTotems, flipAngle, isFront, isSelected, onC
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.37), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
           }}
         />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * ScrambleStat — single stat card with glitch-decode animation on value
+ */
+function ScrambleStat({ value, label, numeric, trigger }: { value: string; label: string; numeric?: boolean; trigger: number }) {
+  const scrambled = useTextScramble(value, {
+    baseIterations: 6,
+    randomRange: 10,
+    frameInterval: 70,
+    numeric,
+    trigger,
+  });
+
+  return (
+    <div className="glass-card p-6 text-center">
+      <div className="text-4xl font-bold text-slate-400 font-mono tracking-tight">{scrambled}</div>
+      <div className="text-white/60">{label}</div>
+    </div>
+  );
+}
+
+/**
+ * HeroSection — Title + animated stats that replay on visibility
+ */
+function HeroSection({ stats, loading }: { stats: { totalTrustVoted: number; uniqueVoters: number; totalProposals: number; foundersWithTotems: number }; loading: boolean }) {
+  const { t } = useTranslation();
+  const heroRef = useRef<HTMLDivElement>(null);
+  const [trigger, setTrigger] = useState(0);
+
+  // Re-trigger scramble when hero section becomes visible again
+  useEffect(() => {
+    const el = heroRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setTrigger((prev) => prev + 1);
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const trustDisplay = loading ? '' : stats.totalTrustVoted.toFixed(2);
+  const votersDisplay = loading ? '' : String(stats.uniqueVoters);
+  const proposalsDisplay = loading ? '' : String(stats.totalProposals);
+  const totemsDisplay = loading ? '' : String(stats.foundersWithTotems);
+
+  return (
+    <div ref={heroRef}>
+      {/* Hero */}
+      <div className="text-center pt-20 pb-12">
+        <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
+          {t('homePage.title')}
+          <span className="block text-slate-400 mt-2">{t('homePage.subtitle')}</span>
+        </h1>
+        <p className="text-xl text-white/70 max-w-2xl mx-auto">
+          {t('homePage.description')}
+        </p>
+      </div>
+
+      {/* Stats with scramble effect */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-20">
+        <ScrambleStat value={trustDisplay} label={t('homePage.stats.totalTrust')} numeric trigger={trigger} />
+        <ScrambleStat value={votersDisplay} label={t('homePage.stats.uniqueVoters')} numeric trigger={trigger} />
+        <ScrambleStat value={proposalsDisplay} label={t('homePage.stats.proposals')} numeric trigger={trigger} />
+        <ScrambleStat value={totemsDisplay} label={t('homePage.stats.withTotem')} numeric trigger={trigger} />
       </div>
     </div>
   );
@@ -414,36 +491,7 @@ export function HomePage3DCarousel() {
         {/* ÉCRAN 1: Hero + Stats */}
         <section className="carousel-screen hero-screen">
           <div className="max-w-4xl mx-auto px-4">
-            {/* Hero */}
-            <div className="text-center pt-20 pb-12">
-              <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
-                {t('homePage.title')}
-                <span className="block text-slate-400 mt-2">{t('homePage.subtitle')}</span>
-              </h1>
-              <p className="text-xl text-white/70 max-w-2xl mx-auto">
-                {t('homePage.description')}
-              </p>
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-20">
-              <div className="glass-card p-6 text-center">
-                <div className="text-4xl font-bold text-slate-400">{stats.totalFounders}</div>
-                <div className="text-white/60">{t('homePage.stats.founders')}</div>
-              </div>
-              <div className="glass-card p-6 text-center">
-                <div className="text-4xl font-bold text-slate-400">{stats.foundersWithAtoms}</div>
-                <div className="text-white/60">{t('homePage.stats.onChain')}</div>
-              </div>
-              <div className="glass-card p-6 text-center">
-                <div className="text-4xl font-bold text-slate-400">{stats.totalProposals}</div>
-                <div className="text-white/60">{t('homePage.stats.proposals')}</div>
-              </div>
-              <div className="glass-card p-6 text-center">
-                <div className="text-4xl font-bold text-slate-400">{stats.foundersWithTotems}</div>
-                <div className="text-white/60">{t('homePage.stats.withTotem')}</div>
-              </div>
-            </div>
+            <HeroSection stats={stats} loading={loading} />
 
             {/* Indicateur scroll down */}
             <div className="text-center animate-bounce">

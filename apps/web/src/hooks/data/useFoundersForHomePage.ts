@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import { useQuery } from '@apollo/client';
 import { formatEther } from 'viem';
 import foundersData from '../../../../../packages/shared/src/data/founders.json';
@@ -63,6 +63,9 @@ function weiToEth(weiStr: string): number {
  * ```
  */
 export function useFoundersForHomePage() {
+  const startTime = useRef(performance.now());
+  const hasLogged = useRef(false);
+
   const founders = foundersData as FounderData[];
   const founderNames = founders.map((f) => f.name);
 
@@ -443,15 +446,27 @@ export function useFoundersForHomePage() {
     });
 
     // Calculate stats
-    const foundersWithAtoms = enrichedFounders.filter((f) => f.atomId).length;
     const foundersWithTotems = enrichedFounders.filter((f) => f.winningTotem).length;
     const totalProposals = Array.from(proposalCountMap.values()).reduce((sum, count) => sum + count, 0);
+
+    // Total $TRUST voted across all totems
+    let totalTrustVoted = 0;
+    topTotemsMap.forEach((totems) => {
+      totems.forEach((t) => { totalTrustVoted += t.totalTrust; });
+    });
+
+    // Unique voters across all deposits
+    const allVoters = new Set<string>();
+    walletCountsMap.forEach((wallets) => {
+      wallets.forWallets.forEach((w) => allVoters.add(w));
+      wallets.againstWallets.forEach((w) => allVoters.add(w));
+    });
 
     return {
       founders: enrichedFounders,
       stats: {
-        totalFounders: founders.length,
-        foundersWithAtoms,
+        totalTrustVoted,
+        uniqueVoters: allVoters.size,
         foundersWithTotems,
         totalProposals,
       },
@@ -462,6 +477,19 @@ export function useFoundersForHomePage() {
   // Memoize combined loading and error states (includes category loading for OFC filtering)
   const loading = atomsLoading || proposalsLoading || categoryLoading || depositsLoading;
   const error = useMemo(() => atomsError || proposalsError || null, [atomsError, proposalsError]);
+
+  // Performance measurement: log total loading time once
+  useEffect(() => {
+    if (!loading && !hasLogged.current) {
+      hasLogged.current = true;
+      const elapsed = performance.now() - startTime.current;
+      console.log(
+        `%c[PERF] useFoundersForHomePage loaded in ${elapsed.toFixed(0)}ms`,
+        'color: #00ff88; font-weight: bold; font-size: 14px'
+      );
+      console.log(`  Atoms: ${atomsLoading ? 'loading' : 'done'}, Proposals: ${proposalsLoading ? 'loading' : 'done'}, Categories: ${categoryLoading ? 'loading' : 'done'}, Deposits: ${depositsLoading ? 'loading' : 'done'}`);
+    }
+  }, [loading, atomsLoading, proposalsLoading, categoryLoading, depositsLoading]);
 
   // Memoize return value to prevent unnecessary re-renders
   return useMemo(() => ({

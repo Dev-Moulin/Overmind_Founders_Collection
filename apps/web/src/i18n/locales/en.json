@@ -288,8 +288,8 @@
     "viewAllTotems": "View all Totems",
     "results": "Results",
     "stats": {
-      "founders": "Founders",
-      "onChain": "On-chain",
+      "totalTrust": "$TRUST Voted",
+      "uniqueVoters": "Voters",
       "proposals": "Proposals",
       "withTotem": "With Totem"
     },
