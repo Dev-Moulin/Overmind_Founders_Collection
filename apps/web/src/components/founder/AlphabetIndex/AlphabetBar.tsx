@@ -82,10 +82,26 @@ const FACE_DOTS: Record<number, [string, string][]> = {
 
 function DiceDockItem({ onClick }: { onClick: () => void }) {
   const [rolling, setRolling] = useState(false);
+  const [jumping, setJumping] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
+  const rollingRef = useRef(false);
+
+  useEffect(() => { rollingRef.current = rolling; }, [rolling]);
+
+  // Jump d'attention toutes les 4.5s
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!rollingRef.current) {
+        setJumping(true);
+        setTimeout(() => setJumping(false), 750);
+      }
+    }, 4500);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleClick = () => {
     if (rolling) return;
+    setJumping(false);
     setRolling(true);
     setTimeout(() => {
       setRolling(false);
@@ -95,9 +111,9 @@ function DiceDockItem({ onClick }: { onClick: () => void }) {
 
   return (
     <div
-      className="dock-item dock-dice"
+      className={`dock-item dock-dice${jumping ? ' jumping' : ''}`}
       onClick={handleClick}
-      onMouseEnter={() => setShowTooltip(true)}
+      onMouseEnter={() => { setShowTooltip(true); setJumping(false); }}
       onMouseLeave={() => setShowTooltip(false)}
     >
       <div className="dice-scene">
